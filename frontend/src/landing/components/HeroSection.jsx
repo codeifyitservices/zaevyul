@@ -12,7 +12,7 @@ export default function HeroSection() {
         <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(12,9,7,0.68)_0%,rgba(12,9,7,0.42)_36%,rgba(12,9,7,0.08)_72%)]" />
       </div>
 
-      <div className="absolute inset-0 mx-auto flex max-w-[1200px] flex-col justify-center px-6 sm:px-10 lg:px-16">
+      <div className="absolute inset-x-0 bottom-0 top-[68px] mx-auto flex max-w-[1200px] flex-col justify-center px-6 sm:px-10 lg:px-16">
         <div className="max-w-[720px]">
           <h1 className="mb-6 font-serif text-[3.25rem] font-light leading-[1.02] text-white sm:mb-8 sm:text-[4.5rem] lg:text-[5.5rem] xl:text-[6.7rem]">
             Woven in Kashmir
