@@ -1,16 +1,19 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Trash2, Copy, Archive, Eye, MoreHorizontal, Filter } from 'lucide-react';
-import { MOCK_PRODUCTS, MOCK_CATEGORIES, formatCurrency, formatDate, PRODUCT_STATUS } from '../../../lib/mockData';
+import { Plus, Search, Trash2, Copy, Archive, Eye } from 'lucide-react';
+import { formatCurrency, formatDate } from '../../../lib/mockData';
 import PageHeader from '../../../components/PageHeader';
 import DataTable from '../../../components/DataTable';
 import StatusBadge from '../../../components/StatusBadge';
 import { DeleteDialog } from '../../../components/Modal';
 import { useToast } from '../../../context/ToastContext';
+import { api } from '../../../lib/api';
 
 export default function Products() {
   const toast = useToast();
-  const [products, setProducts] = useState(MOCK_PRODUCTS);
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
@@ -18,51 +21,74 @@ export default function Products() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
+  const fetchProductsAndCategories = async () => {
+    try {
+      setLoading(true);
+      const [prodList, catList] = await Promise.all([
+        api.products.list(),
+        api.categories.list(),
+      ]);
+      setProducts(prodList);
+      setCategories(catList);
+    } catch (err) {
+      toast('Failed to load products or categories', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProductsAndCategories();
+  }, []);
+
   const filtered = useMemo(() => products.filter(p => {
     const q = search.toLowerCase();
     if (q && !p.name.toLowerCase().includes(q) && !p.sku.toLowerCase().includes(q)) return false;
     if (statusFilter && p.status !== statusFilter) return false;
-    if (categoryFilter && p.category !== categoryFilter) return false;
+    if (categoryFilter) {
+      const pCat = p.category;
+      const pCatId = typeof pCat === 'string' ? pCat : pCat?._id || pCat?.id;
+      if (String(pCatId) !== String(categoryFilter)) return false;
+    }
     return true;
   }), [products, search, statusFilter, categoryFilter]);
 
   const handleDelete = async () => {
+    if (!deleteTarget) return;
     setDeleteLoading(true);
-    await new Promise(r => setTimeout(r, 600));
-    
-    // Mutate global array
-    const idx = MOCK_PRODUCTS.findIndex(p => p.id === deleteTarget);
-    if (idx !== -1) MOCK_PRODUCTS.splice(idx, 1);
-    
-    setProducts(ps => ps.filter(p => p.id !== deleteTarget));
-    setSelected(s => s.filter(id => id !== deleteTarget));
-    setDeleteTarget(null);
-    setDeleteLoading(false);
-    toast('Product deleted', 'success');
+    try {
+      await api.products.delete(deleteTarget);
+      setProducts(ps => ps.filter(p => (p._id || p.id) !== deleteTarget));
+      setSelected(s => s.filter(id => id !== deleteTarget));
+      toast('Product deleted', 'success');
+    } catch (err) {
+      toast('Failed to delete product', 'error');
+    } finally {
+      setDeleteTarget(null);
+      setDeleteLoading(false);
+    }
   };
 
   const handleBulkDelete = async () => {
-    await new Promise(r => setTimeout(r, 400));
-    
-    // Mutate global array
-    selected.forEach(id => {
-      const idx = MOCK_PRODUCTS.findIndex(p => p.id === id);
-      if (idx !== -1) MOCK_PRODUCTS.splice(idx, 1);
-    });
-    
-    setProducts(ps => ps.filter(p => !selected.includes(p.id)));
-    toast(`${selected.length} products deleted`, 'success');
-    setSelected([]);
+    try {
+      await api.products.bulkDelete(selected);
+      setProducts(ps => ps.filter(p => !selected.includes(p._id || p.id)));
+      toast(`${selected.length} products deleted`, 'success');
+    } catch (err) {
+      toast('Failed to delete selected products', 'error');
+    } finally {
+      setSelected([]);
+    }
   };
 
-  const handleDuplicate = (product) => {
-    const copy = { ...product, id: `prd-${Date.now()}`, name: `${product.name} (Copy)`, sku: `${product.sku}-COPY`, status: 'draft' };
-    
-    // Mutate global array
-    MOCK_PRODUCTS.unshift(copy);
-    
-    setProducts(ps => [copy, ...ps]);
-    toast('Product duplicated as draft', 'success');
+  const handleDuplicate = async (product) => {
+    try {
+      const copied = await api.products.duplicate(product._id || product.id);
+      setProducts(ps => [copied, ...ps]);
+      toast('Product duplicated as draft', 'success');
+    } catch (err) {
+      toast('Failed to duplicate product', 'error');
+    }
   };
 
   const COLUMNS = [
@@ -70,17 +96,18 @@ export default function Products() {
       key: 'name', label: 'Product', sortable: true, maxWidth: 280,
       render: (val, row) => {
         const img = row.mainImage || (row.images && row.images[0]);
+        const imgUrl = img?.url || row.img;
         return (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 36, height: 36, borderRadius: 'var(--radius-sm)', background: 'var(--color-surface-2)', border: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
-              {img?.url ? (
-                <img src={img.url} alt={val} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              {imgUrl ? (
+                <img src={imgUrl} alt={val} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               ) : (
                 <span style={{ fontSize: 10, color: 'var(--color-text-caption)', fontFamily: 'var(--font-serif)' }}>Zae</span>
               )}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <Link to={`/admin/products/${row.id}`} style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text-primary)', textDecoration: 'none' }}
+              <Link to={`/admin/products/${row._id || row.id}`} style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text-primary)', textDecoration: 'none' }}
                 onMouseOver={e => e.target.style.color = 'var(--color-walnut)'}
                 onMouseOut={e => e.target.style.color = 'var(--color-text-primary)'}
               >{val}</Link>
@@ -93,7 +120,8 @@ export default function Products() {
     {
       key: 'category', label: 'Category',
       render: (val) => {
-        const cat = MOCK_CATEGORIES.find(c => c.id === val);
+        const categoryId = typeof val === 'string' ? val : val?._id || val?.id;
+        const cat = categories.find(c => String(c._id || c.id) === String(categoryId));
         return <span style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>{cat?.name || '—'}</span>;
       }
     },
@@ -110,7 +138,7 @@ export default function Products() {
       key: 'quantity', label: 'Stock', sortable: true,
       render: (val, row) => (
         <span style={{ fontSize: 13, fontWeight: 500, color: val <= row.lowStockThreshold ? 'var(--color-saffron)' : 'var(--color-text-primary)' }}>
-          {val}
+          {val || 0}
           {val <= row.lowStockThreshold && ' ⚠'}
         </span>
       )
@@ -122,21 +150,34 @@ export default function Products() {
     },
     {
       key: 'id', label: '',
-      render: (val, row) => (
-        <div style={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-          <Link to={`/admin/products/${val}`} className="btn btn-ghost btn-sm" title="Edit">
-            <Eye size={13} />
-          </Link>
-          <button className="btn btn-ghost btn-sm" onClick={() => handleDuplicate(row)} title="Duplicate">
-            <Copy size={13} />
-          </button>
-          <button className="btn btn-ghost btn-sm" style={{ color: 'var(--color-error)' }} onClick={() => setDeleteTarget(val)} title="Delete">
-            <Trash2 size={13} />
-          </button>
-        </div>
-      )
+      render: (val, row) => {
+        const itemId = row._id || row.id;
+        return (
+          <div style={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+            <Link to={`/admin/products/${itemId}`} className="btn btn-ghost btn-sm" title="Edit">
+              <Eye size={13} />
+            </Link>
+            <button className="btn btn-ghost btn-sm" onClick={() => handleDuplicate(row)} title="Duplicate">
+              <Copy size={13} />
+            </button>
+            <button className="btn btn-ghost btn-sm" style={{ color: 'var(--color-error)' }} onClick={() => setDeleteTarget(itemId)} title="Delete">
+              <Trash2 size={13} />
+            </button>
+          </div>
+        );
+      }
     },
   ];
+
+  const activeRowKey = products[0]?._id ? "_id" : "id";
+
+  if (loading) {
+    return (
+      <div className="page flex-center py-20">
+        <div className="spinner" />
+      </div>
+    );
+  }
 
   return (
     <div className="page page-enter">
@@ -185,7 +226,7 @@ export default function Products() {
           </select>
           <select className="field-select" style={{ width: 160, height: 32 }} value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
             <option value="">All categories</option>
-            {MOCK_CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            {categories.map(c => <option key={c._id || c.id} value={c._id || c.id}>{c.name}</option>)}
           </select>
           {(search || statusFilter || categoryFilter) && (
             <button className="btn btn-ghost btn-sm" onClick={() => { setSearch(''); setStatusFilter(''); setCategoryFilter(''); }}>
@@ -203,6 +244,7 @@ export default function Products() {
           selected={selected}
           onSelect={setSelected}
           pageSize={12}
+          rowKey={activeRowKey}
           emptyTitle="No products found"
           emptyDesc="Try adjusting your search or filters"
         />

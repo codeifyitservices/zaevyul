@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Save, Trash2 } from 'lucide-react';
-import { MOCK_PRODUCTS, MOCK_CATEGORIES, formatCurrency } from '../../../lib/mockData';
+import { formatCurrency } from '../../../lib/mockData';
 import PageHeader from '../../../components/PageHeader';
 import ImageUploader from '../../../components/ImageUploader';
 import { DeleteDialog } from '../../../components/Modal';
 import StatusBadge from '../../../components/StatusBadge';
 import { useToast } from '../../../context/ToastContext';
+import { api } from '../../../lib/api';
 
 const BLANK = {
   name: '', slug: '', sku: '', description: '', shortDescription: '',
@@ -26,67 +27,86 @@ export default function ProductForm() {
   const isNew = !id || id === 'new';
 
   const [form, setForm] = useState(BLANK);
-
+  const [categories, setCategories] = useState([]);
   const [saving, setSaving] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('basic');
 
   useEffect(() => {
-    if (!isNew) {
-      const product = MOCK_PRODUCTS.find(p => p.id === id);
-      if (product) {
-        setForm({
-          ...BLANK,
-          ...product,
-          mainImage: product.mainImage || (product.images && product.images[0]) || null,
-          hoverImage: product.hoverImage || (product.images && product.images[1]) || null,
-          gallery: product.gallery || (product.images && product.images.slice(2)) || [],
-          seo: product.seo || BLANK.seo
-        });
-      } else {
-        toast('Product not found', 'error');
-        navigate('/admin/products');
+    const loadFormInfo = async () => {
+      try {
+        const catList = await api.categories.list();
+        setCategories(catList);
+
+        if (!isNew) {
+          const product = await api.products.get(id);
+          if (product) {
+            setForm({
+              ...BLANK,
+              ...product,
+              mainImage: product.mainImage || (product.images && product.images[0]) || null,
+              hoverImage: product.hoverImage || (product.images && product.images[1]) || null,
+              gallery: product.gallery || (product.images && product.images.slice(2)) || [],
+              seo: product.seo || BLANK.seo,
+              category: typeof product.category === 'string' ? product.category : product.category?._id || product.category?.id || ''
+            });
+          } else {
+            toast('Product not found', 'error');
+            navigate('/admin/products');
+          }
+        }
+      } catch (err) {
+        toast('Error loading product details', 'error');
       }
-    }
-  }, [id]);
+    };
+    loadFormInfo();
+  }, [id, isNew]);
 
   const set = (field, value) => setForm(f => ({ ...f, [field]: value }));
   const setSeo = (field, value) => setForm(f => ({ ...f, seo: { ...f.seo, [field]: value } }));
 
   const generateSlug = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
-
-
   const handleSave = async (status = form.status) => {
     if (!form.name) { toast('Product name is required', 'error'); return; }
     setSaving(true);
-    await new Promise(r => setTimeout(r, 800));
 
     const productData = {
       ...form,
-      status
+      status,
+      basePrice: Number(form.basePrice) || 0,
+      discountPrice: form.discountPrice ? Number(form.discountPrice) : null,
+      quantity: Number(form.quantity) || 0,
+      images: [
+        ...(form.mainImage ? [form.mainImage] : []),
+        ...(form.hoverImage ? [form.hoverImage] : []),
+        ...(form.gallery || [])
+      ]
     };
 
-    if (isNew) {
-      const newPrd = {
-        ...productData,
-        id: `prd-${Date.now()}`,
-        createdAt: new Date().toISOString()
-      };
-      MOCK_PRODUCTS.unshift(newPrd);
-    } else {
-      const idx = MOCK_PRODUCTS.findIndex(p => p.id === id);
-      if (idx !== -1) {
-        MOCK_PRODUCTS[idx] = {
-          ...MOCK_PRODUCTS[idx],
-          ...productData
-        };
+    try {
+      if (isNew) {
+        await api.products.create(productData);
+      } else {
+        await api.products.update(id, productData);
       }
+      toast(isNew ? 'Product created' : 'Changes saved', 'success');
+      navigate('/admin/products');
+    } catch (err) {
+      toast(err.message || 'Failed to save product', 'error');
+    } finally {
+      setSaving(false);
     }
+  };
 
-    setSaving(false);
-    toast(isNew ? 'Product created' : 'Changes saved', 'success');
-    if (isNew) navigate('/admin/products');
+  const handleDelete = async () => {
+    try {
+      await api.products.delete(id);
+      toast('Product deleted', 'success');
+      navigate('/admin/products');
+    } catch (err) {
+      toast('Failed to delete product', 'error');
+    }
   };
 
   const TABS = [
@@ -153,7 +173,7 @@ export default function ProductForm() {
                     <div className="form-row">
                       <div className="field-group">
                         <label className="field-label">Slug</label>
-                        <input className="field-input" value={form.slug} placeholder="himalayan-snow-shawl"
+                        <input className="field-input" value={form.slug} placeholder="himalayan-snow-shadow"
                           onChange={e => set('slug', e.target.value)} />
                       </div>
                       <div className="field-group">
@@ -183,10 +203,9 @@ export default function ProductForm() {
                       <label className="field-label">Category</label>
                       <select className="field-select" value={form.category} onChange={e => set('category', e.target.value)}>
                         <option value="">Select category</option>
-                        {MOCK_CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        {categories.map(c => <option key={c._id || c.id} value={c._id || c.id}>{c.name}</option>)}
                       </select>
                     </div>
-
                   </div>
                 </div>
               </div>
@@ -211,18 +230,16 @@ export default function ProductForm() {
                           onChange={e => set('discountPrice', e.target.value)} />
                       </div>
                     </div>
-
                   </div>
                 </div>
 
                 <div className="form-section">
                   <p className="form-section-title">Inventory Alerts</p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    <div className="field-group" style={{ maxWidth: 240 }}>
+                    <div className="field-group">
                       <label className="field-label">Low Stock Threshold</label>
-                      <input className="field-input" type="number" value={form.lowStockThreshold}
+                      <input className="field-input" type="number" value={form.lowStockThreshold} placeholder="5"
                         onChange={e => set('lowStockThreshold', e.target.value)} />
-                      <span className="field-hint">Alert when stock falls below this</span>
                     </div>
                   </div>
                 </div>
@@ -231,8 +248,8 @@ export default function ProductForm() {
           )}
 
           {activeTab === 'media' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 {/* Main Image */}
                 <div className="card">
                   <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -318,188 +335,6 @@ export default function ProductForm() {
                   )}
                 </div>
               </div>
-
-              {/* Multiple Variants Toggle card */}
-              <div className="card">
-                <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <input
-                      type="checkbox"
-                      id="hasVariants"
-                      checked={form.hasVariants || false}
-                      onChange={e => {
-                        const checked = e.target.checked;
-                        set('hasVariants', checked);
-                        if (checked && (!form.variants || form.variants.length === 0)) {
-                          set('variants', [
-                            {
-                              id: `var-${Date.now()}`,
-                              size: form.size || 'Standard (190×60cm)',
-                              sku: form.sku ? `${form.sku}-STD` : '',
-                              price: form.basePrice || '',
-                              quantity: form.quantity || ''
-                            }
-                          ]);
-                        }
-                      }}
-                      style={{ cursor: 'pointer', width: 15, height: 15, accentColor: 'var(--color-walnut)' }}
-                    />
-                    <label htmlFor="hasVariants" style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)', cursor: 'pointer' }}>
-                      This product has multiple variants based on size
-                    </label>
-                  </div>
-
-                  {form.hasVariants && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 10 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: 12, color: 'var(--color-text-secondary)', fontWeight: 500 }}>Manage size variants</span>
-                        <button
-                          type="button"
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => {
-                            const newIndex = (form.variants || []).length + 1;
-                            set('variants', [
-                              ...(form.variants || []),
-                              {
-                                id: `var-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-                                size: '',
-                                sku: form.sku ? `${form.sku}-${newIndex}` : '',
-                                price: form.basePrice || '',
-                                quantity: form.quantity || ''
-                              }
-                            ]);
-                          }}
-                        >
-                          <Plus size={12} /> Add Variant
-                        </button>
-                      </div>
-
-                      {/* Variants list */}
-                      {(!form.variants || form.variants.length === 0) ? (
-                        <div style={{ padding: '20px 0', textAlign: 'center', border: '1px dashed var(--color-border)', borderRadius: 4 }}>
-                          <p style={{ fontSize: 12, color: 'var(--color-text-caption)' }}>No variants added yet. Click "Add Variant" to start.</p>
-                        </div>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          {/* Headers */}
-                          <div
-                            style={{
-                              display: 'grid',
-                              gridTemplateColumns: '1.2fr 1fr 100px 80px 30px',
-                              gap: 10,
-                              padding: '0 12px',
-                              fontSize: 10,
-                              fontWeight: 600,
-                              textTransform: 'uppercase',
-                              letterSpacing: '0.05em',
-                              color: 'var(--color-text-secondary)'
-                            }}
-                          >
-                            <span>Size Label *</span>
-                            <span>SKU</span>
-                            <span>Price Override</span>
-                            <span>Quantity</span>
-                            <span></span>
-                          </div>
-                          {form.variants.map((v, index) => (
-                            <div
-                              key={v.id}
-                              style={{
-                                display: 'grid',
-                                gridTemplateColumns: '1.2fr 1fr 100px 80px 30px',
-                                gap: 10,
-                                alignItems: 'center',
-                                background: 'var(--color-surface)',
-                                border: '1px solid var(--color-border)',
-                                borderRadius: 4,
-                                padding: '8px 12px'
-                              }}
-                            >
-                              {/* Size */}
-                              <div className="field-group" style={{ margin: 0 }}>
-                                <input
-                                  className="field-input"
-                                  style={{ height: 32, fontSize: 12 }}
-                                  placeholder="e.g. Small (170×50cm)"
-                                  value={v.size}
-                                  onChange={e => {
-                                    const updated = [...form.variants];
-                                    updated[index].size = e.target.value;
-                                    set('variants', updated);
-                                  }}
-                                />
-                              </div>
-
-                              {/* SKU */}
-                              <div className="field-group" style={{ margin: 0 }}>
-                                <input
-                                  className="field-input"
-                                  style={{ height: 32, fontSize: 12 }}
-                                  placeholder="SKU"
-                                  value={v.sku}
-                                  onChange={e => {
-                                    const updated = [...form.variants];
-                                    updated[index].sku = e.target.value;
-                                    set('variants', updated);
-                                  }}
-                                />
-                              </div>
-
-                              {/* Price */}
-                              <div className="field-group" style={{ margin: 0 }}>
-                                <input
-                                  className="field-input"
-                                  type="number"
-                                  style={{ height: 32, fontSize: 12 }}
-                                  placeholder="Price (₹)"
-                                  value={v.price}
-                                  onChange={e => {
-                                    const updated = [...form.variants];
-                                    updated[index].price = e.target.value;
-                                    set('variants', updated);
-                                  }}
-                                />
-                              </div>
-
-                              {/* Quantity */}
-                              <div className="field-group" style={{ margin: 0 }}>
-                                <input
-                                  className="field-input"
-                                  type="number"
-                                  style={{ height: 32, fontSize: 12 }}
-                                  placeholder="Qty"
-                                  value={v.quantity}
-                                  onChange={e => {
-                                    const updated = [...form.variants];
-                                    updated[index].quantity = e.target.value;
-                                    set('variants', updated);
-                                  }}
-                                />
-                              </div>
-
-                              {/* Delete button */}
-                              <button
-                                type="button"
-                                className="btn btn-ghost btn-sm"
-                                style={{ color: 'var(--color-error)', padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                onClick={() => {
-                                  set('variants', form.variants.filter(x => x.id !== v.id));
-                                }}
-                              >
-                                <X size={14} />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      
-                      <span style={{ fontSize: 11, color: 'var(--color-text-caption)' }}>
-                        Note: Size options will be displayed to customers. Each variant requires a size label and a stock quantity.
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
             </div>
           )}
 
@@ -561,7 +396,7 @@ export default function ProductForm() {
               <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {[
                   ['SKU', form.sku],
-                  ['Category', MOCK_CATEGORIES.find(c => c.id === form.category)?.name || '—'],
+                  ['Category', categories.find(c => String(c._id || c.id) === String(form.category))?.name || '—'],
                   ['Stock', form.quantity],
                   ['Price', formatCurrency(form.discountPrice || form.basePrice)],
                 ].map(([k, v]) => (
@@ -579,12 +414,7 @@ export default function ProductForm() {
       <DeleteDialog
         open={deleteOpen}
         onClose={() => setDeleteOpen(false)}
-        onConfirm={() => {
-          const idx = MOCK_PRODUCTS.findIndex(p => p.id === id);
-          if (idx !== -1) MOCK_PRODUCTS.splice(idx, 1);
-          navigate('/admin/products');
-          toast('Product deleted', 'success');
-        }}
+        onConfirm={handleDelete}
         title="Delete product"
         desc="This will permanently remove the product and all its images. Orders are not affected."
       />

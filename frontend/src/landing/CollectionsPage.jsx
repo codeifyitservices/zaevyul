@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useParams } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useParams, Link } from "react-router-dom";
 import {
   Search,
   Heart,
@@ -17,81 +17,29 @@ import {
 import SiteFooter from "./components/SiteFooter";
 import Navbar from "./components/Navbar";
 
-const PRODUCTS = [
-  {
-    id: 1,
-    name: "Ivory Sozni Shawl",
-    price: "₹ 48,000",
-    img: "/storefront/prod-1.png",
-  },
-  {
-    id: 2,
-    name: "Embroidered Shawl",
-    price: "₹ 52,000",
-    img: "/storefront/cat-embroidered.png",
-  },
-  {
-    id: 3,
-    name: "Vertical Sand Stole",
-    price: "₹ 25,000",
-    img: "/storefront/prod-3.png",
-  },
-  {
-    id: 4,
-    name: "Square Midnight Shawl",
-    price: "₹ 42,000",
-    img: "/storefront/prod-2.png",
-  },
-  {
-    id: 5,
-    name: "Pashmina Stole",
-    price: "₹ 18,000",
-    img: "/storefront/cat-stoles.png",
-  },
-  {
-    id: 6,
-    name: "Sozni Embroidered Shawl",
-    price: "₹ 55,000",
-    img: "/storefront/cat-embroidered.png",
-  },
-  {
-    id: 7,
-    isSpotlight: true,
-  },
-  {
-    id: 8,
-    name: "Sand Pashmina Shawl",
-    price: "₹ 32,000",
-    img: "/storefront/cat-shawls.png",
-  },
-  {
-    id: 9,
-    name: "Kani Embroidered Shawl",
-    price: "₹ 58,000",
-    img: "/storefront/cat-embroidered.png",
-  },
-  {
-    id: 10,
-    name: "Reversible Pashmina Shawl",
-    price: "₹ 35,000",
-    img: "/storefront/prod-3.png",
-  },
-  {
-    id: 11,
-    name: "Midnight Garden Shawl",
-    price: "₹ 42,000",
-    img: "/storefront/prod-2.png",
-  },
-  {
-    id: 12,
-    name: "Pashmina Shawl",
-    price: "₹ 30,000",
-    img: "/storefront/prod-stack.png",
-  },
-];
+import { api } from "../lib/api";
+import { useCart } from "../context/CartContext";
+
+const FILTER_OPTIONS = {
+  material: ["100% Pashmina", "Silk Pashmina Blend"],
+  color: ["Ivory", "Midnight Black", "Sand Beige", "Charcoal"],
+  size: ["Standard (200x70cm)", "Large (200x100cm)"],
+  design: ["Solid / Plain", "Sozni Embroidery", "Kani Weave"],
+  price: ["Under ₹25,000", "₹25,000 - ₹50,000", "Over ₹50,000"],
+};
+
+const getProductImage = (p) => p.img || (p.images && p.images[0]?.url) || "/storefront/prod-1.png";
+const getProductPrice = (p) => {
+  if (typeof p.price === 'string') return p.price;
+  const priceVal = p.discountPrice || p.basePrice;
+  return priceVal ? `₹ ${priceVal.toLocaleString('en-IN')}` : "₹ 30,000";
+};
 
 export default function CollectionsPage() {
   const { category } = useParams();
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [viewMode, setViewMode] = useState("grid"); // grid or list
@@ -103,6 +51,163 @@ export default function CollectionsPage() {
     design: false,
     price: false,
   });
+
+  const [selectedFilters, setSelectedFilters] = useState({
+    categories: [],
+    material: [],
+    color: [],
+    size: [],
+    design: [],
+    price: [],
+  });
+  const [sortBy, setSortBy] = useState("newest");
+  const { addToCart } = useCart();
+
+  const handleFilterChange = (filterKey, value) => {
+    setSelectedFilters((prev) => {
+      const current = prev[filterKey] || [];
+      const updated = current.includes(value)
+        ? current.filter((item) => item !== value)
+        : [...current, value];
+      return { ...prev, [filterKey]: updated };
+    });
+  };
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const [prodList, catList] = await Promise.all([
+          api.products.list(),
+          api.categories.list()
+        ]);
+        setProducts(prodList);
+        setCategories(catList);
+      } catch (error) {
+        console.error("Error loading collections page data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
+
+  const activeCategoryObj = categories.find(
+    (c) => (c.slug || c.id || "").toLowerCase() === (category || "").toLowerCase()
+  );
+  
+  const filteredProducts = activeCategoryObj
+    ? products.filter((p) => {
+        const pCat = p.category;
+        if (!pCat) return false;
+        const pCatId = typeof pCat === "string" ? pCat : pCat._id || pCat.id;
+        const activeCatId = activeCategoryObj._id || activeCategoryObj.id;
+        return String(pCatId) === String(activeCatId);
+      })
+    : products;
+
+  const activeFilteredProducts = filteredProducts.filter((p) => {
+    // 1. Categories filter
+    if (selectedFilters.categories.length > 0) {
+      const pCat = p.category;
+      if (!pCat) return false;
+      const pCatId = typeof pCat === "string" ? pCat : pCat._id || pCat.id;
+      if (!selectedFilters.categories.includes(String(pCatId))) return false;
+    }
+
+    // 2. Material filter
+    if (selectedFilters.material.length > 0) {
+      if (!p.material) return false;
+      const m = p.material.toLowerCase();
+      const match = selectedFilters.material.some((mat) => {
+        if (mat === "100% Pashmina") return m.includes("100%") || m.includes("pure");
+        if (mat === "Silk Pashmina Blend") return m.includes("silk") || m.includes("blend");
+        return m.includes(mat.toLowerCase());
+      });
+      if (!match) return false;
+    }
+
+    // 3. Color filter
+    if (selectedFilters.color.length > 0) {
+      if (!p.color) return false;
+      const c = p.color.toLowerCase();
+      const match = selectedFilters.color.some((col) => {
+        if (col === "Ivory") return c.includes("ivory") || c.includes("cream") || c.includes("white");
+        if (col === "Midnight Black") return c.includes("black") || c.includes("midnight") || c.includes("dark") || c.includes("charcoal");
+        if (col === "Sand Beige") return c.includes("beige") || c.includes("sand") || c.includes("saffron") || c.includes("amber") || c.includes("brown");
+        if (col === "Charcoal") return c.includes("charcoal") || c.includes("grey") || c.includes("gray") || c.includes("stone") || c.includes("mist");
+        return c.includes(col.toLowerCase());
+      });
+      if (!match) return false;
+    }
+
+    // 4. Size filter
+    if (selectedFilters.size.length > 0) {
+      if (!p.size) return false;
+      const s = p.size.toLowerCase();
+      const match = selectedFilters.size.some((sz) => {
+        if (sz === "Standard (200x70cm)") return s.includes("standard") || s.includes("170") || s.includes("190") || s.includes("200");
+        if (sz === "Large (200x100cm)") return s.includes("large") || s.includes("king") || s.includes("240");
+        return s.includes(sz.toLowerCase());
+      });
+      if (!match) return false;
+    }
+
+    // 5. Design filter
+    if (selectedFilters.design.length > 0) {
+      const text = `${p.name} ${p.description || ""}`.toLowerCase();
+      const match = selectedFilters.design.some((ds) => {
+        if (ds === "Solid / Plain") return text.includes("solid") || text.includes("plain") || text.includes("classic") || text.includes("undyed");
+        if (ds === "Sozni Embroidery") return text.includes("embroidery") || text.includes("embroidered") || text.includes("sozni");
+        if (ds === "Kani Weave") return text.includes("kani") || text.includes("weave") || text.includes("woven") || text.includes("loomed") || text.includes("heritage");
+        return text.includes(ds.toLowerCase());
+      });
+      if (!match) return false;
+    }
+
+    // 6. Price filter
+    if (selectedFilters.price.length > 0) {
+      const price = p.discountPrice || p.basePrice || 0;
+      const match = selectedFilters.price.some((pr) => {
+        if (pr === "Under ₹25,000") return price < 25000;
+        if (pr === "₹25,000 - ₹50,000") return price >= 25000 && price <= 50000;
+        if (pr === "Over ₹50,000") return price > 50000;
+        return false;
+      });
+      if (!match) return false;
+    }
+
+    return true;
+  });
+
+  const sortedProducts = [...activeFilteredProducts];
+  if (sortBy === "price-asc") {
+    sortedProducts.sort((a, b) => {
+      const pa = a.discountPrice || a.basePrice || 0;
+      const pb = b.discountPrice || b.basePrice || 0;
+      return pa - pb;
+    });
+  } else if (sortBy === "price-desc") {
+    sortedProducts.sort((a, b) => {
+      const pa = a.discountPrice || a.basePrice || 0;
+      const pb = b.discountPrice || b.basePrice || 0;
+      return pb - pa;
+    });
+  } else if (sortBy === "newest") {
+    sortedProducts.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+  } else if (sortBy === "popular") {
+    sortedProducts.sort((a, b) => (b.quantity || 0) - (a.quantity || 0));
+  }
+
+  const filteredProductsCount = sortedProducts.length;
+
+  // Inject spotlight card at index 6 if there are enough products
+  const displayProducts = [...sortedProducts];
+  if (displayProducts.length >= 6) {
+    displayProducts.splice(6, 0, { id: "spotlight", isSpotlight: true });
+  } else {
+    displayProducts.push({ id: "spotlight", isSpotlight: true });
+  }
 
   const isAllCollections = !category;
   const pageTitle = isAllCollections ? "ALL PRODUCTS" : "PASHMINA & SHAWLS";
@@ -129,7 +234,14 @@ export default function CollectionsPage() {
   };
 
   const resetFilters = () => {
-    // Logic to clear filters can be added here
+    setSelectedFilters({
+      categories: [],
+      material: [],
+      color: [],
+      size: [],
+      design: [],
+      price: [],
+    });
   };
 
   return (
@@ -211,7 +323,7 @@ export default function CollectionsPage() {
                 Clear All
               </button>
               <span className="text-[10px] sm:text-[11px] uppercase tracking-[0.16em] text-[#8A857E] ml-8 border-l border-[#E6DED4] pl-8">
-                28 ITEMS
+                {filteredProductsCount} {filteredProductsCount === 1 ? 'ITEM' : 'ITEMS'}
               </span>
             </div>
 
@@ -219,7 +331,11 @@ export default function CollectionsPage() {
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-1.5 font-sans text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.16em] text-[#1C1916]/80">
                 <span>SORT BY:</span>
-                <select className="bg-transparent border-0 focus:outline-none focus:ring-0 text-[#1C1916] font-semibold cursor-pointer pr-4">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="bg-transparent border-0 focus:outline-none focus:ring-0 text-[#1C1916] font-semibold cursor-pointer pr-4"
+                >
                   <option value="newest">NEWEST</option>
                   <option value="price-asc">PRICE: LOW TO HIGH</option>
                   <option value="price-desc">PRICE: HIGH TO LOW</option>
@@ -268,12 +384,25 @@ export default function CollectionsPage() {
                   </button>
                   {openFilters.categories && (
                     <div className="mt-4 flex flex-col gap-3">
-                      {["Shawls", "Stoles", "Scarves", "Throws"].map((opt) => (
-                        <label key={opt} className="flex items-center gap-3 cursor-pointer text-[12px] text-[#6B6560] hover:text-[#1C1916] transition-colors">
-                          <input type="checkbox" className="rounded-[1px] border-[#E6DED4] text-[#B58A5B] focus:ring-[#B58A5B] w-3.5 h-3.5" />
-                          <span>{opt}</span>
-                        </label>
-                      ))}
+                      {(categories.length > 0 ? categories : [
+                        { _id: "shawls", name: "Shawls", slug: "shawls" },
+                        { _id: "stoles", name: "Stoles", slug: "stoles" },
+                        { _id: "scarves", name: "Scarves", slug: "scarves" },
+                        { _id: "throws", name: "Throws", slug: "throws" },
+                      ]).map((opt) => {
+                        const optId = String(opt.id || opt._id);
+                        return (
+                          <label key={optId} className="flex items-center gap-3 cursor-pointer text-[12px] text-[#6B6560] hover:text-[#1C1916] transition-colors">
+                            <input
+                              type="checkbox"
+                              checked={selectedFilters.categories.includes(optId)}
+                              onChange={() => handleFilterChange("categories", optId)}
+                              className="rounded-[1px] border-[#E6DED4] text-[#B58A5B] focus:ring-[#B58A5B] w-3.5 h-3.5"
+                            />
+                            <span>{opt.name}</span>
+                          </label>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -289,9 +418,14 @@ export default function CollectionsPage() {
                   </button>
                   {openFilters.material && (
                     <div className="mt-4 flex flex-col gap-3">
-                      {["100% Pashmina", "Silk Pashmina Blend"].map((opt) => (
+                      {FILTER_OPTIONS.material.map((opt) => (
                         <label key={opt} className="flex items-center gap-3 cursor-pointer text-[12px] text-[#6B6560] hover:text-[#1C1916]">
-                          <input type="checkbox" className="rounded-[1px] border-[#E6DED4] text-[#B58A5B] focus:ring-[#B58A5B] w-3.5 h-3.5" />
+                          <input
+                            type="checkbox"
+                            checked={selectedFilters.material.includes(opt)}
+                            onChange={() => handleFilterChange("material", opt)}
+                            className="rounded-[1px] border-[#E6DED4] text-[#B58A5B] focus:ring-[#B58A5B] w-3.5 h-3.5"
+                          />
                           <span>{opt}</span>
                         </label>
                       ))}
@@ -310,9 +444,14 @@ export default function CollectionsPage() {
                   </button>
                   {openFilters.color && (
                     <div className="mt-4 flex flex-col gap-3">
-                      {["Ivory", "Midnight Black", "Sand Beige", "Charcoal"].map((opt) => (
+                      {FILTER_OPTIONS.color.map((opt) => (
                         <label key={opt} className="flex items-center gap-3 cursor-pointer text-[12px] text-[#6B6560] hover:text-[#1C1916]">
-                          <input type="checkbox" className="rounded-[1px] border-[#E6DED4] text-[#B58A5B] focus:ring-[#B58A5B] w-3.5 h-3.5" />
+                          <input
+                            type="checkbox"
+                            checked={selectedFilters.color.includes(opt)}
+                            onChange={() => handleFilterChange("color", opt)}
+                            className="rounded-[1px] border-[#E6DED4] text-[#B58A5B] focus:ring-[#B58A5B] w-3.5 h-3.5"
+                          />
                           <span>{opt}</span>
                         </label>
                       ))}
@@ -331,9 +470,14 @@ export default function CollectionsPage() {
                   </button>
                   {openFilters.size && (
                     <div className="mt-4 flex flex-col gap-3">
-                      {["Standard (200x70cm)", "Large (200x100cm)"].map((opt) => (
+                      {FILTER_OPTIONS.size.map((opt) => (
                         <label key={opt} className="flex items-center gap-3 cursor-pointer text-[12px] text-[#6B6560] hover:text-[#1C1916]">
-                          <input type="checkbox" className="rounded-[1px] border-[#E6DED4] text-[#B58A5B] focus:ring-[#B58A5B] w-3.5 h-3.5" />
+                          <input
+                            type="checkbox"
+                            checked={selectedFilters.size.includes(opt)}
+                            onChange={() => handleFilterChange("size", opt)}
+                            className="rounded-[1px] border-[#E6DED4] text-[#B58A5B] focus:ring-[#B58A5B] w-3.5 h-3.5"
+                          />
                           <span>{opt}</span>
                         </label>
                       ))}
@@ -352,9 +496,14 @@ export default function CollectionsPage() {
                   </button>
                   {openFilters.design && (
                     <div className="mt-4 flex flex-col gap-3">
-                      {["Solid / Plain", "Sozni Embroidery", "Kani Weave"].map((opt) => (
+                      {FILTER_OPTIONS.design.map((opt) => (
                         <label key={opt} className="flex items-center gap-3 cursor-pointer text-[12px] text-[#6B6560] hover:text-[#1C1916]">
-                          <input type="checkbox" className="rounded-[1px] border-[#E6DED4] text-[#B58A5B] focus:ring-[#B58A5B] w-3.5 h-3.5" />
+                          <input
+                            type="checkbox"
+                            checked={selectedFilters.design.includes(opt)}
+                            onChange={() => handleFilterChange("design", opt)}
+                            className="rounded-[1px] border-[#E6DED4] text-[#B58A5B] focus:ring-[#B58A5B] w-3.5 h-3.5"
+                          />
                           <span>{opt}</span>
                         </label>
                       ))}
@@ -373,9 +522,14 @@ export default function CollectionsPage() {
                   </button>
                   {openFilters.price && (
                     <div className="mt-4 flex flex-col gap-3">
-                      {["Under ₹25,000", "₹25,000 - ₹50,000", "Over ₹50,000"].map((opt) => (
+                      {FILTER_OPTIONS.price.map((opt) => (
                         <label key={opt} className="flex items-center gap-3 cursor-pointer text-[12px] text-[#6B6560] hover:text-[#1C1916]">
-                          <input type="checkbox" className="rounded-[1px] border-[#E6DED4] text-[#B58A5B] focus:ring-[#B58A5B] w-3.5 h-3.5" />
+                          <input
+                            type="checkbox"
+                            checked={selectedFilters.price.includes(opt)}
+                            onChange={() => handleFilterChange("price", opt)}
+                            className="rounded-[1px] border-[#E6DED4] text-[#B58A5B] focus:ring-[#B58A5B] w-3.5 h-3.5"
+                          />
                           <span>{opt}</span>
                         </label>
                       ))}
@@ -423,22 +577,40 @@ export default function CollectionsPage() {
                             onClick={() => toggleFilter(filterKey)}
                             className="flex w-full items-center justify-between text-[10px] font-semibold tracking-[0.16em] uppercase text-[#1C1916]"
                           >
-                            <span>{filterKey}</span>
+                            <span className="capitalize">{filterKey}</span>
                             {openFilters[filterKey] ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                           </button>
                           {openFilters[filterKey] && (
                             <div className="mt-3.5 flex flex-col gap-2.5 pl-1">
                               {filterKey === "categories" &&
-                                ["Shawls", "Stoles", "Scarves", "Throws"].map((opt) => (
-                                  <label key={opt} className="flex items-center gap-3 cursor-pointer text-[12px] text-[#6B6560]">
-                                    <input type="checkbox" className="rounded-[1px] border-[#E6DED4] text-[#B58A5B] w-3.5 h-3.5" />
-                                    <span>{opt}</span>
-                                  </label>
-                                ))}
+                                (categories.length > 0 ? categories : [
+                                  { _id: "shawls", name: "Shawls", slug: "shawls" },
+                                  { _id: "stoles", name: "Stoles", slug: "stoles" },
+                                  { _id: "scarves", name: "Scarves", slug: "scarves" },
+                                  { _id: "throws", name: "Throws", slug: "throws" },
+                                ]).map((opt) => {
+                                  const optId = String(opt.id || opt._id);
+                                  return (
+                                    <label key={optId} className="flex items-center gap-3 cursor-pointer text-[12px] text-[#6B6560]">
+                                      <input
+                                        type="checkbox"
+                                        checked={selectedFilters.categories.includes(optId)}
+                                        onChange={() => handleFilterChange("categories", optId)}
+                                        className="rounded-[1px] border-[#E6DED4] text-[#B58A5B] w-3.5 h-3.5"
+                                      />
+                                      <span>{opt.name}</span>
+                                    </label>
+                                  );
+                                })}
                               {filterKey !== "categories" &&
-                                ["Option 1", "Option 2"].map((opt) => (
+                                (FILTER_OPTIONS[filterKey] || []).map((opt) => (
                                   <label key={opt} className="flex items-center gap-3 cursor-pointer text-[12px] text-[#6B6560]">
-                                    <input type="checkbox" className="rounded-[1px] border-[#E6DED4] text-[#B58A5B] w-3.5 h-3.5" />
+                                    <input
+                                      type="checkbox"
+                                      checked={selectedFilters[filterKey].includes(opt)}
+                                      onChange={() => handleFilterChange(filterKey, opt)}
+                                      className="rounded-[1px] border-[#E6DED4] text-[#B58A5B] w-3.5 h-3.5"
+                                    />
                                     <span>{opt}</span>
                                   </label>
                                 ))}
@@ -476,7 +648,7 @@ export default function CollectionsPage() {
                 className={`grid gap-x-6 gap-y-12 sm:gap-x-8 sm:gap-y-16 lg:gap-x-10
                   ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"}`}
               >
-                {PRODUCTS.map((p, idx) => {
+                {displayProducts.map((p, idx) => {
                   // Index 6 is the Artisan Spotlight Card
                   if (p.isSpotlight) {
                     return (
@@ -522,9 +694,10 @@ export default function CollectionsPage() {
 
                   // Standard Product Card
                   return (
-                    <div
-                      key={p.id}
-                      className={`group flex ${viewMode === "list" ? "flex-col sm:flex-row gap-6 items-center border-b border-[#ECE7E1] pb-8" : "flex-col"}`}
+                    <Link
+                      key={p._id || p.id}
+                      to={`/products/${p._id || p.id}`}
+                      className={`group flex text-decoration-none ${viewMode === "list" ? "flex-col sm:flex-row gap-6 items-center border-b border-[#ECE7E1] pb-8" : "flex-col"}`}
                     >
                       {/* Image container */}
                       <div
@@ -532,9 +705,14 @@ export default function CollectionsPage() {
                           ${viewMode === "list" ? "w-full sm:w-[220px] aspect-[4/5]" : "w-full aspect-[4/5]"}`}
                       >
                         <img
-                          src={p.img}
+                          src={getProductImage(p)}
                           alt={p.name}
-                          className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+                          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-in-out group-hover:opacity-0"
+                        />
+                        <img
+                          src={p.images?.[1]?.url || "/storefront/prod-2.png"}
+                          alt={`${p.name} hover detail`}
+                          className="absolute inset-0 w-full h-full object-cover transition-all duration-700 ease-in-out opacity-0 scale-[1.02] group-hover:opacity-100 group-hover:scale-100"
                         />
                       </div>
 
@@ -542,14 +720,19 @@ export default function CollectionsPage() {
                       <div className={`flex-1 w-full ${viewMode === "list" ? "pt-2" : "mt-4"}`}>
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex flex-col">
-                            <h3 className="font-serif text-[15px] sm:text-[16px] font-normal leading-snug text-[#1C1916]">
+                            <h3 className="font-serif text-[15px] sm:text-[16px] font-normal leading-snug text-[#1C1916] group-hover:text-[#B58A5B] transition-colors duration-200">
                               {p.name}
                             </h3>
                             <span className="font-sans text-[12px] sm:text-[13px] font-normal text-[#1C1916] mt-1.5">
-                              {p.price}
+                              {getProductPrice(p)}
                             </span>
                           </div>
                           <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              addToCart(p, 1);
+                            }}
                             aria-label={`Add ${p.name} to bag`}
                             className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#1C1916]/20 text-[#1C1916] transition-colors duration-200 hover:border-[#1C1916] hover:bg-[#1C1916] hover:text-white sm:h-8 sm:w-8 mt-0.5"
                           >
@@ -557,7 +740,7 @@ export default function CollectionsPage() {
                           </button>
                         </div>
                       </div>
-                    </div>
+                    </Link>
                   );
                 })}
               </div>

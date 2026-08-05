@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Save } from 'lucide-react';
 import { MOCK_SETTINGS } from '../../lib/mockData';
 import PageHeader from '../../components/PageHeader';
 import { useToast } from '../../context/ToastContext';
+import { api } from '../../lib/api';
 
 const SECTIONS = ['General', 'Currency & Tax', 'Shipping', 'Payment', 'Social'];
 
@@ -10,18 +11,55 @@ export default function Settings() {
   const toast = useToast();
   const [settings, setSettings] = useState(MOCK_SETTINGS);
   const [activeSection, setActiveSection] = useState('General');
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   const set = (k, v) => setSettings(s => ({ ...s, [k]: v }));
   const setSocial = (k, v) => setSettings(s => ({ ...s, socialLinks: { ...s.socialLinks, [k]: v } }));
   const setPayment = (gw, k, v) => setSettings(s => ({ ...s, paymentGateways: { ...s.paymentGateways, [gw]: { ...s.paymentGateways[gw], [k]: v } } }));
 
+  useEffect(() => {
+    let active = true;
+    const fetchSettings = async () => {
+      try {
+        setLoading(true);
+        const data = await api.settings.get();
+        if (active) {
+          setSettings(data || MOCK_SETTINGS);
+        }
+      } catch (err) {
+        toast(err.message || 'Failed to load settings', 'error');
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
+    fetchSettings();
+    return () => {
+      active = false;
+    };
+  }, [toast]);
+
   const handleSave = async () => {
     setSaving(true);
-    await new Promise(r => setTimeout(r, 700));
-    setSaving(false);
-    toast('Settings saved', 'success');
+    try {
+      await api.settings.update(settings);
+      toast('Settings saved successfully', 'success');
+    } catch (err) {
+      toast(err.message || 'Failed to save settings', 'error');
+    } finally {
+      setSaving(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="page flex-center py-20">
+        <div className="spinner" />
+      </div>
+    );
+  }
 
   return (
     <div className="page page-enter">

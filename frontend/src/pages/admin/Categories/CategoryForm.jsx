@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Save, Trash2 } from 'lucide-react';
-import { MOCK_CATEGORIES } from '../../../lib/mockData';
 import PageHeader from '../../../components/PageHeader';
 import ImageUploader from '../../../components/ImageUploader';
 import { DeleteDialog } from '../../../components/Modal';
 import StatusBadge from '../../../components/StatusBadge';
 import { useToast } from '../../../context/ToastContext';
+import { api } from '../../../lib/api';
 
 const BLANK = {
   name: '',
@@ -29,21 +29,28 @@ export default function CategoryForm() {
   const [activeTab, setActiveTab] = useState('basic');
 
   useEffect(() => {
-    if (!isNew) {
-      const category = MOCK_CATEGORIES.find(c => c.id === id);
-      if (category) {
-        setForm({
-          ...BLANK,
-          ...category,
-          mainImage: category.mainImage || null,
-          seo: category.seo || { ...BLANK.seo }
-        });
-      } else {
-        toast('Category not found', 'error');
-        navigate('/admin/categories');
+    const loadCategory = async () => {
+      if (!isNew) {
+        try {
+          const category = await api.categories.get(id);
+          if (category) {
+            setForm({
+              ...BLANK,
+              ...category,
+              mainImage: category.mainImage || null,
+              seo: category.seo || { ...BLANK.seo }
+            });
+          } else {
+            toast('Category not found', 'error');
+            navigate('/admin/categories');
+          }
+        } catch (err) {
+          toast('Error loading category details', 'error');
+        }
       }
-    }
-  }, [id]);
+    };
+    loadCategory();
+  }, [id, isNew]);
 
   const set = (field, value) => setForm(f => ({ ...f, [field]: value }));
   const setSeo = (field, value) => setForm(f => ({ ...f, seo: { ...f.seo, [field]: value } }));
@@ -53,33 +60,35 @@ export default function CategoryForm() {
   const handleSave = async (status = form.status) => {
     if (!form.name) { toast('Category name is required', 'error'); return; }
     setSaving(true);
-    await new Promise(r => setTimeout(r, 600));
 
     const categoryData = {
       ...form,
       status
     };
 
-    if (isNew) {
-      const newCat = {
-        ...categoryData,
-        id: `cat-${Date.now()}`,
-        productCount: 0
-      };
-      MOCK_CATEGORIES.push(newCat);
-    } else {
-      const idx = MOCK_CATEGORIES.findIndex(c => c.id === id);
-      if (idx !== -1) {
-        MOCK_CATEGORIES[idx] = {
-          ...MOCK_CATEGORIES[idx],
-          ...categoryData
-        };
+    try {
+      if (isNew) {
+        await api.categories.create(categoryData);
+      } else {
+        await api.categories.update(id, categoryData);
       }
+      toast(isNew ? 'Category created' : 'Changes saved', 'success');
+      navigate('/admin/categories');
+    } catch (err) {
+      toast(err.message || 'Failed to save category', 'error');
+    } finally {
+      setSaving(false);
     }
+  };
 
-    setSaving(false);
-    toast(isNew ? 'Category created' : 'Changes saved', 'success');
-    navigate('/admin/categories');
+  const handleDelete = async () => {
+    try {
+      await api.categories.delete(id);
+      toast('Category deleted', 'success');
+      navigate('/admin/categories');
+    } catch (err) {
+      toast('Failed to delete category', 'error');
+    }
   };
 
   const TABS = [
@@ -114,7 +123,7 @@ export default function CategoryForm() {
       {!isNew && (
         <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
           <StatusBadge status={form.status} />
-          <span style={{ fontSize: 11, color: 'var(--color-text-caption)' }}>ID: {form.id}</span>
+          <span style={{ fontSize: 11, color: 'var(--color-text-caption)' }}>ID: {form._id || form.id}</span>
         </div>
       )}
 
@@ -249,12 +258,7 @@ export default function CategoryForm() {
       <DeleteDialog
         open={deleteOpen}
         onClose={() => setDeleteOpen(false)}
-        onConfirm={() => {
-          const idx = MOCK_CATEGORIES.findIndex(c => c.id === id);
-          if (idx !== -1) MOCK_CATEGORIES.splice(idx, 1);
-          navigate('/admin/categories');
-          toast('Category deleted', 'success');
-        }}
+        onConfirm={handleDelete}
         title="Delete category"
         desc="This will permanently remove the category. Products in this category will become uncategorised. This action cannot be undone."
       />

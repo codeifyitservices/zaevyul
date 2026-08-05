@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Heart, Menu, Search, ShoppingBag, User, X } from "lucide-react";
+import { api } from "../../lib/api";
+import { useCart } from "../../context/CartContext";
 
 const NAV_LINKS = [
   "New arrivals",
@@ -12,15 +14,33 @@ const NAV_LINKS = [
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [settings, setSettings] = useState(null);
+  const { setIsOpen: setCartOpen, totals, isBadgeAnimated } = useCart();
+
+  useEffect(() => {
+    let active = true;
+    const fetchSettings = async () => {
+      try {
+        const data = await api.settings.get();
+        if (active) setSettings(data);
+      } catch (err) {
+        console.error("Error loading settings in Navbar:", err);
+      }
+    };
+    fetchSettings();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <>
       <nav className="fixed top-0 left-0 right-0 z-50 flex h-[68px] items-center justify-between border-b border-[#E7DED3] bg-[#FAF8F5]/92 px-5 backdrop-blur-xl sm:px-8 lg:px-14 xl:px-18">
-        <div className="hidden items-center gap-6 lg:flex xl:gap-11">
+        <div className="hidden items-center lg:flex gap-6">
           {NAV_LINKS.map((link) => (
             <a
               key={link}
-              href={link === "Shop" ? "/collections" : "#"}
+              href="/collections"
               className="font-sans text-[10px] font-semibold uppercase tracking-[0.16em] text-[#1C1916]/64 transition-colors duration-200 hover:text-[#1C1916]"
             >
               {link}
@@ -38,9 +58,9 @@ export default function Navbar() {
 
         <a
           href="/"
-          className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap font-serif text-[18px] uppercase tracking-[0.32em] text-[#1C1916]"
+          className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap font-serif text-[20px] uppercase tracking-[0.32em] text-[#1C1916]"
         >
-          ZAEVYUL
+          {settings?.storeName?.toUpperCase() || "ZAEVYUL"}
         </a>
 
         <div className="flex items-center gap-3 text-[#1C1916]/70 sm:gap-5">
@@ -64,11 +84,16 @@ export default function Navbar() {
           </button>
           <button
             aria-label="Bag"
+            onClick={() => setCartOpen(true)}
             className="relative transition-colors hover:text-[#1C1916]"
           >
             <ShoppingBag size={17} strokeWidth={1.4} />
-            <span className="absolute -right-1.5 -top-1 flex h-[13px] w-[13px] items-center justify-center rounded-full bg-[#B58A5B] text-[8px] font-bold leading-none text-white">
-              0
+            <span
+              className={`absolute -right-1.5 -top-1 flex h-[13px] w-[13px] items-center justify-center rounded-full bg-[#B58A5B] text-[8px] font-bold leading-none text-white transition-all duration-300 ${
+                isBadgeAnimated ? "scale-[1.3] bg-[#825433]" : ""
+              }`}
+            >
+              {totals.itemCount}
             </span>
           </button>
         </div>
@@ -78,7 +103,7 @@ export default function Navbar() {
         <div className="fixed inset-0 z-[200] flex flex-col bg-[#FAF8F5]">
           <div className="flex h-[68px] items-center justify-between border-b border-[#E8E1D9] px-6 sm:px-8">
             <span className="font-serif text-[18px] uppercase tracking-[0.28em] text-[#1C1916]">
-              ZAEVYUL
+              {settings?.storeName?.toUpperCase() || "ZAEVYUL"}
             </span>
             <button
               aria-label="Close menu"

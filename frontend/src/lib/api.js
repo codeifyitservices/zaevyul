@@ -145,7 +145,12 @@ export const api = {
         return res.product;
       } catch (err) {
         await sleep(200);
-        const product = db.products.find((p) => p.id === id);
+        const product = db.products.find(
+          (p) =>
+            p.id === id ||
+            p._id === id ||
+            String(p.id).replace(/^prd-0*/, "") === String(id),
+        );
         if (!product) throw new Error("Product not found");
         return product;
       }

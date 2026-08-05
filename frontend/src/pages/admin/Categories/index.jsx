@@ -1,80 +1,73 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Search, Trash2, Pencil } from 'lucide-react';
-import { MOCK_CATEGORIES, MOCK_PRODUCTS } from '../../../lib/mockData';
 import PageHeader from '../../../components/PageHeader';
 import DataTable from '../../../components/DataTable';
-import StatusBadge from '../../../components/StatusBadge';
 import { DeleteDialog } from '../../../components/Modal';
 import { useToast } from '../../../context/ToastContext';
+import { api } from '../../../lib/api';
 
 export default function CategoriesList() {
   const toast = useToast();
-  const [categories, setCategories] = useState(MOCK_CATEGORIES);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [selected, setSelected] = useState([]);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  // Compute dynamic product count for each category from MOCK_PRODUCTS
-  const categoriesWithCounts = useMemo(() => {
-    return categories.map(cat => ({
-      ...cat,
-      productCount: MOCK_PRODUCTS.filter(p => p.category === cat.id).length
-    }));
-  }, [categories]);
+  const fetchCategories = async () => {
+    try {
+      setLoading(true);
+      const catList = await api.categories.list();
+      setCategories(catList);
+    } catch (err) {
+      toast('Failed to load categories', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
 
   const filtered = useMemo(() => {
-    return categoriesWithCounts.filter(c => {
+    return categories.filter(c => {
       const q = search.toLowerCase();
       if (q && !c.name.toLowerCase().includes(q) && !c.slug.toLowerCase().includes(q)) return false;
       if (statusFilter && c.status !== statusFilter) return false;
       return true;
     });
-  }, [categoriesWithCounts, search, statusFilter]);
+  }, [categories, search, statusFilter]);
 
   const handleDelete = async () => {
+    if (!deleteTarget) return;
     setDeleteLoading(true);
-    await new Promise(r => setTimeout(r, 600));
-
-    // Update global MOCK_CATEGORIES
-    const idx = MOCK_CATEGORIES.findIndex(c => c.id === deleteTarget);
-    if (idx !== -1) MOCK_CATEGORIES.splice(idx, 1);
-
-    // Detach deleted category from products in MOCK_PRODUCTS
-    MOCK_PRODUCTS.forEach(p => {
-      if (p.category === deleteTarget) {
-        p.category = null;
-      }
-    });
-
-    setCategories(cs => cs.filter(c => c.id !== deleteTarget));
-    setSelected(s => s.filter(id => id !== deleteTarget));
-    setDeleteTarget(null);
-    setDeleteLoading(false);
-    toast('Category deleted', 'success');
+    try {
+      await api.categories.delete(deleteTarget);
+      setCategories(cs => cs.filter(c => (c._id || c.id) !== deleteTarget));
+      setSelected(s => s.filter(id => id !== deleteTarget));
+      toast('Category deleted', 'success');
+    } catch (err) {
+      toast('Failed to delete category', 'error');
+    } finally {
+      setDeleteTarget(null);
+      setDeleteLoading(false);
+    }
   };
 
   const handleBulkDelete = async () => {
-    await new Promise(r => setTimeout(r, 400));
-
-    // Update global MOCK_CATEGORIES
-    selected.forEach(id => {
-      const idx = MOCK_CATEGORIES.findIndex(c => c.id === id);
-      if (idx !== -1) MOCK_CATEGORIES.splice(idx, 1);
-
-      // Detach category from products in MOCK_PRODUCTS
-      MOCK_PRODUCTS.forEach(p => {
-        if (p.category === id) {
-          p.category = null;
-        }
-      });
-    });
-
-    setCategories(cs => cs.filter(c => !selected.includes(c.id)));
-    toast(`${selected.length} categories deleted`, 'success');
-    setSelected([]);
+    try {
+      await Promise.all(selected.map(id => api.categories.delete(id)));
+      setCategories(cs => cs.filter(c => !selected.includes(c._id || c.id)));
+      toast(`${selected.length} categories deleted`, 'success');
+    } catch (err) {
+      toast('Failed to delete selected categories', 'error');
+    } finally {
+      setSelected([]);
+    }
   };
 
   const COLUMNS = [
@@ -82,17 +75,18 @@ export default function CategoriesList() {
       key: 'name', label: 'Category', sortable: true, maxWidth: 280,
       render: (val, row) => {
         const img = row.mainImage;
+        const imgUrl = img?.url || row.img;
         return (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 36, height: 36, borderRadius: 'var(--radius-sm)', background: 'var(--color-surface-2)', border: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
-              {img?.url ? (
-                <img src={img.url} alt={val} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              {imgUrl ? (
+                <img src={imgUrl} alt={val} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               ) : (
                 <span style={{ fontSize: 10, color: 'var(--color-text-caption)', fontFamily: 'var(--font-serif)' }}>Zae</span>
               )}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <Link to={`/admin/categories/${row.id}`} style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text-primary)', textDecoration: 'none' }}
+              <Link to={`/admin/categories/${row._id || row.id}`} style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text-primary)', textDecoration: 'none' }}
                 onMouseOver={e => e.target.style.color = 'var(--color-walnut)'}
                 onMouseOut={e => e.target.style.color = 'var(--color-text-primary)'}
               >{val}</Link>
@@ -101,37 +95,38 @@ export default function CategoriesList() {
         );
       }
     },
-    {
-      key: 'slug', label: 'Slug', sortable: true,
-      render: (val) => <span style={{ fontSize: 12, color: 'var(--color-text-caption)', fontFamily: 'monospace' }}>{val}</span>
-    },
-    {
-      key: 'description', label: 'Description', maxWidth: 220,
-      render: (val) => (
-        <span style={{ fontSize: 12, color: 'var(--color-text-secondary)', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 220 }}>
-          {val || '—'}
-        </span>
-      )
-    },
+    { key: 'slug', label: 'URL Slug', sortable: true },
     {
       key: 'productCount', label: 'Products', sortable: true,
-      render: (val) => <span style={{ fontSize: 12 }}>{val}</span>
+      render: val => <span style={{ fontSize: 13, fontWeight: 500 }}>{val || 0}</span>
     },
-    { key: 'status', label: 'Status', render: val => <StatusBadge status={val} /> },
     {
       key: 'id', label: '',
-      render: (val) => (
-        <div style={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-          <Link to={`/admin/categories/${val}`} className="btn btn-ghost btn-sm" title="Edit">
-            <Pencil size={13} />
-          </Link>
-          <button className="btn btn-ghost btn-sm" style={{ color: 'var(--color-error)' }} onClick={() => setDeleteTarget(val)} title="Delete">
-            <Trash2 size={13} />
-          </button>
-        </div>
-      )
+      render: (val, row) => {
+        const itemId = row._id || row.id;
+        return (
+          <div style={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+            <Link to={`/admin/categories/${itemId}`} className="btn btn-ghost btn-sm" title="Edit">
+              <Pencil size={13} />
+            </Link>
+            <button className="btn btn-ghost btn-sm" style={{ color: 'var(--color-error)' }} onClick={() => setDeleteTarget(itemId)} title="Delete">
+              <Trash2 size={13} />
+            </button>
+          </div>
+        );
+      }
     },
   ];
+
+  const activeRowKey = categories[0]?._id ? "_id" : "id";
+
+  if (loading) {
+    return (
+      <div className="page flex-center py-20">
+        <div className="spinner" />
+      </div>
+    );
+  }
 
   return (
     <div className="page page-enter">
@@ -159,7 +154,7 @@ export default function CategoriesList() {
         </div>
       )}
 
-      {/* Filters */}
+      {/* Table & Filters */}
       <div className="table-wrap">
         <div className="table-toolbar">
           <div style={{ position: 'relative', flex: 1, maxWidth: 280 }}>
@@ -193,6 +188,7 @@ export default function CategoriesList() {
           selected={selected}
           onSelect={setSelected}
           pageSize={12}
+          rowKey={activeRowKey}
           emptyTitle="No categories found"
           emptyDesc="Try adjusting your search or filters"
         />
@@ -204,7 +200,7 @@ export default function CategoriesList() {
         onConfirm={handleDelete}
         loading={deleteLoading}
         title="Delete category"
-        desc="Products in this category will become uncategorised. This action cannot be undone."
+        desc="This category will be permanently removed. Products associated with this category will be detached and set to uncategorised."
       />
     </div>
   );

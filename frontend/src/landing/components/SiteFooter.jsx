@@ -1,4 +1,6 @@
+import { useState, useEffect } from "react";
 import { ArrowRight } from "lucide-react";
+import { api } from "../../lib/api";
 
 const COLUMNS = {
   Explore: ["The Craft", "Our Story"],
@@ -6,6 +8,22 @@ const COLUMNS = {
 };
 
 export default function SiteFooter() {
+  const [settings, setSettings] = useState(null);
+
+  useEffect(() => {
+    let active = true;
+    const fetchSettings = async () => {
+      try {
+        const data = await api.settings.get();
+        if (active) setSettings(data);
+      } catch (err) {
+        console.error("Error loading settings in SiteFooter:", err);
+      }
+    };
+    fetchSettings();
+    return () => { active = false; };
+  }, []);
+
   return (
     <footer className="bg-[#F5EFE7] font-sans text-[#1C1916]">
       <div className="mx-auto max-w-[1200px] px-6 sm:px-10 lg:px-16 w-full pt-16 pb-12 sm:pt-20 sm:pb-16 grid grid-cols-1 gap-14 sm:grid-cols-2 sm:gap-x-14 sm:gap-y-16 lg:grid-cols-[1.15fr_0.8fr_1fr_1.15fr] lg:gap-x-20">
@@ -14,10 +32,10 @@ export default function SiteFooter() {
             href="/"
             className="mb-4 block font-serif text-[26px] font-light text-[#1C1916] sm:text-[30px]"
           >
-            Zaevyul
+            {settings?.storeName || "Zaevyul"}
           </a>
           <p className="max-w-[220px] text-[13px] font-light leading-[1.7] text-[#6B6560]">
-            Timeless. Thoughtful. Yours.
+            {settings?.tagline || "Timeless. Thoughtful. Yours."}
           </p>
         </div>
 
@@ -69,7 +87,7 @@ export default function SiteFooter() {
       </div>
       <div className="mx-auto max-w-[1200px] px-6 sm:px-10 lg:px-16 w-full py-6 border-t border-[#E1D8CD]">
         <p className="text-[11px] leading-none text-[#8A857E]">
-          (c) {new Date().getFullYear()} Zaevyul. Hand-loomed in Kashmir.
+          (c) {new Date().getFullYear()} {settings?.storeName || "Zaevyul"}. Hand-loomed in Kashmir.
         </p>
       </div>
     </footer>

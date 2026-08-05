@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
-import '../admin.css';
+import '../pages/admin/admin.css';
 
 
 export default function AdminShell() {
