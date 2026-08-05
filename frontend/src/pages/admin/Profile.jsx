@@ -1,0 +1,159 @@
+import { useState } from 'react';
+import { Save, Shield, Clock } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { MOCK_ACTIVITY } from '../../lib/mockData';
+import PageHeader from '../../components/PageHeader';
+import { useToast } from '../../context/ToastContext';
+
+export default function Profile() {
+  const { user } = useAuth();
+  const toast = useToast();
+  const [profile, setProfile] = useState({ name: user?.name || '', email: user?.email || '' });
+  const [passwords, setPasswords] = useState({ current: '', next: '', confirm: '' });
+  const [saving, setSaving] = useState(false);
+  const [savingPw, setSavingPw] = useState(false);
+  const [activeTab, setActiveTab] = useState('profile');
+
+  const saveProfile = async () => {
+    setSaving(true);
+    await new Promise(r => setTimeout(r, 600));
+    setSaving(false);
+    toast('Profile updated', 'success');
+  };
+
+  const savePassword = async () => {
+    if (!passwords.current) { toast('Current password is required', 'error'); return; }
+    if (passwords.next.length < 8) { toast('Password must be at least 8 characters', 'error'); return; }
+    if (passwords.next !== passwords.confirm) { toast('Passwords do not match', 'error'); return; }
+    setSavingPw(true);
+    await new Promise(r => setTimeout(r, 700));
+    setSavingPw(false);
+    setPasswords({ current: '', next: '', confirm: '' });
+    toast('Password changed successfully', 'success');
+  };
+
+  return (
+    <div className="page page-enter">
+      <PageHeader title="Profile" crumbs={[{ label: 'Profile' }]} />
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 260px', gap: 20, alignItems: 'start' }}>
+        <div>
+          {/* Tabs */}
+          <div className="tabs" style={{ marginBottom: 20 }}>
+            {['profile', 'security', 'activity'].map(t => (
+              <button key={t} className={`tab ${activeTab === t ? 'active' : ''}`} onClick={() => setActiveTab(t)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', textTransform: 'capitalize' }}>
+                {t}
+              </button>
+            ))}
+          </div>
+
+          {activeTab === 'profile' && (
+            <div className="card">
+              <div className="card-header"><span className="card-title">Personal Information</span></div>
+              <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div className="form-row">
+                  <div className="field-group">
+                    <label className="field-label">Full Name</label>
+                    <input className="field-input" value={profile.name} onChange={e => setProfile(p => ({ ...p, name: e.target.value }))} />
+                  </div>
+                  <div className="field-group">
+                    <label className="field-label">Email</label>
+                    <input className="field-input" type="email" value={profile.email} onChange={e => setProfile(p => ({ ...p, email: e.target.value }))} />
+                  </div>
+                </div>
+                <div style={{ paddingTop: 8, display: 'flex', justifyContent: 'flex-end' }}>
+                  <button className="btn btn-primary" onClick={saveProfile} disabled={saving}>
+                    <Save size={13} /> {saving ? 'Saving…' : 'Save changes'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'security' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div className="card">
+                <div className="card-header"><span className="card-title">Change Password</span></div>
+                <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <div className="field-group">
+                    <label className="field-label">Current Password</label>
+                    <input className="field-input" type="password" value={passwords.current}
+                      onChange={e => setPasswords(p => ({ ...p, current: e.target.value }))} />
+                  </div>
+                  <div className="form-row">
+                    <div className="field-group">
+                      <label className="field-label">New Password</label>
+                      <input className="field-input" type="password" value={passwords.next}
+                        onChange={e => setPasswords(p => ({ ...p, next: e.target.value }))} />
+                    </div>
+                    <div className="field-group">
+                      <label className="field-label">Confirm Password</label>
+                      <input className="field-input" type="password" value={passwords.confirm}
+                        onChange={e => setPasswords(p => ({ ...p, confirm: e.target.value }))} />
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <button className="btn btn-primary" onClick={savePassword} disabled={savingPw}>
+                      {savingPw ? 'Changing…' : 'Change Password'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="card">
+                <div className="card-header">
+                  <span className="card-title">Two-Factor Authentication</span>
+                  <span className="badge badge-gray">Not configured</span>
+                </div>
+                <div className="card-body">
+                  <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', lineHeight: 1.6, marginBottom: 12 }}>
+                    Add an extra layer of security to your account. You will be prompted for a code when signing in.
+                  </p>
+                  <button className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Shield size={13} /> Set up 2FA
+                  </button>
+                  <p style={{ fontSize: 11, color: 'var(--color-text-caption)', marginTop: 8 }}>2FA integration coming soon.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'activity' && (
+            <div className="card">
+              <div className="card-header">
+                <span className="card-title">Recent Activity</span>
+                <Clock size={14} style={{ color: 'var(--color-text-caption)' }} />
+              </div>
+              <div style={{ padding: '4px 20px' }}>
+                {MOCK_ACTIVITY.map(a => (
+                  <div key={a.id} className="activity-item">
+                    <div className={`activity-dot ${a.dot}`} />
+                    <div>
+                      <p style={{ fontSize: 12, color: 'var(--color-text-primary)', lineHeight: 1.5 }}>{a.message}</p>
+                      <p style={{ fontSize: 11, color: 'var(--color-text-caption)', marginTop: 2 }}>{a.time}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Profile card */}
+        <div className="card">
+          <div className="card-body" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, textAlign: 'center' }}>
+            <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--color-cream)', border: '2px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 600, color: 'var(--color-walnut)', fontFamily: 'var(--font-serif)' }}>
+              {user?.initials}
+            </div>
+            <div>
+              <p style={{ fontSize: 15, fontWeight: 500, color: 'var(--color-text-primary)' }}>{user?.name}</p>
+              <p style={{ fontSize: 12, color: 'var(--color-text-caption)', marginTop: 2 }}>{user?.email}</p>
+            </div>
+            <span className="role-badge">{user?.role?.replace('_', ' ')}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

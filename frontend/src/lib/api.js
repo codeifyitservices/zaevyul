@@ -1,0 +1,744 @@
+import * as mock from "./mockData";
+
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api/admin";
+const USE_MOCK = import.meta.env.VITE_USE_MOCK_API === "true" || false;
+
+// Initialize in-memory collections for fallback mock data
+const loadCollection = (key, defaultData) => {
+  const stored = localStorage.getItem(`zae_db_${key}`);
+  if (stored) {
+    try {
+      return JSON.parse(stored);
+    } catch {
+      /* ignore */
+    }
+  }
+  localStorage.setItem(`zae_db_${key}`, JSON.stringify(defaultData));
+  return [...defaultData];
+};
+
+const saveCollection = (key, data) => {
+  localStorage.setItem(`zae_db_${key}`, JSON.stringify(data));
+};
+
+let db = {
+  products: loadCollection("products", mock.MOCK_PRODUCTS),
+  categories: loadCollection("categories", mock.MOCK_CATEGORIES),
+  orders: loadCollection("orders", mock.MOCK_ORDERS),
+  customers: loadCollection("customers", mock.MOCK_CUSTOMERS),
+  blogs: loadCollection("blogs", mock.MOCK_BLOGS),
+  coupons: loadCollection("coupons", mock.MOCK_COUPONS),
+  newsletter: loadCollection("newsletter", mock.MOCK_NEWSLETTER),
+  settings: loadCollection("settings", [mock.MOCK_SETTINGS])[0],
+};
+
+const sleep = (ms = 400) => new Promise((r) => setTimeout(r, ms));
+
+// Helper for fetch calls
+const request = async (url, options = {}) => {
+  if (USE_MOCK) throw new Error("Mock mode enabled");
+
+  options.headers = {
+    "Content-Type": "application/json",
+    ...options.headers,
+  };
+
+  // Set credentials for cookies
+  options.credentials = "include";
+
+  // Check localStorage token as a fallback header
+  const token = sessionStorage.getItem("zae_jwt");
+  if (token) {
+    options.headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`${BASE_URL}${url}`, options);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "API request failed");
+  return data;
+};
+
+export const api = {
+  // Auth
+  auth: {
+    login: async (email, password) => {
+      try {
+        const res = await request("/auth/login", {
+          method: "POST",
+          body: JSON.stringify({ email, password }),
+        });
+        if (res.token) sessionStorage.setItem("zae_jwt", res.token);
+        return res.user;
+      } catch (err) {
+        if (!USE_MOCK && !err.message.includes("Failed to fetch")) throw err;
+        // Mock fallback
+        await sleep(600);
+        const admin = mock.MOCK_ADMINS.find(
+          (a) => a.email === email && a.password === password,
+        );
+        if (!admin) throw new Error("Invalid email or password");
+        return {
+          id: admin.id,
+          name: admin.name,
+          email: admin.email,
+          role: admin.role,
+          initials: admin.initials,
+        };
+      }
+    },
+    logout: async () => {
+      try {
+        await request("/auth/logout", { method: "POST" });
+      } catch {
+        /* ignore */
+      }
+      sessionStorage.removeItem("zae_jwt");
+    },
+    me: async () => {
+      try {
+        const res = await request("/auth/me");
+        return res.user;
+      } catch (err) {
+        // If mock mode is active or backend is offline, fallback to local sessionStorage
+        if (USE_MOCK || err.message.includes("Failed to fetch")) {
+          try {
+            const stored = sessionStorage.getItem("zae_admin");
+            return stored ? JSON.parse(stored) : null;
+          } catch {
+            return null;
+          }
+        }
+        // For actual authentication errors (e.g. 401 Unauthorized), return null to trigger logout
+        return null;
+      }
+    },
+  },
+
+  // Products
+  products: {
+    list: async (filters = {}) => {
+      try {
+        const query = new URLSearchParams(filters).toString();
+        const res = await request(`/products?${query}`);
+        return res.products;
+      } catch (err) {
+        await sleep(300);
+        let list = [...db.products];
+        if (filters.status)
+          list = list.filter((p) => p.status === filters.status);
+        if (filters.category)
+          list = list.filter((p) => p.category === filters.category);
+        if (filters.search) {
+          const q = filters.search.toLowerCase();
+          list = list.filter(
+            (p) =>
+              p.name.toLowerCase().includes(q) ||
+              p.sku.toLowerCase().includes(q),
+          );
+        }
+        return list;
+      }
+    },
+    get: async (id) => {
+      try {
+        const res = await request(`/products/${id}`);
+        return res.product;
+      } catch (err) {
+        await sleep(200);
+        const product = db.products.find((p) => p.id === id);
+        if (!product) throw new Error("Product not found");
+        return product;
+      }
+    },
+    create: async (data) => {
+      try {
+        const res = await request("/products", {
+          method: "POST",
+          body: JSON.stringify(data),
+        });
+        return res.product;
+      } catch (err) {
+        await sleep(500);
+        const product = {
+          ...data,
+          id: `prd-${Date.now()}`,
+          createdAt: new Date().toISOString(),
+        };
+        db.products = [product, ...db.products];
+        saveCollection("products", db.products);
+        return product;
+      }
+    },
+    update: async (id, data) => {
+      try {
+        const res = await request(`/products/${id}`, {
+          method: "PUT",
+          body: JSON.stringify(data),
+        });
+        return res.product;
+      } catch (err) {
+        await sleep(400);
+        db.products = db.products.map((p) =>
+          p.id === id ? { ...p, ...data } : p,
+        );
+        saveCollection("products", db.products);
+        return db.products.find((p) => p.id === id);
+      }
+    },
+    delete: async (id) => {
+      try {
+        await request(`/products/${id}`, { method: "DELETE" });
+      } catch (err) {
+        await sleep(300);
+        db.products = db.products.filter((p) => p.id !== id);
+        saveCollection("products", db.products);
+      }
+    },
+    duplicate: async (id) => {
+      try {
+        const res = await request(`/products/${id}/duplicate`, {
+          method: "POST",
+        });
+        return res.product;
+      } catch (err) {
+        await sleep(400);
+        const original = db.products.find((p) => p.id === id);
+        if (!original) throw new Error("Product not found");
+        const copy = {
+          ...original,
+          id: `prd-${Date.now()}`,
+          name: `${original.name} (Copy)`,
+          sku: `${original.sku}-COPY`,
+          slug: `${original.slug}-copy`,
+          status: "draft",
+          createdAt: new Date().toISOString(),
+        };
+        db.products = [copy, ...db.products];
+        saveCollection("products", db.products);
+        return copy;
+      }
+    },
+    bulkDelete: async (ids) => {
+      try {
+        await request("/products/bulk-delete", {
+          method: "POST",
+          body: JSON.stringify({ ids }),
+        });
+      } catch (err) {
+        await sleep(400);
+        db.products = db.products.filter((p) => !ids.includes(p.id));
+        saveCollection("products", db.products);
+      }
+    },
+  },
+
+  // Categories
+  categories: {
+    list: async () => {
+      try {
+        const res = await request("/categories");
+        return res.categories;
+      } catch (err) {
+        await sleep(200);
+        return db.categories.map((c) => ({
+          ...c,
+          productCount: db.products.filter((p) => p.category === c.id).length,
+        }));
+      }
+    },
+    get: async (id) => {
+      try {
+        const res = await request(`/categories/${id}`);
+        return res.category;
+      } catch (err) {
+        await sleep(200);
+        const category = db.categories.find((c) => c.id === id);
+        if (!category) throw new Error("Category not found");
+        return category;
+      }
+    },
+    create: async (data) => {
+      try {
+        const res = await request("/categories", {
+          method: "POST",
+          body: JSON.stringify(data),
+        });
+        return res.category;
+      } catch (err) {
+        await sleep(400);
+        const category = { ...data, id: `cat-${Date.now()}`, productCount: 0 };
+        db.categories = [...db.categories, category];
+        saveCollection("categories", db.categories);
+        return category;
+      }
+    },
+    update: async (id, data) => {
+      try {
+        const res = await request(`/categories/${id}`, {
+          method: "PUT",
+          body: JSON.stringify(data),
+        });
+        return res.category;
+      } catch (err) {
+        await sleep(300);
+        db.categories = db.categories.map((c) =>
+          c.id === id ? { ...c, ...data } : c,
+        );
+        saveCollection("categories", db.categories);
+        return db.categories.find((c) => c.id === id);
+      }
+    },
+    delete: async (id) => {
+      try {
+        await request(`/categories/${id}`, { method: "DELETE" });
+      } catch (err) {
+        await sleep(300);
+        db.categories = db.categories.filter((c) => c.id !== id);
+        db.products = db.products.map((p) =>
+          p.category === id ? { ...p, category: null } : p,
+        );
+        saveCollection("categories", db.categories);
+        saveCollection("products", db.products);
+      }
+    },
+  },
+
+  // Orders
+  orders: {
+    list: async (filters = {}) => {
+      try {
+        const query = new URLSearchParams(filters).toString();
+        const res = await request(`/orders?${query}`);
+        return res.orders;
+      } catch (err) {
+        await sleep(300);
+        let list = [...db.orders];
+        if (filters.status)
+          list = list.filter((o) => o.status === filters.status);
+        if (filters.search) {
+          const q = filters.search.toLowerCase();
+          list = list.filter(
+            (o) =>
+              o.orderNumber.toLowerCase().includes(q) ||
+              o.customerName.toLowerCase().includes(q),
+          );
+        }
+        return list;
+      }
+    },
+    get: async (id) => {
+      try {
+        const res = await request(`/orders/${id}`);
+        return res.order;
+      } catch (err) {
+        await sleep(200);
+        const order = db.orders.find((o) => o.id === id);
+        if (!order) throw new Error("Order not found");
+        return order;
+      }
+    },
+    updateStatus: async (id, statusData) => {
+      try {
+        const res = await request(`/orders/${id}`, {
+          method: "PUT",
+          body: JSON.stringify(statusData),
+        });
+        return res.order;
+      } catch (err) {
+        await sleep(300);
+        db.orders = db.orders.map((o) =>
+          o.id === id ? { ...o, ...statusData } : o,
+        );
+        saveCollection("orders", db.orders);
+        return db.orders.find((o) => o.id === id);
+      }
+    },
+    addNote: async (id, notes) => {
+      try {
+        const res = await request(`/orders/${id}/notes`, {
+          method: "POST",
+          body: JSON.stringify({ notes }),
+        });
+        return res.order;
+      } catch (err) {
+        await sleep(200);
+        db.orders = db.orders.map((o) => (o.id === id ? { ...o, notes } : o));
+        saveCollection("orders", db.orders);
+        return db.orders.find((o) => o.id === id);
+      }
+    },
+    bulkDelete: async (ids) => {
+      try {
+        await request("/orders/bulk-delete", {
+          method: "POST",
+          body: JSON.stringify({ ids }),
+        });
+      } catch (err) {
+        await sleep(400);
+        db.orders = db.orders.filter((o) => !ids.includes(o.id));
+        saveCollection("orders", db.orders);
+      }
+    },
+  },
+
+  // Customers
+  customers: {
+    list: async (filters = {}) => {
+      try {
+        const query = new URLSearchParams(filters).toString();
+        const res = await request(`/customers?${query}`);
+        return res.customers;
+      } catch (err) {
+        await sleep(300);
+        let list = [...db.customers];
+        if (filters.status)
+          list = list.filter((c) => c.status === filters.status);
+        if (filters.search) {
+          const q = filters.search.toLowerCase();
+          list = list.filter(
+            (c) =>
+              c.name.toLowerCase().includes(q) ||
+              c.email.toLowerCase().includes(q),
+          );
+        }
+        return list;
+      }
+    },
+    get: async (id) => {
+      try {
+        const res = await request(`/customers/${id}`);
+        return { customer: res.customer, orders: res.orders };
+      } catch (err) {
+        await sleep(200);
+        const customer = db.customers.find((c) => c.id === id);
+        if (!customer) throw new Error("Customer not found");
+        const orders = db.orders.filter((o) => o.customer === id);
+        return { customer, orders };
+      }
+    },
+    bulkDelete: async (ids) => {
+      try {
+        await request("/customers/bulk-delete", {
+          method: "POST",
+          body: JSON.stringify({ ids }),
+        });
+      } catch (err) {
+        await sleep(400);
+        db.customers = db.customers.filter((c) => !ids.includes(c.id));
+        saveCollection("customers", db.customers);
+      }
+    },
+  },
+
+  // Blogs
+  blogs: {
+    list: async (filters = {}) => {
+      try {
+        const query = new URLSearchParams(filters).toString();
+        const res = await request(`/blogs?${query}`);
+        return res.blogs;
+      } catch (err) {
+        await sleep(300);
+        let list = [...db.blogs];
+        if (filters.status)
+          list = list.filter((b) => b.status === filters.status);
+        return list;
+      }
+    },
+    get: async (id) => {
+      try {
+        const res = await request(`/blogs/${id}`);
+        return res.blog;
+      } catch (err) {
+        await sleep(200);
+        const blog = db.blogs.find((b) => b.id === id);
+        if (!blog) throw new Error("Blog post not found");
+        return blog;
+      }
+    },
+    create: async (data) => {
+      try {
+        const res = await request("/blogs", {
+          method: "POST",
+          body: JSON.stringify(data),
+        });
+        return res.blog;
+      } catch (err) {
+        await sleep(400);
+        const blog = {
+          ...data,
+          id: `blg-${Date.now()}`,
+          author: "adm-001",
+          createdAt: new Date().toISOString(),
+        };
+        if (blog.status === "published")
+          blog.publishedAt = new Date().toISOString();
+        db.blogs = [blog, ...db.blogs];
+        saveCollection("blogs", db.blogs);
+        return blog;
+      }
+    },
+    update: async (id, data) => {
+      try {
+        const res = await request(`/blogs/${id}`, {
+          method: "PUT",
+          body: JSON.stringify(data),
+        });
+        return res.blog;
+      } catch (err) {
+        await sleep(300);
+        db.blogs = db.blogs.map((b) => (b.id === id ? { ...b, ...data } : b));
+        saveCollection("blogs", db.blogs);
+        return db.blogs.find((b) => b.id === id);
+      }
+    },
+    delete: async (id) => {
+      try {
+        await request(`/blogs/${id}`, { method: "DELETE" });
+      } catch (err) {
+        await sleep(200);
+        db.blogs = db.blogs.filter((b) => b.id !== id);
+        saveCollection("blogs", db.blogs);
+      }
+    },
+  },
+
+  // Coupons
+  coupons: {
+    list: async () => {
+      try {
+        const res = await request("/coupons");
+        return res.coupons;
+      } catch (err) {
+        await sleep(200);
+        return db.coupons;
+      }
+    },
+    create: async (data) => {
+      try {
+        const res = await request("/coupons", {
+          method: "POST",
+          body: JSON.stringify(data),
+        });
+        return res.coupon;
+      } catch (err) {
+        await sleep(400);
+        const coupon = {
+          ...data,
+          id: `cpn-${Date.now()}`,
+          usedCount: 0,
+          createdAt: new Date().toISOString(),
+        };
+        db.coupons = [coupon, ...db.coupons];
+        saveCollection("coupons", db.coupons);
+        return coupon;
+      }
+    },
+    update: async (id, data) => {
+      try {
+        const res = await request(`/coupons/${id}`, {
+          method: "PUT",
+          body: JSON.stringify(data),
+        });
+        return res.coupon;
+      } catch (err) {
+        await sleep(300);
+        db.coupons = db.coupons.map((c) =>
+          c.id === id ? { ...c, ...data } : c,
+        );
+        saveCollection("coupons", db.coupons);
+        return db.coupons.find((c) => c.id === id);
+      }
+    },
+    toggle: async (id) => {
+      try {
+        const res = await request(`/coupons/${id}/toggle`, { method: "PUT" });
+        return res.coupon;
+      } catch (err) {
+        await sleep(200);
+        db.coupons = db.coupons.map((c) =>
+          c.id === id ? { ...c, active: !c.active } : c,
+        );
+        saveCollection("coupons", db.coupons);
+        return db.coupons.find((c) => c.id === id);
+      }
+    },
+    delete: async (id) => {
+      try {
+        await request(`/coupons/${id}`, { method: "DELETE" });
+      } catch (err) {
+        await sleep(200);
+        db.coupons = db.coupons.filter((c) => c.id !== id);
+        saveCollection("coupons", db.coupons);
+      }
+    },
+    bulkDelete: async (ids) => {
+      try {
+        await request("/coupons/bulk-delete", {
+          method: "POST",
+          body: JSON.stringify({ ids }),
+        });
+      } catch (err) {
+        await sleep(400);
+        db.coupons = db.coupons.filter((c) => !ids.includes(c.id));
+        saveCollection("coupons", db.coupons);
+      }
+    },
+  },
+
+  // Newsletter
+  newsletter: {
+    list: async (filters = {}) => {
+      try {
+        const query = new URLSearchParams(filters).toString();
+        const res = await request(`/newsletter?${query}`);
+        return res.subscribers;
+      } catch (err) {
+        await sleep(300);
+        let list = [...db.newsletter];
+        if (filters.search) {
+          const q = filters.search.toLowerCase();
+          list = list.filter(
+            (n) =>
+              n.email.toLowerCase().includes(q) ||
+              n.name.toLowerCase().includes(q),
+          );
+        }
+        return list;
+      }
+    },
+    delete: async (id) => {
+      try {
+        await request(`/newsletter/${id}`, { method: "DELETE" });
+      } catch (err) {
+        await sleep(200);
+        db.newsletter = db.newsletter.filter((n) => n.id !== id);
+        saveCollection("newsletter", db.newsletter);
+      }
+    },
+    bulkDelete: async (ids) => {
+      try {
+        await request("/newsletter/bulk-delete", {
+          method: "POST",
+          body: JSON.stringify({ ids }),
+        });
+      } catch (err) {
+        await sleep(300);
+        db.newsletter = db.newsletter.filter((n) => !ids.includes(n.id));
+        saveCollection("newsletter", db.newsletter);
+      }
+    },
+  },
+
+  // Reports
+  reports: {
+    get: async () => {
+      try {
+        const res = await request("/reports");
+        return {
+          stats: res.stats,
+          categoryBreakdown: res.categoryBreakdown,
+          monthlyReport: res.monthlyReport,
+        };
+      } catch (err) {
+        await sleep(400);
+        // Fallback reports
+        const delivered = db.orders.filter((o) => o.status === "delivered");
+        const revenue = delivered.reduce((sum, o) => sum + o.total, 0);
+        return {
+          stats: {
+            totalRevenue: revenue,
+            totalOrders: db.orders.length,
+            pendingOrders: db.orders.filter((o) => o.status === "pending")
+              .length,
+            totalCustomers: db.customers.length,
+            totalProducts: db.products.length,
+            lowStockCount: db.products.filter(
+              (p) => p.quantity <= p.lowStockThreshold,
+            ).length,
+          },
+          categoryBreakdown: mock.MOCK_CATEGORY_SALES,
+          monthlyReport: mock.MOCK_REVENUE_CHART,
+        };
+      }
+    },
+  },
+
+  // Settings
+  settings: {
+    get: async () => {
+      try {
+        const res = await request("/settings");
+        return res.settings;
+      } catch (err) {
+        await sleep(200);
+        return db.settings;
+      }
+    },
+    update: async (data) => {
+      try {
+        const res = await request("/settings", {
+          method: "PUT",
+          body: JSON.stringify(data),
+        });
+        return res.settings;
+      } catch (err) {
+        await sleep(400);
+        db.settings = { ...db.settings, ...data };
+        saveCollection("settings", [db.settings]);
+        return db.settings;
+      }
+    },
+  },
+
+  // Profile
+  profile: {
+    get: async () => {
+      try {
+        const res = await request("/profile");
+        return res.user;
+      } catch (err) {
+        await sleep(200);
+        const stored = sessionStorage.getItem("zae_admin");
+        return stored ? JSON.parse(stored) : null;
+      }
+    },
+    update: async (data) => {
+      try {
+        const res = await request("/profile", {
+          method: "PUT",
+          body: JSON.stringify(data),
+        });
+        return res.user;
+      } catch (err) {
+        await sleep(400);
+        const stored = sessionStorage.getItem("zae_admin");
+        if (stored) {
+          const user = { ...JSON.parse(stored), ...data };
+          if (data.name) {
+            const parts = data.name.trim().split(/\s+/);
+            user.initials = parts
+              .map((p) => p[0])
+              .join("")
+              .toUpperCase()
+              .slice(0, 3);
+          }
+          sessionStorage.setItem("zae_admin", JSON.stringify(user));
+          return user;
+        }
+        return null;
+      }
+    },
+    changePassword: async (currentPassword, newPassword) => {
+      try {
+        await request("/profile/change-password", {
+          method: "POST",
+          body: JSON.stringify({ currentPassword, newPassword }),
+        });
+      } catch (err) {
+        await sleep(500);
+        if (!USE_MOCK && !err.message.includes("Failed to fetch")) throw err;
+      }
+    },
+  },
+};
