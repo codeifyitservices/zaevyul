@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Plus } from "lucide-react";
-import { api, getCategorySlug } from "../../lib/api";
+import { api, getCategorySlug, getHoverImage } from "../../lib/api";
 import { useCart } from "../../context/CartContext";
 
 const getProductWeave = (p) => p.weave || p.material || "Diamond";
@@ -32,7 +32,7 @@ function ProductCard({ p }) {
           className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-in-out group-hover:opacity-0"
         />
         <img
-          src={p.images?.[1]?.url || "/storefront/prod-2.png"}
+          src={getHoverImage(p)}
           alt={`${p.name} hover detail`}
           className="absolute inset-0 w-full h-full object-cover transition-all duration-700 ease-in-out opacity-0 scale-[1.02] group-hover:opacity-100 group-hover:scale-100"
         />

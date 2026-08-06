@@ -17,7 +17,7 @@ import {
 import SiteFooter from "./components/SiteFooter";
 import Navbar from "./components/Navbar";
 
-import { api, getCategorySlug } from "../lib/api";
+import { api, getCategorySlug, getHoverImage } from "../lib/api";
 import { useCart } from "../context/CartContext";
 
 const FILTER_OPTIONS = {
@@ -369,19 +369,19 @@ export default function CollectionsPage() {
               >
                 Clear All
               </button>
-              <span className="text-[10px] sm:text-[11px] uppercase tracking-[0.16em] text-[#8A857E] ml-8 border-l border-[#E6DED4] pl-8">
+              <span className="text-[9px] sm:text-[10px] md:text-[11px] uppercase tracking-[0.16em] text-[#8A857E] ml-4 pl-4 sm:ml-8 sm:pl-8 border-l border-[#E6DED4]">
                 {filteredProductsCount} {filteredProductsCount === 1 ? 'ITEM' : 'ITEMS'}
               </span>
             </div>
 
             {/* Right side */}
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-1.5 font-sans text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.16em] text-[#1C1916]/80">
-                <span>SORT BY:</span>
+            <div className="flex items-center gap-4 sm:gap-6">
+              <div className="flex items-center gap-1 font-sans text-[9px] sm:text-[10px] md:text-[11px] font-semibold uppercase tracking-[0.16em] text-[#1C1916]/80">
+                <span className="hidden sm:inline">SORT BY:</span>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="bg-transparent border-0 focus:outline-none focus:ring-0 text-[#1C1916] font-semibold cursor-pointer pr-4"
+                  className="bg-transparent border-0 focus:outline-none focus:ring-0 text-[#1C1916] font-semibold cursor-pointer pr-4 text-[9px] sm:text-[10px] md:text-[11px]"
                 >
                   <option value="newest">NEWEST</option>
                   <option value="price-asc">PRICE: LOW TO HIGH</option>
@@ -772,7 +772,7 @@ export default function CollectionsPage() {
                               className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-in-out group-hover:opacity-0"
                             />
                             <img
-                              src={p.images?.[1]?.url || "/storefront/prod-2.png"}
+                              src={getHoverImage(p)}
                               alt={`${p.name} hover detail`}
                               className="absolute inset-0 w-full h-full object-cover transition-all duration-700 ease-in-out opacity-0 scale-[1.02] group-hover:opacity-100 group-hover:scale-100"
                             />

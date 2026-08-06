@@ -304,14 +304,18 @@ export default function ProductDetailPage() {
                     <span>Product Details</span>
                     {accordions.details ? <ChevronUp size={14} strokeWidth={1.5} /> : <ChevronDown size={14} strokeWidth={1.5} />}
                   </button>
-                  {accordions.details && (
-                    <div className="mt-3.5 pl-0.5 text-[12.5px] sm:text-[13px] leading-relaxed text-[#6B6560] font-light">
-                      <p className="mb-2">100% pure premium cashmere (Pashmina).</p>
-                      <p className="mb-2">Authentic hand-spun yarn and hand-loomed weave.</p>
-                      <p className="mb-2">Features traditional Sozni fine needle embroidery along the borders.</p>
-                      <p>Dimensions: 70 x 200 cm (approximately 28 x 80 inches).</p>
+                  <div className={`grid transition-[grid-template-rows,opacity] duration-[350ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                    accordions.details ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                  }`}>
+                    <div className="overflow-hidden">
+                      <div className="mt-3.5 pl-0.5 text-[12.5px] sm:text-[13px] leading-relaxed text-[#6B6560] font-light pb-1">
+                        <p className="mb-2">100% pure premium cashmere (Pashmina).</p>
+                        <p className="mb-2">Authentic hand-spun yarn and hand-loomed weave.</p>
+                        <p className="mb-2">Features traditional Sozni fine needle embroidery along the borders.</p>
+                        <p>Dimensions: 70 x 200 cm (approximately 28 x 80 inches).</p>
+                      </div>
                     </div>
-                  )}
+                  </div>
                 </div>
 
                 {/* Accordion 2: Shipping */}
@@ -323,13 +327,17 @@ export default function ProductDetailPage() {
                     <span>Shipping & Returns</span>
                     {accordions.shipping ? <ChevronUp size={14} strokeWidth={1.5} /> : <ChevronDown size={14} strokeWidth={1.5} />}
                   </button>
-                  {accordions.shipping && (
-                    <div className="mt-3.5 pl-0.5 text-[12.5px] sm:text-[13px] leading-relaxed text-[#6B6560] font-light">
-                      <p className="mb-2">Enjoy complimentary worldwide shipping on all orders.</p>
-                      <p className="mb-2">Standard delivery takes 5-9 business days.</p>
-                      <p>Handcrafted luxury items are eligible for exchange within 14 days of delivery.</p>
+                  <div className={`grid transition-[grid-template-rows,opacity] duration-[350ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                    accordions.shipping ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                  }`}>
+                    <div className="overflow-hidden">
+                      <div className="mt-3.5 pl-0.5 text-[12.5px] sm:text-[13px] leading-relaxed text-[#6B6560] font-light pb-1">
+                        <p className="mb-2">Enjoy complimentary worldwide shipping on all orders.</p>
+                        <p className="mb-2">Standard delivery takes 5-9 business days.</p>
+                        <p>Handcrafted luxury items are eligible for exchange within 14 days of delivery.</p>
+                      </div>
                     </div>
-                  )}
+                  </div>
                 </div>
 
                 {/* Accordion 3: Care */}
@@ -341,13 +349,17 @@ export default function ProductDetailPage() {
                     <span>Care Instructions</span>
                     {accordions.care ? <ChevronUp size={14} strokeWidth={1.5} /> : <ChevronDown size={14} strokeWidth={1.5} />}
                   </button>
-                  {accordions.care && (
-                    <div className="mt-3.5 pl-0.5 text-[12.5px] sm:text-[13px] leading-relaxed text-[#6B6560] font-light">
-                      <p className="mb-2">Dry clean only.</p>
-                      <p className="mb-2">Store in a cool, dry place wrapped in a muslin cloth to protect from moths.</p>
-                      <p>Iron on low heat under a protective cotton sheet if necessary.</p>
+                  <div className={`grid transition-[grid-template-rows,opacity] duration-[350ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                    accordions.care ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                  }`}>
+                    <div className="overflow-hidden">
+                      <div className="mt-3.5 pl-0.5 text-[12.5px] sm:text-[13px] leading-relaxed text-[#6B6560] font-light pb-1">
+                        <p className="mb-2">Dry clean only.</p>
+                        <p className="mb-2">Store in a cool, dry place wrapped in a muslin cloth to protect from moths.</p>
+                        <p>Iron on low heat under a protective cotton sheet if necessary.</p>
+                      </div>
                     </div>
-                  )}
+                  </div>
                 </div>
 
                 {/* Accordion 4: Artisan */}
@@ -359,13 +371,17 @@ export default function ProductDetailPage() {
                     <span>Artisan Story</span>
                     {accordions.artisan ? <ChevronUp size={14} strokeWidth={1.5} /> : <ChevronDown size={14} strokeWidth={1.5} />}
                   </button>
-                  {accordions.artisan && (
-                    <div className="mt-3.5 pl-0.5 text-[12.5px] sm:text-[13px] leading-relaxed text-[#6B6560] font-light">
-                      <p className="mb-2">Hand-spun by Kashmiri women and hand-woven by local master weavers.</p>
-                      <p className="mb-2">Embroidered by a skilled craftsman in Srinagar over a span of 120 hours.</p>
-                      <p>Supports sustainable fair-trade livelihoods in the Kashmir valley.</p>
+                  <div className={`grid transition-[grid-template-rows,opacity] duration-[350ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                    accordions.artisan ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                  }`}>
+                    <div className="overflow-hidden">
+                      <div className="mt-3.5 pl-0.5 text-[12.5px] sm:text-[13px] leading-relaxed text-[#6B6560] font-light pb-1">
+                        <p className="mb-2">Hand-spun by Kashmiri women and hand-woven by local master weavers.</p>
+                        <p className="mb-2">Embroidered by a skilled craftsman in Srinagar over a span of 120 hours.</p>
+                        <p>Supports sustainable fair-trade livelihoods in the Kashmir valley.</p>
+                      </div>
                     </div>
-                  )}
+                  </div>
                 </div>
 
               </div>

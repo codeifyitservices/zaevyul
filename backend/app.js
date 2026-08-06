@@ -26,7 +26,7 @@ app.use(
     origin: [
       "http://localhost:5173",
       "http://localhost:5174",
-      "https://zaevyul.onrender.com",
+      "https://zaevyul.vercel.app",
     ],
     credentials: true,
   }),

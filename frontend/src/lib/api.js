@@ -76,6 +76,26 @@ export const getCategorySlug = (category) => {
   };
   return staticMap[category] || "shawls";
 };
+export const getHoverImage = (product) => {
+  if (!product) return "/storefront/prod-2.png";
+  if (product.images && product.images[1] && product.images[1].url) {
+    return product.images[1].url;
+  }
+  // Stable, unique fallback per product using charCode summation on id/name
+  const idStr = String(product._id || product.id || product.name || "");
+  const charCodeSum = idStr.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const fallbacks = [
+    "/storefront/prod-2.png",
+    "/storefront/cat-embroidered.png",
+    "/storefront/pashmina-banner.png",
+    "/storefront/artisan.png",
+    "/storefront/prod-1.png",
+    "/storefront/prod-3.png",
+    "/storefront/prod-stack.png",
+    "/storefront/cat-shawls.png"
+  ];
+  return fallbacks[charCodeSum % fallbacks.length];
+};
 
 export const api = {
   // Auth

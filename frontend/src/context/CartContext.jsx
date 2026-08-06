@@ -1,10 +1,12 @@
 import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { api } from '../lib/api';
 import CartDrawer from '../landing/components/CartDrawer';
+import { useToast } from './ToastContext';
 
 const CartContext = createContext(null);
 
 export function CartProvider({ children }) {
+  const toast = useToast();
   const [cart, setCart] = useState(() => {
     try {
       const stored = localStorage.getItem('zae_cart');
@@ -73,6 +75,9 @@ export function CartProvider({ children }) {
     setIsBadgeAnimated(true);
     setTimeout(() => setIsBadgeAnimated(false), 800);
     setIsOpen(true);
+    
+    // Trigger toast notification
+    toast(`Added "${product.name}" to cart`, 'success');
   };
 
   const removeItem = (key) => {

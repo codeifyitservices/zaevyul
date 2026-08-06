@@ -12,6 +12,7 @@ export default function CartDrawer() {
     updateQuantity,
     removeItem,
     totals,
+    addToCart,
   } = useCart();
 
   const drawerRef = useRef(null);
@@ -92,15 +93,16 @@ export default function CartDrawer() {
     fetchRecs();
   }, [isOpen, cart]);
 
-  const [mounted, setMounted] = useState(false);
-
+  // Scroll lock when cart is open
   useEffect(() => {
     if (isOpen) {
-      setMounted(true);
+      document.body.style.overflow = "hidden";
     } else {
-      const timer = setTimeout(() => setMounted(false), 350);
-      return () => clearTimeout(timer);
+      document.body.style.overflow = "";
     }
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [isOpen]);
 
   const handleRemoveClick = (key) => {
@@ -111,10 +113,8 @@ export default function CartDrawer() {
     }, 300); // Keep remove animation at 300ms for premium fluid feel
   };
 
-  if (!mounted) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
+    <div className={`fixed inset-0 z-50 flex justify-end transition-[visibility] duration-[350ms] ${isOpen ? "visible pointer-events-auto" : "invisible pointer-events-none"}`}>
       {/* Backdrop Overlay */}
       <div
         className={`fixed inset-0 bg-[#1C1916]/30 backdrop-blur-[3px] transition-opacity duration-[350ms] ease-in-out ${
@@ -205,7 +205,7 @@ export default function CartDrawer() {
               </p>
               <button
                 onClick={() => setIsOpen(false)}
-                className="border border-[#1C1916] text-[#1C1916] hover:bg-[#1C1916] hover:text-white transition-colors duration-300 px-8 py-3 text-[10px] font-semibold tracking-[0.2em] uppercase rounded-[1px]"
+                className="border border-[#1C1916] text-[#1C1916] hover:bg-[#1C1916] hover:text-white transition-colors duration-300 px-5 py-3 sm:px-8 text-[10px] font-semibold tracking-[0.15em] sm:tracking-[0.2em] uppercase rounded-[1px]"
               >
                 Continue Shopping
               </button>
@@ -354,14 +354,13 @@ export default function CartDrawer() {
                           ₹{pPrice.toLocaleString("en-IN")}
                         </span>
                       </div>
-                      <Link
-                        to={detailPath}
-                        onClick={() => setIsOpen(false)}
-                        className="flex h-7 w-7 items-center justify-center rounded-full border border-[#1C1916]/10 text-[#1C1916]/70 hover:border-[#1C1916] hover:text-[#1C1916] transition-all"
-                        aria-label="View product details"
+                      <button
+                        onClick={() => addToCart(p, 1)}
+                        className="flex h-7 w-7 items-center justify-center rounded-full border border-[#1C1916]/10 text-[#1C1916]/70 hover:bg-[#1C1916] hover:border-[#1C1916] hover:text-white transition-all duration-200"
+                        aria-label={`Add ${p.name} to cart`}
                       >
-                        <ArrowRight size={11} />
-                      </Link>
+                        <Plus size={11} strokeWidth={1.5} />
+                      </button>
                     </div>
                   );
                 })}

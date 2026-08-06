@@ -84,13 +84,13 @@ export default function Navbar() {
           </button>
           <button
             aria-label="Account"
-            className="transition-colors hover:text-[#1C1916]"
+            className="hidden lg:block transition-colors hover:text-[#1C1916]"
           >
             <User size={17} strokeWidth={1.4} />
           </button>
           <button
             aria-label="Wishlist"
-            className="transition-colors hover:text-[#1C1916]"
+            className="hidden lg:block transition-colors hover:text-[#1C1916]"
           >
             <Heart size={17} strokeWidth={1.4} />
           </button>
@@ -111,7 +111,7 @@ export default function Navbar() {
         </div>
       </nav>
 
-      <div className={`fixed inset-0 z-[200] flex flex-col bg-[#FAF8F5] transition-transform duration-500 ease-in-out ${mobileOpen ? "translate-x-0" : "translate-x-full"}`}>
+      <div className={`fixed inset-0 z-[200] flex flex-col bg-[#FAF8F5] transition-transform duration-500 ease-in-out ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="flex h-[68px] items-center justify-between border-b border-[#E8E1D9] px-6 sm:px-8">
           <span className="font-serif text-[18px] uppercase tracking-[0.28em] text-[#1C1916]">
             {settings?.storeName?.toUpperCase() || "ZAEVYUL"}
@@ -125,17 +125,42 @@ export default function Navbar() {
           </button>
         </div>
         <nav className="flex flex-col px-6 pt-10 sm:px-8">
-          {NAV_LINKS.map((link) => (
+          {NAV_LINKS.map((link, idx) => (
             <a
               key={link}
               href="/collections"
               onClick={() => setMobileOpen(false)}
-              className="border-b border-[#E8E1D9] py-5 font-serif text-[27px] font-light text-[#1C1916] transition-all duration-200 first:border-t hover:pl-3"
+              style={{
+                transitionDelay: mobileOpen ? `${idx * 70}ms` : "0ms",
+              }}
+              className={`border-b border-[#E8E1D9] py-5 font-serif text-[27px] font-light text-[#1C1916] transition-all duration-[750ms] [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] first:border-t hover:pl-3
+                ${mobileOpen ? "translate-x-0 opacity-100" : "-translate-x-12 opacity-0"}`}
             >
               {link}
             </a>
           ))}
         </nav>
+
+        {/* Mobile Drawer Footer Actions (Profile & Wishlist) */}
+        <div className="mt-auto border-t border-[#E8E1D9] p-6 sm:p-8 flex justify-around items-center bg-[#FAF8F5]">
+          <a
+            href="#"
+            onClick={() => setMobileOpen(false)}
+            className="flex items-center gap-3 font-sans text-[11px] font-semibold uppercase tracking-[0.2em] text-[#1C1916]/70 hover:text-[#1C1916]"
+          >
+            <User size={16} strokeWidth={1.4} />
+            <span>Profile</span>
+          </a>
+          <div className="h-4 w-px bg-[#E8E1D9]" />
+          <a
+            href="#"
+            onClick={() => setMobileOpen(false)}
+            className="flex items-center gap-3 font-sans text-[11px] font-semibold uppercase tracking-[0.2em] text-[#1C1916]/70 hover:text-[#1C1916]"
+          >
+            <Heart size={16} strokeWidth={1.4} />
+            <span>Wishlist</span>
+          </a>
+        </div>
       </div>
     </>
   );
