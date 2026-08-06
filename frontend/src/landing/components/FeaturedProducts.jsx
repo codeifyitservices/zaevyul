@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Plus } from "lucide-react";
-import { api } from "../../lib/api";
+import { api, getCategorySlug } from "../../lib/api";
 import { useCart } from "../../context/CartContext";
 
 const getProductWeave = (p) => p.weave || p.material || "Diamond";
@@ -15,10 +15,11 @@ const getProductPrice = (p) => {
 
 function ProductCard({ p }) {
   const { addToCart } = useCart();
+  const catSlug = getCategorySlug(p.category);
   return (
     <Link
-      to={`/products/${p._id || p.id}`}
-      className="group flex flex-col text-decoration-none"
+      to={`/collection/${catSlug}/${p.slug}`}
+      className="group flex flex-col text-decoration-none w-[78%] min-w-[240px] sm:w-[calc(50%-12px)] lg:w-auto shrink-0 snap-start lg:shrink lg:snap-align-none"
     >
       {/* Image */}
       <div
@@ -130,7 +131,7 @@ export default function FeaturedProducts() {
           </Link>
         </div>
 
-        <div className="relative z-0 grid grid-cols-1 gap-10 sm:grid-cols-2 sm:gap-9 lg:grid-cols-3 lg:gap-12 xl:gap-14">
+        <div className="relative z-0 flex overflow-x-auto pb-4 gap-6 scroll-smooth snap-x snap-mandatory scrollbar-none lg:grid lg:grid-cols-3 lg:gap-12 xl:gap-14">
           {displayProducts.map((p) => (
             <ProductCard key={p._id || p.id} p={p} />
           ))}

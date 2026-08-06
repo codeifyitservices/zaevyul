@@ -17,7 +17,7 @@ import {
 import SiteFooter from "./components/SiteFooter";
 import Navbar from "./components/Navbar";
 
-import { api } from "../lib/api";
+import { api, getCategorySlug } from "../lib/api";
 import { useCart } from "../context/CartContext";
 
 const FILTER_OPTIONS = {
@@ -92,9 +92,33 @@ export default function CollectionsPage() {
     loadData();
   }, []);
 
+  useEffect(() => {
+    if (mobileFilterOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileFilterOpen]);
   const activeCategoryObj = categories.find(
     (c) => (c.slug || c.id || "").toLowerCase() === (category || "").toLowerCase()
   );
+
+  const isAllCollections = !category;
+
+  useEffect(() => {
+    if (isAllCollections) {
+      document.title = "All Collections | Zaevyul Pashmina";
+    } else {
+      const name = activeCategoryObj?.name || category || "Pashmina & Shawls";
+      document.title = `${name} | Zaevyul Pashmina`;
+    }
+    return () => {
+      document.title = "Zaevyul Pashmina";
+    };
+  }, [isAllCollections, activeCategoryObj, category]);
   
   const filteredProducts = activeCategoryObj
     ? products.filter((p) => {
@@ -209,25 +233,55 @@ export default function CollectionsPage() {
     displayProducts.push({ id: "spotlight", isSpotlight: true });
   }
 
-  const isAllCollections = !category;
-  const pageTitle = isAllCollections ? "ALL PRODUCTS" : "PASHMINA & SHAWLS";
-  const bannerHeading = isAllCollections ? (
-    <>
-      ALL
-      <br />
-      COLLECTIONS
-    </>
-  ) : (
-    <>
-      PASHMINA
-      <br />
-      & SHAWLS
-    </>
-  );
+  const pageTitle = isAllCollections ? "ALL PRODUCTS" : (activeCategoryObj?.name?.toUpperCase() || "PASHMINA & SHAWLS");
+
+  const getBannerHeading = () => {
+    if (isAllCollections) {
+      return (
+        <>
+          ALL
+          <br />
+          COLLECTIONS
+        </>
+      );
+    }
+    const name = activeCategoryObj?.name || category || "PASHMINA & SHAWLS";
+    const upperName = name.toUpperCase();
+    
+    const words = upperName.split(" ");
+    if (words.length > 1) {
+      const ampersandIdx = words.indexOf("&");
+      if (ampersandIdx !== -1) {
+        const firstLine = words.slice(0, ampersandIdx).join(" ");
+        const secondLine = words.slice(ampersandIdx).join(" ");
+        return (
+          <>
+            {firstLine}
+            <br />
+            {secondLine}
+          </>
+        );
+      }
+      const mid = Math.ceil(words.length / 2);
+      const firstLine = words.slice(0, mid).join(" ");
+      const secondLine = words.slice(mid).join(" ");
+      return (
+        <>
+          {firstLine}
+          <br />
+          {secondLine}
+        </>
+      );
+    }
+    
+    return upperName;
+  };
+
+  const bannerHeading = getBannerHeading();
   
   const bannerSubtext = isAllCollections 
     ? "Explore our complete range of hand-loomed luxury pashmina products, curated with heritage."
-    : "Timeless weaves. Thoughtful details. Each piece carries the warmth of Kashmir.";
+    : (activeCategoryObj?.description || "Timeless weaves. Thoughtful details. Each piece carries the warmth of Kashmir.");
 
   const toggleFilter = (key) => {
     setOpenFilters((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -246,13 +300,6 @@ export default function CollectionsPage() {
 
   return (
     <div className="min-h-screen bg-[#FAF8F5] text-[#1C1916] font-sans selection:bg-[#B58A5B] selection:text-white">
-      {/* 1. Announcement Bar */}
-      <div className="bg-[#F0EBE3] text-center py-2.5 px-4 border-b border-[#E6DED4]/60">
-        <p className="text-[9px] sm:text-[10px] font-semibold uppercase tracking-[0.2em] text-[#1C1916]/80">
-          COMPLIMENTARY WORLDWIDE SHIPPING ON ALL ORDERS
-        </p>
-      </div>
-
       {/* 2. Navbar */}
       <Navbar />
 
@@ -269,7 +316,7 @@ export default function CollectionsPage() {
               <>
                 <a href="/collections" className="hover:text-[#1C1916] transition-colors">COLLECTIONS</a>
                 <span className="mx-2.5 text-[#E6DED4] sm:mx-3">/</span>
-                <span className="text-[#1C1916]">PASHMINA & SHAWLS</span>
+                <span className="text-[#1C1916]">{activeCategoryObj?.name?.toUpperCase() || "PASHMINA & SHAWLS"}</span>
               </>
             )}
           </nav>
@@ -304,7 +351,7 @@ export default function CollectionsPage() {
         </section>
 
         {/* 5. Filter/Sort Bar */}
-        <section className="border-b border-[#ECE7E1] bg-[#FAF8F5] sticky top-[76px] z-30">
+        <section className="border-b border-[#ECE7E1] bg-[#FAF8F5] sticky top-[68px] z-30">
           <div className="mx-auto max-w-[1200px] px-6 sm:px-10 lg:px-16 w-full py-4 flex items-center justify-between">
             
             {/* Left side */}
@@ -549,208 +596,225 @@ export default function CollectionsPage() {
             </aside>
 
             {/* Mobile Filter Drawer Overlay */}
-            {mobileFilterOpen && (
-              <div className="fixed inset-0 z-50 flex lg:hidden">
-                <div
-                  className="fixed inset-0 bg-black/35 backdrop-blur-sm"
-                  onClick={() => setMobileFilterOpen(false)}
-                />
-                <div className="relative w-full max-w-[320px] bg-[#FAF8F5] p-6 flex flex-col justify-between border-r border-[#E6DED4] overflow-y-auto">
-                  <div>
-                    <div className="flex items-center justify-between pb-4 border-b border-[#E6DED4]">
-                      <span className="font-sans text-[11px] font-semibold uppercase tracking-[0.16em] text-[#1C1916]">
-                        FILTERS
-                      </span>
-                      <button
-                        onClick={() => setMobileFilterOpen(false)}
-                        className="text-[#1C1916]/60 hover:text-[#1C1916]"
-                      >
-                        <X size={18} strokeWidth={1.5} />
-                      </button>
-                    </div>
-
-                    <div className="divide-y divide-[#ECE7E1] mt-4">
-                      {/* Accordions inside mobile drawer */}
-                      {Object.keys(openFilters).map((filterKey) => (
-                        <div key={filterKey} className="py-4">
-                          <button
-                            onClick={() => toggleFilter(filterKey)}
-                            className="flex w-full items-center justify-between text-[10px] font-semibold tracking-[0.16em] uppercase text-[#1C1916]"
-                          >
-                            <span className="capitalize">{filterKey}</span>
-                            {openFilters[filterKey] ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                          </button>
-                          {openFilters[filterKey] && (
-                            <div className="mt-3.5 flex flex-col gap-2.5 pl-1">
-                              {filterKey === "categories" &&
-                                (categories.length > 0 ? categories : [
-                                  { _id: "shawls", name: "Shawls", slug: "shawls" },
-                                  { _id: "stoles", name: "Stoles", slug: "stoles" },
-                                  { _id: "scarves", name: "Scarves", slug: "scarves" },
-                                  { _id: "throws", name: "Throws", slug: "throws" },
-                                ]).map((opt) => {
-                                  const optId = String(opt.id || opt._id);
-                                  return (
-                                    <label key={optId} className="flex items-center gap-3 cursor-pointer text-[12px] text-[#6B6560]">
-                                      <input
-                                        type="checkbox"
-                                        checked={selectedFilters.categories.includes(optId)}
-                                        onChange={() => handleFilterChange("categories", optId)}
-                                        className="rounded-[1px] border-[#E6DED4] text-[#B58A5B] w-3.5 h-3.5"
-                                      />
-                                      <span>{opt.name}</span>
-                                    </label>
-                                  );
-                                })}
-                              {filterKey !== "categories" &&
-                                (FILTER_OPTIONS[filterKey] || []).map((opt) => (
-                                  <label key={opt} className="flex items-center gap-3 cursor-pointer text-[12px] text-[#6B6560]">
-                                    <input
-                                      type="checkbox"
-                                      checked={selectedFilters[filterKey].includes(opt)}
-                                      onChange={() => handleFilterChange(filterKey, opt)}
-                                      className="rounded-[1px] border-[#E6DED4] text-[#B58A5B] w-3.5 h-3.5"
-                                    />
-                                    <span>{opt}</span>
-                                  </label>
-                                ))}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="flex gap-4 mt-8 pt-4 border-t border-[#ECE7E1]">
-                    <button
-                      onClick={() => {
-                        resetFilters();
-                        setMobileFilterOpen(false);
-                      }}
-                      className="flex-1 border border-[#1C1916]/40 text-[#1C1916]/70 py-3 text-[10px] font-semibold uppercase tracking-[0.15em]"
-                    >
-                      CLEAR
-                    </button>
+            <div className={`fixed inset-0 z-50 flex lg:hidden transition-opacity duration-300 ${mobileFilterOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
+              <div
+                className="fixed inset-0 bg-black/35 backdrop-blur-sm"
+                onClick={() => setMobileFilterOpen(false)}
+              />
+              <div className={`relative w-full max-w-[320px] bg-[#FAF8F5] p-6 flex flex-col justify-between border-r border-[#E6DED4] overflow-y-auto transition-transform duration-500 ease-in-out ${mobileFilterOpen ? "translate-x-0" : "-translate-x-full"}`}>
+                <div>
+                  <div className="flex items-center justify-between pb-4 border-b border-[#E6DED4]">
+                    <span className="font-sans text-[11px] font-semibold uppercase tracking-[0.16em] text-[#1C1916]">
+                      FILTERS
+                    </span>
                     <button
                       onClick={() => setMobileFilterOpen(false)}
-                      className="flex-1 bg-[#1C1916] text-white py-3 text-[10px] font-semibold uppercase tracking-[0.15em] hover:bg-[#B58A5B] transition-colors"
+                      className="text-[#1C1916]/60 hover:text-[#1C1916]"
                     >
-                      APPLY
+                      <X size={18} strokeWidth={1.5} />
                     </button>
                   </div>
+
+                  <div className="divide-y divide-[#ECE7E1] mt-4">
+                    {/* Accordions inside mobile drawer */}
+                    {Object.keys(openFilters).map((filterKey) => (
+                      <div key={filterKey} className="py-4">
+                        <button
+                          onClick={() => toggleFilter(filterKey)}
+                          className="flex w-full items-center justify-between text-[10px] font-semibold tracking-[0.16em] uppercase text-[#1C1916]"
+                        >
+                          <span className="capitalize">{filterKey}</span>
+                          {openFilters[filterKey] ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                        </button>
+                        {openFilters[filterKey] && (
+                          <div className="mt-3.5 flex flex-col gap-2.5 pl-1">
+                            {filterKey === "categories" &&
+                              (categories.length > 0 ? categories : [
+                                { _id: "shawls", name: "Shawls", slug: "shawls" },
+                                { _id: "stoles", name: "Stoles", slug: "stoles" },
+                                { _id: "scarves", name: "Scarves", slug: "scarves" },
+                                { _id: "throws", name: "Throws", slug: "throws" },
+                              ]).map((opt) => {
+                                const optId = String(opt.id || opt._id);
+                                return (
+                                  <label key={optId} className="flex items-center gap-3 cursor-pointer text-[12px] text-[#6B6560]">
+                                    <input
+                                      type="checkbox"
+                                      checked={selectedFilters.categories.includes(optId)}
+                                      onChange={() => handleFilterChange("categories", optId)}
+                                      className="rounded-[1px] border-[#E6DED4] text-[#B58A5B] w-3.5 h-3.5"
+                                    />
+                                    <span>{opt.name}</span>
+                                  </label>
+                                );
+                              })}
+                            {filterKey !== "categories" &&
+                              (FILTER_OPTIONS[filterKey] || []).map((opt) => (
+                                <label key={opt} className="flex items-center gap-3 cursor-pointer text-[12px] text-[#6B6560]">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedFilters[filterKey].includes(opt)}
+                                    onChange={() => handleFilterChange(filterKey, opt)}
+                                    className="rounded-[1px] border-[#E6DED4] text-[#B58A5B] w-3.5 h-3.5"
+                                  />
+                                  <span>{opt}</span>
+                                </label>
+                              ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex gap-4 mt-8 pt-4 border-t border-[#ECE7E1]">
+                  <button
+                    onClick={() => {
+                      resetFilters();
+                      setMobileFilterOpen(false);
+                    }}
+                    className="flex-1 border border-[#1C1916]/40 text-[#1C1916]/70 py-3 text-[10px] font-semibold uppercase tracking-[0.15em]"
+                  >
+                    CLEAR
+                  </button>
+                  <button
+                    onClick={() => setMobileFilterOpen(false)}
+                    className="flex-1 bg-[#1C1916] text-white py-3 text-[10px] font-semibold uppercase tracking-[0.15em] hover:bg-[#B58A5B] transition-colors"
+                  >
+                    APPLY
+                  </button>
                 </div>
               </div>
-            )}
+            </div>
 
             {/* 7. Product Grid */}
             <div className="flex-1">
-              <div
-                className={`grid gap-x-6 gap-y-12 sm:gap-x-8 sm:gap-y-16 lg:gap-x-10
-                  ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"}`}
-              >
-                {displayProducts.map((p, idx) => {
-                  // Index 6 is the Artisan Spotlight Card
-                  if (p.isSpotlight) {
-                    return (
-                      <div
-                        key="spotlight"
-                        className={`flex flex-col justify-between bg-[#F5EFE7] rounded-[2px] border border-[#E6DED4]/60 overflow-hidden
-                          ${viewMode === "list" ? "sm:flex-row sm:items-stretch sm:min-h-[220px]" : "min-h-[380px]"}`}
-                      >
-                        {/* Top half: Image */}
-                        <div className={`overflow-hidden relative bg-[#EFE9E1] ${viewMode === "list" ? "sm:w-[40%] sm:h-full" : "h-[45%]"}`}>
-                          <img
-                            src="/storefront/artisan.png"
-                            alt="Artisan working at a weaving loom"
-                            className="absolute inset-0 w-full h-full object-cover"
-                          />
-                        </div>
-
-                        {/* Bottom half: Content */}
-                        <div className={`p-6 flex flex-col justify-between ${viewMode === "list" ? "sm:w-[60%] sm:justify-center" : "h-[55%]"}`}>
-                          <div>
-                            <span className="block font-sans text-[9px] font-semibold tracking-[0.2em] uppercase text-[#B58A5B] mb-2.5">
-                              ARTISAN SPOTLIGHT
-                            </span>
-                            <p className="font-serif text-[15px] sm:text-[16px] font-light italic leading-relaxed text-[#1C1916]">
-                              Weaver's hands to brave every seal convection what the-willsart of dimart and chant in the loom.
-                            </p>
-                          </div>
-                          <a
-                            href="#"
-                            className="group inline-flex items-center gap-1.5 font-sans text-[9px] sm:text-[10px] font-semibold tracking-[0.15em] uppercase text-[#1C1916] border-b border-[#1C1916]/20 pb-0.5 w-fit mt-5 hover:border-[#1C1916] transition-all"
+              {sortedProducts.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-center border border-dashed border-[#ECE7E1] rounded-[2px] bg-[#FAF8F5] px-6">
+                  <span className="font-serif text-[18px] uppercase tracking-[0.15em] text-[#6B6560] mb-2">
+                    No products found
+                  </span>
+                  <p className="font-sans text-[12px] text-[#8A857E] max-w-[320px] leading-relaxed">
+                    We couldn't find any products matching your current filter selections. Try clearing some filters.
+                  </p>
+                  <button
+                    onClick={resetFilters}
+                    className="mt-6 bg-[#1C1916] text-white px-8 py-3 text-[9px] font-semibold uppercase tracking-[0.2em] rounded-[1px] hover:bg-[#B58A5B] transition-colors"
+                  >
+                    Clear Filters
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div
+                    className={`grid gap-x-6 gap-y-12 sm:gap-x-8 sm:gap-y-16 lg:gap-x-10
+                      ${viewMode === "grid" ? "grid-cols-2 lg:grid-cols-3" : "grid-cols-1"}`}
+                  >
+                    {displayProducts.map((p, idx) => {
+                      // Index 6 is the Artisan Spotlight Card
+                      if (p.isSpotlight) {
+                        return (
+                          <div
+                            key="spotlight"
+                            className={`flex flex-col justify-between bg-[#F5EFE7] rounded-[2px] border border-[#E6DED4]/60 overflow-hidden
+                              ${viewMode === "list" ? "sm:flex-row sm:items-stretch sm:min-h-[220px]" : "min-h-[380px]"}`}
                           >
-                            <span>The Loom (Journal)</span>
-                            <ArrowRight
-                              size={12}
-                              strokeWidth={1.5}
-                              className="transition-transform duration-300 group-hover:translate-x-1"
+                            {/* Top half: Image */}
+                            <div className={`overflow-hidden relative bg-[#EFE9E1] ${viewMode === "list" ? "sm:w-[40%] sm:h-full" : "h-[45%]"}`}>
+                              <img
+                                src="/storefront/artisan.png"
+                                alt="Artisan working at a weaving loom"
+                                className="absolute inset-0 w-full h-full object-cover"
+                              />
+                            </div>
+
+                            {/* Bottom half: Content */}
+                            <div className={`p-6 flex flex-col justify-between ${viewMode === "list" ? "sm:w-[60%] sm:justify-center" : "h-[55%]"}`}>
+                              <div>
+                                <span className="block font-sans text-[9px] font-semibold tracking-[0.2em] uppercase text-[#B58A5B] mb-2.5">
+                                  ARTISAN SPOTLIGHT
+                                </span>
+                                <p className="font-serif text-[15px] sm:text-[16px] font-light italic leading-relaxed text-[#1C1916]">
+                                  Weaver's hands to brave every seal convection what the-willsart of dimart and chant in the loom.
+                                </p>
+                              </div>
+                              <a
+                                href="#"
+                                className="group inline-flex items-center gap-1.5 font-sans text-[9px] sm:text-[10px] font-semibold tracking-[0.15em] uppercase text-[#1C1916] border-b border-[#1C1916]/20 pb-0.5 w-fit mt-5 hover:border-[#1C1916] transition-all"
+                              >
+                                <span>The Loom (Journal)</span>
+                                <ArrowRight
+                                  size={12}
+                                  strokeWidth={1.5}
+                                  className="transition-transform duration-300 group-hover:translate-x-1"
+                                />
+                              </a>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      // Standard Product Card
+                      return (
+                        <Link
+                          key={p._id || p.id}
+                          to={`/collection/${getCategorySlug(p.category)}/${p.slug}`}
+                          className={`group flex text-decoration-none ${viewMode === "list" ? "flex-col sm:flex-row gap-6 items-center border-b border-[#ECE7E1] pb-8" : "flex-col"}`}
+                        >
+                          {/* Image container */}
+                          <div
+                            className={`relative overflow-hidden bg-[#EFE9E1] rounded-[2px] shrink-0
+                              ${viewMode === "list" ? "w-full sm:w-[220px] aspect-[4/5]" : "w-full aspect-[4/5]"}`}
+                          >
+                            <img
+                              src={getProductImage(p)}
+                              alt={p.name}
+                              className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-in-out group-hover:opacity-0"
                             />
-                          </a>
-                        </div>
-                      </div>
-                    );
-                  }
-
-                  // Standard Product Card
-                  return (
-                    <Link
-                      key={p._id || p.id}
-                      to={`/products/${p._id || p.id}`}
-                      className={`group flex text-decoration-none ${viewMode === "list" ? "flex-col sm:flex-row gap-6 items-center border-b border-[#ECE7E1] pb-8" : "flex-col"}`}
-                    >
-                      {/* Image container */}
-                      <div
-                        className={`relative overflow-hidden bg-[#EFE9E1] rounded-[2px] shrink-0
-                          ${viewMode === "list" ? "w-full sm:w-[220px] aspect-[4/5]" : "w-full aspect-[4/5]"}`}
-                      >
-                        <img
-                          src={getProductImage(p)}
-                          alt={p.name}
-                          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-in-out group-hover:opacity-0"
-                        />
-                        <img
-                          src={p.images?.[1]?.url || "/storefront/prod-2.png"}
-                          alt={`${p.name} hover detail`}
-                          className="absolute inset-0 w-full h-full object-cover transition-all duration-700 ease-in-out opacity-0 scale-[1.02] group-hover:opacity-100 group-hover:scale-100"
-                        />
-                      </div>
-
-                      {/* Details container */}
-                      <div className={`flex-1 w-full ${viewMode === "list" ? "pt-2" : "mt-4"}`}>
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex flex-col">
-                            <h3 className="font-serif text-[15px] sm:text-[16px] font-normal leading-snug text-[#1C1916] group-hover:text-[#B58A5B] transition-colors duration-200">
-                              {p.name}
-                            </h3>
-                            <span className="font-sans text-[12px] sm:text-[13px] font-normal text-[#1C1916] mt-1.5">
-                              {getProductPrice(p)}
-                            </span>
+                            <img
+                              src={p.images?.[1]?.url || "/storefront/prod-2.png"}
+                              alt={`${p.name} hover detail`}
+                              className="absolute inset-0 w-full h-full object-cover transition-all duration-700 ease-in-out opacity-0 scale-[1.02] group-hover:opacity-100 group-hover:scale-100"
+                            />
                           </div>
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              addToCart(p, 1);
-                            }}
-                            aria-label={`Add ${p.name} to bag`}
-                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#1C1916]/20 text-[#1C1916] transition-colors duration-200 hover:border-[#1C1916] hover:bg-[#1C1916] hover:text-white sm:h-8 sm:w-8 mt-0.5"
-                          >
-                            <Plus size={13} strokeWidth={1.5} />
-                          </button>
-                        </div>
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
 
-              {/* 8. Load More button */}
-              <div className="flex justify-center mt-16 sm:mt-20">
-                <button className="border border-[#1C1916] text-[#1C1916] hover:bg-[#1C1916] hover:text-white transition-colors duration-300 px-10 py-3.5 text-[10px] font-semibold tracking-[0.25em] uppercase rounded-[1px]">
-                  LOAD MORE
-                </button>
-              </div>
+                          {/* Details container */}
+                          <div className={`flex-1 w-full ${viewMode === "list" ? "pt-2" : "mt-4"}`}>
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex flex-col">
+                                <h3 className="font-serif text-[15px] sm:text-[16px] font-normal leading-snug text-[#1C1916] group-hover:text-[#B58A5B] transition-colors duration-200">
+                                  {p.name}
+                                </h3>
+                                <span className="font-sans text-[12px] sm:text-[13px] font-normal text-[#1C1916] mt-1.5">
+                                  {getProductPrice(p)}
+                                </span>
+                              </div>
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  addToCart(p, 1);
+                                }}
+                                aria-label={`Add ${p.name} to bag`}
+                                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#1C1916]/20 text-[#1C1916] transition-colors duration-200 hover:border-[#1C1916] hover:bg-[#1C1916] hover:text-white sm:h-8 sm:w-8 mt-0.5"
+                              >
+                                <Plus size={13} strokeWidth={1.5} />
+                              </button>
+                            </div>
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
+
+                  {/* 8. Load More button */}
+                  <div className="flex justify-center mt-16 sm:mt-20">
+                    <button className="border border-[#1C1916] text-[#1C1916] hover:bg-[#1C1916] hover:text-white transition-colors duration-300 px-10 py-3.5 text-[10px] font-semibold tracking-[0.25em] uppercase rounded-[1px]">
+                      LOAD MORE
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
 
           </div>

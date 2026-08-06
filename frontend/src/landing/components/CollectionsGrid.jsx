@@ -18,10 +18,11 @@ const getCategoryImage = (cat) => {
 };
 
 function ColCard({ cat, className = "" }) {
+  const heightClass = className.includes("h-") ? "" : "h-full";
   return (
     <a
       href={`/collections/${cat.slug || cat.id}`}
-      className={`group relative block h-full w-full overflow-hidden rounded-[2px] ${className}`}
+      className={`group relative block w-full overflow-hidden rounded-[2px] ${heightClass} ${className}`}
     >
       <img
         src={getCategoryImage(cat)}
@@ -86,15 +87,15 @@ export default function CollectionsGrid() {
             </h2>
           </div>
 
-          <div className="relative z-0 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 sm:[grid-template-rows:280px_280px] lg:gap-5 lg:[grid-template-rows:380px_300px]">
-            <ColCard cat={displayCats[0]} className="h-[360px] sm:h-full sm:row-span-2" />
+          <div className="relative z-0 grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-4 sm:[grid-template-rows:280px_280px] lg:gap-5 lg:[grid-template-rows:380px_300px]">
+            <ColCard cat={displayCats[0]} className="h-[160px] sm:h-full sm:row-span-2" />
 
-            <div className="grid h-[230px] grid-cols-2 gap-3 sm:h-full sm:gap-4 lg:gap-5">
-              <ColCard cat={displayCats[1]} />
-              <ColCard cat={displayCats[2]} />
+            <div className="contents sm:grid sm:h-full sm:grid-cols-2 sm:gap-4 lg:gap-5">
+              <ColCard cat={displayCats[1]} className="h-[160px] sm:h-full" />
+              <ColCard cat={displayCats[2]} className="h-[160px] sm:h-full" />
             </div>
 
-            <ColCard cat={displayCats[3]} className="h-[240px] sm:h-full" />
+            <ColCard cat={displayCats[3]} className="h-[160px] sm:h-full" />
           </div>
         </div>
       </section>
@@ -116,15 +117,15 @@ export default function CollectionsGrid() {
           </h2>
         </div>
 
-        <div className="relative z-0 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 sm:[grid-template-rows:280px_280px] lg:gap-5 lg:[grid-template-rows:380px_300px]">
-          <ColCard cat={categories[0]} className="h-[360px] sm:h-full sm:row-span-2" />
+        <div className="relative z-0 grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-4 sm:[grid-template-rows:280px_280px] lg:gap-5 lg:[grid-template-rows:380px_300px]">
+          <ColCard cat={categories[0]} className="h-[160px] sm:h-full sm:row-span-2" />
 
-          <div className="grid h-[230px] grid-cols-2 gap-3 sm:h-full sm:gap-4 lg:gap-5">
-            <ColCard cat={categories[1]} />
-            <ColCard cat={categories[2]} />
+          <div className="contents sm:grid sm:h-full sm:grid-cols-2 sm:gap-4 lg:gap-5">
+            <ColCard cat={categories[1]} className="h-[160px] sm:h-full" />
+            <ColCard cat={categories[2]} className="h-[160px] sm:h-full" />
           </div>
 
-          <ColCard cat={categories[3]} className="h-[240px] sm:h-full" />
+          <ColCard cat={categories[3]} className="h-[160px] sm:h-full" />
         </div>
       </div>
     </section>

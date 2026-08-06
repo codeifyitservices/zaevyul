@@ -5,10 +5,16 @@ const USE_MOCK = import.meta.env.VITE_USE_MOCK_API === "true" || false;
 
 // Initialize in-memory collections for fallback mock data
 const loadCollection = (key, defaultData) => {
-  const stored = localStorage.getItem(`zae_db_${key}`);
+  let stored = localStorage.getItem(`zae_db_${key}`);
   if (stored) {
     try {
-      return JSON.parse(stored);
+      const parsed = JSON.parse(stored);
+      if (key === "products" && parsed.length > 0 && (!parsed[0].images || parsed[0].images.length === 0)) {
+        localStorage.removeItem(`zae_db_${key}`);
+        stored = null;
+      } else {
+        return parsed;
+      }
     } catch {
       /* ignore */
     }
@@ -56,6 +62,19 @@ const request = async (url, options = {}) => {
   const data = await res.json();
   if (!res.ok) throw new Error(data.message || "API request failed");
   return data;
+};
+
+export const getCategorySlug = (category) => {
+  if (!category) return "shawls";
+  if (typeof category === "object") return category.slug || "shawls";
+  const staticMap = {
+    'cat-001': 'shawls',
+    'cat-002': 'stoles',
+    'cat-003': 'blankets',
+    'cat-004': 'scarves',
+    'cat-005': 'accessories'
+  };
+  return staticMap[category] || "shawls";
 };
 
 export const api = {
@@ -151,6 +170,19 @@ export const api = {
             p._id === id ||
             String(p.id).replace(/^prd-0*/, "") === String(id),
         );
+        if (!product) throw new Error("Product not found");
+        return product;
+      }
+    },
+    getBySlug: async (slug) => {
+      try {
+        const res = await request(`/products`);
+        const product = res.products.find((p) => p.slug === slug);
+        if (!product) throw new Error("Product not found");
+        return product;
+      } catch (err) {
+        await sleep(200);
+        const product = db.products.find((p) => p.slug === slug);
         if (!product) throw new Error("Product not found");
         return product;
       }

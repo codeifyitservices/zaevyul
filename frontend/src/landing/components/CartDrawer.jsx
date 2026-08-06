@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { X, Plus, Minus, Heart, ArrowRight } from "lucide-react";
 import { useCart } from "../../context/CartContext";
-import { api } from "../../lib/api";
+import { api, getCategorySlug } from "../../lib/api";
 
 export default function CartDrawer() {
   const {
@@ -127,7 +127,7 @@ export default function CartDrawer() {
       {/* Drawer Panel */}
       <div
         ref={drawerRef}
-        className={`relative z-10 flex h-full w-full flex-col bg-[#FAF8F5] border-l border-[#ECE7E1] shadow-2xl transition-transform duration-[350ms] [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] sm:max-w-[480px] md:max-w-[520px] ${
+        className={`relative z-10 flex h-full w-full flex-col bg-[#FAF8F5] border-l border-[#ECE7E1] shadow-2xl transition-transform duration-[350ms] [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] sm:max-w-[420px] lg:max-w-[480px] ${
           isOpen ? "translate-x-0" : "translate-x-full"
         }`}
         role="dialog"
@@ -224,7 +224,7 @@ export default function CartDrawer() {
                   >
                     {/* Product Image */}
                     <Link
-                      to={`/products/${item.id}`}
+                      to={`/collection/${getCategorySlug(item.category)}/${item.slug || (item.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}`}
                       onClick={() => setIsOpen(false)}
                       className="relative aspect-[4/5] w-[84px] shrink-0 overflow-hidden rounded-[2px] bg-[#EFE9E1]"
                     >
@@ -241,7 +241,7 @@ export default function CartDrawer() {
                         {/* Name and Price */}
                         <div className="flex items-start justify-between gap-3">
                           <Link
-                            to={`/products/${item.id}`}
+                            to={`/collection/${getCategorySlug(item.category)}/${item.slug || (item.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}`}
                             onClick={() => setIsOpen(false)}
                             className="font-serif text-[14.5px] font-normal leading-snug text-[#1C1916] hover:text-[#B58A5B] transition-colors"
                           >
@@ -326,10 +326,13 @@ export default function CartDrawer() {
                 {recommendations.map((p) => {
                   const pImg = p.img || (p.images && p.images[0]?.url) || "/storefront/prod-1.png";
                   const pPrice = p.discountPrice || p.basePrice || 30000;
+                  const catSlug = getCategorySlug(p.category);
+                  const prodSlug = p.slug || (p.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+                  const detailPath = `/collection/${catSlug}/${prodSlug}`;
                   return (
                     <div key={p.id || p._id} className="flex gap-4 items-center">
                       <Link
-                        to={`/products/${p.id || p._id}`}
+                        to={detailPath}
                         onClick={() => setIsOpen(false)}
                         className="aspect-[4/5] w-[56px] shrink-0 overflow-hidden rounded-[2px] bg-[#EFE9E1]"
                       >
@@ -341,7 +344,7 @@ export default function CartDrawer() {
                       </Link>
                       <div className="flex-1 flex flex-col justify-center">
                         <Link
-                          to={`/products/${p.id || p._id}`}
+                          to={detailPath}
                           onClick={() => setIsOpen(false)}
                           className="font-serif text-[13.5px] text-[#1C1916] hover:text-[#B58A5B] transition-colors leading-snug"
                         >
@@ -352,7 +355,7 @@ export default function CartDrawer() {
                         </span>
                       </div>
                       <Link
-                        to={`/products/${p.id || p._id}`}
+                        to={detailPath}
                         onClick={() => setIsOpen(false)}
                         className="flex h-7 w-7 items-center justify-center rounded-full border border-[#1C1916]/10 text-[#1C1916]/70 hover:border-[#1C1916] hover:text-[#1C1916] transition-all"
                         aria-label="View product details"

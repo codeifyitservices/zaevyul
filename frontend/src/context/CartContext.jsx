@@ -56,6 +56,7 @@ export function CartProvider({ children }) {
           key: cartItemKey,
           id: productId,
           name: product.name,
+          slug: product.slug || "",
           price: product.discountPrice || product.basePrice || 30000,
           image: product.img || (product.images && product.images[0]?.url) || "/storefront/prod-1.png",
           color: finalColor,

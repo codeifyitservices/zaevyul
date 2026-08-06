@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Plus, Minus, Heart, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Minus, Heart, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from "lucide-react";
 import Navbar from "./components/Navbar";
 import SiteFooter from "./components/SiteFooter";
 import CraftHighlight from "./components/CraftHighlight";
@@ -28,13 +28,14 @@ const getProductImage = (p) => {
 };
 
 export default function ProductDetailPage() {
-  const { id } = useParams();
+  const { categorySlug, productSlug } = useParams();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [adding, setAdding] = useState(false);
   const { addToCart } = useCart();
+  const [activeImageIdx, setActiveImageIdx] = useState(0);
   const [accordions, setAccordions] = useState({
     details: true,
     shipping: false,
@@ -46,8 +47,9 @@ export default function ProductDetailPage() {
     const fetchProduct = async () => {
       try {
         setLoading(true);
-        const data = await api.products.get(id);
+        const data = await api.products.getBySlug(productSlug);
         setProduct(data);
+        setActiveImageIdx(0);
         setError(null);
       } catch (err) {
         console.error("Error fetching product:", err);
@@ -57,11 +59,11 @@ export default function ProductDetailPage() {
       }
     };
     fetchProduct();
-  }, [id]);
+  }, [productSlug]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, [id]);
+  }, [productSlug]);
 
   const toggleAccordion = (section) => {
     setAccordions((prev) => ({ ...prev, [section]: !prev[section] }));
@@ -112,13 +114,6 @@ export default function ProductDetailPage() {
 
   return (
     <div className="min-h-screen bg-[#FAF8F5] text-[#1C1916] font-sans selection:bg-[#B58A5B] selection:text-white">
-      {/* 1. Announcement Bar */}
-      <div className="bg-[#F0EBE3] text-center py-2.5 px-4 border-b border-[#E6DED4]/60">
-        <p className="text-[9px] sm:text-[10px] font-semibold uppercase tracking-[0.2em] text-[#1C1916]/80">
-          COMPLIMENTARY WORLDWIDE SHIPPING ON ALL ORDERS
-        </p>
-      </div>
-
       {/* 2. Navbar */}
       <Navbar />
 
@@ -140,13 +135,70 @@ export default function ProductDetailPage() {
         <section className="mx-auto max-w-[1200px] px-6 sm:px-10 lg:px-16 w-full">
           <div className="grid grid-cols-1 lg:grid-cols-[1.12fr_0.88fr] gap-10 lg:gap-16 xl:gap-20 items-start">
             
-            {/* Left Side: Product Image */}
-            <div className="relative aspect-[4/5] overflow-hidden rounded-[2px] bg-[#EFE9E1]">
-              <img
-                src={getProductImage(product)}
-                alt={product.name}
-                className="absolute inset-0 w-full h-full object-cover"
-              />
+            {/* Left Side: Product Gallery */}
+            <div className="flex flex-col gap-4">
+              {/* Main Image Container */}
+              <div className="relative aspect-[4/5] overflow-hidden rounded-[2px] bg-[#EFE9E1]">
+                <img
+                  src={product.images && product.images[activeImageIdx] ? product.images[activeImageIdx].url : getProductImage(product)}
+                  alt={`${product.name} - View ${activeImageIdx + 1}`}
+                  className="absolute inset-0 w-full h-full object-cover transition-opacity duration-300"
+                />
+                {product.images && product.images.length > 1 && (
+                  <>
+                    {/* Navigation Arrows */}
+                    <button
+                      onClick={() => setActiveImageIdx((prev) => (prev - 1 + product.images.length) % product.images.length)}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 bg-[#FAF8F5]/80 hover:bg-[#FAF8F5] text-[#1C1916] p-2 rounded-full backdrop-blur-sm transition-colors border border-[#ECE7E1] z-10 flex items-center justify-center"
+                      aria-label="Previous image"
+                    >
+                      <ChevronLeft size={16} />
+                    </button>
+                    <button
+                      onClick={() => setActiveImageIdx((prev) => (prev + 1) % product.images.length)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 bg-[#FAF8F5]/80 hover:bg-[#FAF8F5] text-[#1C1916] p-2 rounded-full backdrop-blur-sm transition-colors border border-[#ECE7E1] z-10 flex items-center justify-center"
+                      aria-label="Next image"
+                    >
+                      <ChevronRight size={16} />
+                    </button>
+
+                    {/* Dots Indicator */}
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+                      {product.images.map((_, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => setActiveImageIdx(idx)}
+                          className={`w-1.5 h-1.5 rounded-full transition-all ${
+                            idx === activeImageIdx ? "bg-[#B58A5B] w-3" : "bg-white/60"
+                          }`}
+                          aria-label={`Go to image ${idx + 1}`}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Thumbnail Selector */}
+              {product.images && product.images.length > 1 && (
+                <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-none">
+                  {product.images.map((img, idx) => (
+                    <button
+                      key={img.id || idx}
+                      onClick={() => setActiveImageIdx(idx)}
+                      className={`relative w-20 aspect-[4/5] shrink-0 overflow-hidden rounded-[2px] border bg-[#EFE9E1] transition-all ${
+                        idx === activeImageIdx ? "border-[#B58A5B] ring-1 ring-[#B58A5B]" : "border-[#ECE7E1]"
+                      }`}
+                    >
+                      <img
+                        src={img.url}
+                        alt={`${product.name} thumbnail ${idx + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Right Side: Product Configuration */}

@@ -6,30 +6,45 @@ const RELATED = [
     name: "Sand Pashmina Shawl",
     price: "₹ 32,000",
     img: "/storefront/cat-shawls.png",
+    hoverImg: "/storefront/prod-1.png",
+    categorySlug: "accessories",
+    slug: "pashmina-fingerless-gloves"
   },
   {
     id: 10,
     name: "Reversible Pashmina Shawl",
     price: "₹ 35,000",
     img: "/storefront/prod-3.png",
+    hoverImg: "/storefront/prod-stack.png",
+    categorySlug: "stoles",
+    slug: "cream-pashmina-stole"
   },
   {
     id: 11,
     name: "Midnight Garden Shawl",
     price: "₹ 42,000",
     img: "/storefront/prod-2.png",
+    hoverImg: "/storefront/cat-embroidered.png",
+    categorySlug: "blankets",
+    slug: "alpine-pine-blanket"
   },
   {
     id: 6,
     name: "Sozni Embroidered Shawl",
     price: "₹ 55,000",
     img: "/storefront/cat-embroidered.png",
+    hoverImg: "/storefront/prod-2.png",
+    categorySlug: "scarves",
+    slug: "morning-mist-scarf"
   },
   {
     id: 12,
     name: "Pashmina Shawl",
     price: "₹ 30,000",
     img: "/storefront/prod-stack.png",
+    hoverImg: "/storefront/prod-3.png",
+    categorySlug: "shawls",
+    slug: "himalayan-snow-shawl"
   },
 ];
 
@@ -44,11 +59,11 @@ export default function RelatedProducts() {
         </h2>
 
         {/* Product Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 sm:gap-8 lg:gap-6 xl:gap-8">
-          {RELATED.map((p) => (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 lg:gap-6 xl:gap-8">
+          {RELATED.slice(0, 4).map((p) => (
             <Link
               key={p.id}
-              to={`/products/${p.id}`}
+              to={`/collection/${p.categorySlug}/${p.slug}`}
               onClick={() => window.scrollTo(0, 0)}
               className="group flex flex-col text-decoration-none"
             >
@@ -60,7 +75,7 @@ export default function RelatedProducts() {
                   className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-in-out group-hover:opacity-0"
                 />
                 <img
-                  src={p.images?.[1]?.url || "/storefront/prod-2.png"}
+                  src={p.hoverImg || p.images?.[1]?.url || "/storefront/prod-2.png"}
                   alt={`${p.name} hover detail`}
                   className="absolute inset-0 w-full h-full object-cover transition-all duration-700 ease-in-out opacity-0 scale-[1.02] group-hover:opacity-100 group-hover:scale-100"
                 />

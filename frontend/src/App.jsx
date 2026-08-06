@@ -19,7 +19,7 @@ export default function App() {
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/collections" element={<CollectionsPage />} />
                 <Route path="/collections/:category" element={<CollectionsPage />} />
-                <Route path="/products/:id" element={<ProductDetailPage />} />
+                <Route path="/collection/:categorySlug/:productSlug" element={<ProductDetailPage />} />
                 <Route path="/admin/*" element={<AdminRouter />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>

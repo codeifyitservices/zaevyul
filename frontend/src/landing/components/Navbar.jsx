@@ -33,6 +33,18 @@ export default function Navbar() {
     };
   }, []);
 
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileOpen]);
+
+
   return (
     <>
       <nav className="fixed top-0 left-0 right-0 z-50 flex h-[68px] items-center justify-between border-b border-[#E7DED3] bg-[#FAF8F5]/92 px-5 backdrop-blur-xl sm:px-8 lg:px-14 xl:px-18">
@@ -72,7 +84,7 @@ export default function Navbar() {
           </button>
           <button
             aria-label="Account"
-            className="hidden transition-colors hover:text-[#1C1916] sm:block"
+            className="transition-colors hover:text-[#1C1916]"
           >
             <User size={17} strokeWidth={1.4} />
           </button>
@@ -99,34 +111,32 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {mobileOpen && (
-        <div className="fixed inset-0 z-[200] flex flex-col bg-[#FAF8F5]">
-          <div className="flex h-[68px] items-center justify-between border-b border-[#E8E1D9] px-6 sm:px-8">
-            <span className="font-serif text-[18px] uppercase tracking-[0.28em] text-[#1C1916]">
-              {settings?.storeName?.toUpperCase() || "ZAEVYUL"}
-            </span>
-            <button
-              aria-label="Close menu"
-              onClick={() => setMobileOpen(false)}
-              className="text-[#1C1916]"
-            >
-              <X size={20} strokeWidth={1.4} />
-            </button>
-          </div>
-          <nav className="flex flex-col px-6 pt-10 sm:px-8">
-            {NAV_LINKS.map((link) => (
-              <a
-                key={link}
-                href="#"
-                onClick={() => setMobileOpen(false)}
-                className="border-b border-[#E8E1D9] py-5 font-serif text-[27px] font-light text-[#1C1916] transition-all duration-200 first:border-t hover:pl-3"
-              >
-                {link}
-              </a>
-            ))}
-          </nav>
+      <div className={`fixed inset-0 z-[200] flex flex-col bg-[#FAF8F5] transition-transform duration-500 ease-in-out ${mobileOpen ? "translate-x-0" : "translate-x-full"}`}>
+        <div className="flex h-[68px] items-center justify-between border-b border-[#E8E1D9] px-6 sm:px-8">
+          <span className="font-serif text-[18px] uppercase tracking-[0.28em] text-[#1C1916]">
+            {settings?.storeName?.toUpperCase() || "ZAEVYUL"}
+          </span>
+          <button
+            aria-label="Close menu"
+            onClick={() => setMobileOpen(false)}
+            className="text-[#1C1916]"
+          >
+            <X size={20} strokeWidth={1.4} />
+          </button>
         </div>
-      )}
+        <nav className="flex flex-col px-6 pt-10 sm:px-8">
+          {NAV_LINKS.map((link) => (
+            <a
+              key={link}
+              href="/collections"
+              onClick={() => setMobileOpen(false)}
+              className="border-b border-[#E8E1D9] py-5 font-serif text-[27px] font-light text-[#1C1916] transition-all duration-200 first:border-t hover:pl-3"
+            >
+              {link}
+            </a>
+          ))}
+        </nav>
+      </div>
     </>
   );
 }

@@ -70,3 +70,11 @@
     background: var(--color-river-stone);
   }
 }
+
+@utility scrollbar-none {
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
