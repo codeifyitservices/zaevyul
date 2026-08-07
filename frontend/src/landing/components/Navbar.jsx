@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { Heart, Menu, Search, ShoppingBag, User, X } from "lucide-react";
 import { api } from "../../lib/api";
 import { useCart } from "../../context/CartContext";
@@ -82,22 +83,23 @@ export default function Navbar() {
           >
             <Search size={17} strokeWidth={1.4} />
           </button>
-          <button
+          <Link
+            to="/my-account"
             aria-label="Account"
-            className="hidden lg:block transition-colors hover:text-[#1C1916]"
+            className="hidden lg:block transition-colors hover:text-[#1C1916] cursor-pointer"
           >
             <User size={17} strokeWidth={1.4} />
-          </button>
+          </Link>
           <button
             aria-label="Wishlist"
             className="hidden lg:block transition-colors hover:text-[#1C1916]"
           >
             <Heart size={17} strokeWidth={1.4} />
           </button>
-          <button
+          <Link
+            to="/cart"
             aria-label="Bag"
-            onClick={() => setCartOpen(true)}
-            className="relative transition-colors hover:text-[#1C1916]"
+            className="relative transition-colors hover:text-[#1C1916] cursor-pointer"
           >
             <ShoppingBag size={17} strokeWidth={1.4} />
             <span
@@ -107,7 +109,7 @@ export default function Navbar() {
             >
               {totals.itemCount}
             </span>
-          </button>
+          </Link>
         </div>
       </nav>
 
@@ -143,14 +145,14 @@ export default function Navbar() {
 
         {/* Mobile Drawer Footer Actions (Profile & Wishlist) */}
         <div className="mt-auto border-t border-[#E8E1D9] p-6 sm:p-8 flex justify-around items-center bg-[#FAF8F5]">
-          <a
-            href="#"
+          <Link
+            to="/my-account"
             onClick={() => setMobileOpen(false)}
-            className="flex items-center gap-3 font-sans text-[11px] font-semibold uppercase tracking-[0.2em] text-[#1C1916]/70 hover:text-[#1C1916]"
+            className="flex items-center gap-3 font-sans text-[11px] font-semibold uppercase tracking-[0.2em] text-[#1C1916]/70 hover:text-[#1C1916] cursor-pointer"
           >
             <User size={16} strokeWidth={1.4} />
             <span>Profile</span>
-          </a>
+          </Link>
           <div className="h-4 w-px bg-[#E8E1D9]" />
           <a
             href="#"
