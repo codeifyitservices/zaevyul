@@ -1,15 +1,16 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { parsePhoneNumberFromString } from "libphonenumber-js";
 import SiteFooter from "../components/SiteFooter";
 import { useToast } from "../../context/ToastContext";
 
 import AccountLayout from "./my-account/AccountLayout";
-import AddressModal from "./my-account/AddressModal";
 import DashboardOverview from "./my-account/DashboardOverview";
 import AccountDetailsPage from "./my-account/AccountDetailsPage";
 import OrdersPage from "./my-account/OrdersPage";
 import SavedPiecesPage from "./my-account/SavedPiecesPage";
 import AddressesPage from "./my-account/AddressPage";
+import AddressFormPage from "./my-account/AddressFormPage";
 import MarketingPreferencesPage from "./my-account/MarketingPrefrencePage";
 import { AVATARS } from "./my-account/AccountProfile";
 
@@ -54,6 +55,7 @@ const INITIAL_SAVED_PIECES = [
 
 export default function MyAccountPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const toast = useToast();
 
   const { user, isAuthenticated, loading, refreshUser } = useCustomerAuth();
@@ -65,11 +67,34 @@ export default function MyAccountPage() {
     }
   }, [isAuthenticated, loading, navigate]);
 
-  const [activeTab, setActiveTab] = useState("Overview");
+  const tabToPath = {
+    Overview: "/my-account",
+    Orders: "/my-account/orders",
+    "Saved Pieces": "/my-account/saved-pieces",
+    Addresses: "/my-account/addresses",
+    "Account Details": "/my-account/account-details",
+    "Marketing Preferences": "/my-account/marketing-preferences",
+  };
+
+  const pathToTab = () => {
+    const path = location.pathname;
+    if (path.includes("/orders")) return "Orders";
+    if (path.includes("/saved-pieces")) return "Saved Pieces";
+    if (path.includes("/addresses")) return "Addresses";
+    if (path.includes("/account-details")) return "Account Details";
+    if (path.includes("/marketing-preferences")) return "Marketing Preferences";
+    return "Overview";
+  };
+
+  const activeTab = pathToTab();
+  const setActiveTab = (tab) => navigate(tabToPath[tab] || "/my-account");
 
   const [profile, setProfile] = useState({
     name: "",
     email: "",
+    phone: "",
+    phoneCountryCode: "",
+    countryCode: "",
     avatar: "",
     tagline: "Timeless pieces. Thoughtful choices.",
   });
@@ -86,17 +111,6 @@ export default function MyAccountPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({ ...profile });
 
-  const [showAddressModal, setShowAddressModal] = useState(false);
-  const [addressForm, setAddressForm] = useState({
-    label: "Home",
-    name: "",
-    phone: "",
-    addressLine: "",
-    city: "",
-    state: "",
-    postalCode: "",
-  });
-
   const [showAvatarSelector, setShowAvatarSelector] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -105,7 +119,10 @@ export default function MyAccountPage() {
     if (user) {
       const uProfile = {
         name: user.name || "",
-        email: user.email || user.phone || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        phoneCountryCode: user.phoneCountryCode || "",
+        countryCode: parsePhoneNumberFromString(user.phone || "")?.country || "",
         avatar: user.profileImage || "",
         tagline: "Timeless pieces. Thoughtful choices.",
       };
@@ -142,14 +159,16 @@ export default function MyAccountPage() {
 
   const handleProfileSave = async (e) => {
     e.preventDefault();
-    if (!editForm.name || !editForm.email) {
-      toast("Name and email are required", "error");
+    if (!editForm.name || (!editForm.email && !editForm.phone)) {
+      toast("Name and either email or phone are required", "error");
       return;
     }
     try {
       await customerApi.auth.updateProfile({
         name: editForm.name,
         email: editForm.email,
+        phone: editForm.phone,
+        countryCode: editForm.countryCode,
       });
       await refreshUser();
       setIsEditing(false);
@@ -178,37 +197,6 @@ export default function MyAccountPage() {
       setSavedPieces((prev) => prev.filter((item) => (item._id || item.id) !== productId));
     } catch (err) {
       toast("Failed to update favorites", "error");
-    }
-  };
-
-  const handleAddressSubmit = async (e) => {
-    e.preventDefault();
-    if (
-      !addressForm.addressLine ||
-      !addressForm.city ||
-      !addressForm.postalCode ||
-      !addressForm.phone ||
-      !addressForm.name
-    ) {
-      toast("Please fill in required fields (Name, Phone, Address, City, Pincode)", "error");
-      return;
-    }
-    try {
-      await customerApi.auth.addAddress(addressForm);
-      await refreshUser();
-      setShowAddressModal(false);
-      setAddressForm({
-        label: "Home",
-        name: "",
-        phone: "",
-        addressLine: "",
-        city: "",
-        state: "",
-        postalCode: "",
-      });
-      toast("New address added", "success");
-    } catch (err) {
-      toast("Failed to add address", "error");
     }
   };
 
@@ -249,6 +237,13 @@ export default function MyAccountPage() {
   };
 
   const renderActivePage = () => {
+    if (location.pathname.endsWith("/addresses/new")) {
+      return <AddressFormPage />;
+    }
+    if (/\/addresses\/[^/]+\/edit$/.test(location.pathname)) {
+      return <AddressFormPage />;
+    }
+
     switch (activeTab) {
       case "Overview":
         return (
@@ -257,7 +252,7 @@ export default function MyAccountPage() {
             showAvatarSelector={showAvatarSelector}
             setShowAvatarSelector={setShowAvatarSelector}
             onAvatarChange={handleAvatarChange}
-            onAddAddress={() => setShowAddressModal(true)}
+            onAddAddress={() => navigate("/my-account/addresses/new")}
             isEditing={isEditing}
             setIsEditing={setIsEditing}
             editForm={editForm}
@@ -270,7 +265,6 @@ export default function MyAccountPage() {
             marketingPreferences={marketingPreferences}
             onToggleMarketing={handleToggleMarketing}
             setActiveTab={setActiveTab}
-            setShowAddressModal={setShowAddressModal}
           />
         );
       case "Orders":
@@ -288,7 +282,8 @@ export default function MyAccountPage() {
             profile={profile}
             addresses={addresses}
             onDeleteAddress={handleDeleteAddress}
-            onAddAddress={() => setShowAddressModal(true)}
+            onAddAddress={() => navigate("/my-account/addresses/new")}
+            onEditAddress={(id) => navigate(`/my-account/addresses/${id}/edit`)}
             onSetDefault={handleSetDefaultAddress}
           />
         );
@@ -331,14 +326,6 @@ export default function MyAccountPage() {
       <div>
         <SiteFooter />
       </div>
-
-      <AddressModal
-        show={showAddressModal}
-        onClose={() => setShowAddressModal(false)}
-        addressForm={addressForm}
-        setAddressForm={setAddressForm}
-        onSubmit={handleAddressSubmit}
-      />
     </div>
   );
 }

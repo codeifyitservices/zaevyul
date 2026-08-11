@@ -54,8 +54,8 @@ export function CustomerAuthProvider({ children }) {
   }, []);
 
   /** Login with phone OTP */
-  const loginWithPhoneOTP = useCallback(async (phone, otp) => {
-    const res = await customerApi.auth.verifyPhoneOtp(phone, otp);
+  const loginWithPhoneOTP = useCallback(async (phone, otp, countryCode) => {
+    const res = await customerApi.auth.verifyPhoneOtp(phone, otp, countryCode);
     sessionStorage.setItem('zae_customer', JSON.stringify(res.user));
     setUser(res.user);
     return res.user;

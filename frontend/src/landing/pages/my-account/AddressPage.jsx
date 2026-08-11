@@ -40,6 +40,7 @@ export default function AddressesSection({
   addresses = INITIAL_ADDRESSES,
   onDeleteAddress,
   onAddAddress,
+  onEditAddress,
   onSetDefault,
 }) {
   const handleDelete = (id) => {
@@ -85,6 +86,7 @@ export default function AddressesSection({
               )}
               <div className="flex items-center gap-3 text-[#8A857E]">
                 <button
+                  onClick={() => onEditAddress?.(addr._id || addr.id)}
                   className="hover:text-[#1C1916] transition-colors cursor-pointer"
                   aria-label="Edit address"
                 >
@@ -101,7 +103,7 @@ export default function AddressesSection({
             </div>
 
             <p className="text-[16px] font-medium text-[#1C1916] mb-2">
-              {addr.name}
+              {addr.recipientName || addr.name}
             </p>
             <p className="text-[14px] text-[#3D3833] mb-4">{addr.phone}</p>
 
@@ -113,7 +115,9 @@ export default function AddressesSection({
               ) : (
                 <>
                   <p>{addr.addressLine}</p>
+                  {addr.addressLine2 && <p>{addr.addressLine2}</p>}
                   <p>{addr.city}, {addr.state} - {addr.postalCode}</p>
+                  <p>{addr.country}</p>
                 </>
               )}
             </div>

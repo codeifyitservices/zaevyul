@@ -24,6 +24,8 @@ const NAV_LINKS = [
   { label: "Shop", href: "/collections" },
 ];
 
+const DEFAULT_STORE_NAME = "Zaevyul";
+
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [settings, setSettings] = useState(null);
@@ -156,15 +158,18 @@ export default function Navbar() {
   };
 
   const results = getSearchResults();
+  const storeName = (settings?.storeName || DEFAULT_STORE_NAME).trim();
+  const displayStoreName = (storeName || DEFAULT_STORE_NAME).toUpperCase();
 
   useEffect(() => {
     let active = true;
     const fetchSettings = async () => {
       try {
-        const data = await api.settings.get();
+        const data = await api.settings.getPublicLive();
         if (active) setSettings(data);
       } catch (err) {
         console.error("Error loading settings in Navbar:", err);
+        if (active) setSettings(null);
       }
     };
     fetchSettings();
@@ -199,23 +204,25 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className="fixed top-0 left-0 right-0 z-50 flex h-[68px] items-center justify-between border-b border-[#E7DED3] bg-[#FAF8F5]/92 px-5 backdrop-blur-xl sm:px-8 lg:px-14 xl:px-18">
+      <nav className="fixed top-0 left-0 right-0 z-50 flex h-[68px] items-center justify-between border-b border-[#E7DED3] bg-[#FAF8F5]/92 px-3 backdrop-blur-xl sm:px-8 lg:px-14 xl:px-18">
         {/* Search Overlay */}
         {searchOpen && (
-          <div className="absolute inset-0 z-50 flex h-[68px] items-center bg-[#FAF8F5] px-5 sm:px-8 lg:px-14 xl:px-18 border-b border-[#E7DED3]">
-            <div className="relative flex w-full items-center gap-3">
+          <div className="absolute inset-0 z-50 flex h-[68px] items-center bg-[#FAF8F5] px-3 sm:px-8 lg:px-14 xl:px-18 border-b border-[#E7DED3]">
+            <div className="relative flex w-full min-w-0 items-center gap-2 sm:gap-3">
               <Search
                 size={18}
+                aria-hidden="true"
                 className="text-[#1C1916]/60"
                 strokeWidth={1.4}
               />
               <input
                 type="text"
                 autoFocus
+                aria-label="Search products and collections"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search products, collections, colors, materials..."
-                className="w-full bg-transparent font-sans text-[13px] text-[#1C1916] placeholder-[#1C1916]/40 focus:outline-none"
+                placeholder="Search products and collections"
+                className="min-w-0 flex-1 bg-transparent font-sans text-[13px] text-[#1C1916] placeholder-[#1C1916]/40 focus:outline-none"
               />
               <button
                 onClick={() => {
@@ -233,7 +240,7 @@ export default function Navbar() {
         {/* Search Results Dropdown */}
         {searchOpen && (
           <div className="absolute top-[67px] left-0 right-0 z-40 border-b border-[#E7DED3] bg-[#FAF8F5]/98 shadow-[0_20px_40px_rgba(28,25,22,0.08)] backdrop-blur-xl max-h-[75vh] overflow-y-auto">
-            <div className="mx-auto max-w-[1400px] px-5 py-8 sm:px-8 lg:px-14 xl:px-18 grid grid-cols-1 md:grid-cols-4 gap-8 text-left">
+            <div className="mx-auto grid max-w-[1400px] grid-cols-1 gap-5 px-4 py-5 text-left sm:gap-8 sm:px-8 sm:py-8 md:grid-cols-4 lg:px-14 xl:px-18">
               {/* Left Column: Categories */}
               <div className="md:col-span-1 md:border-r border-[#E7DED3]/40 md:pr-6">
                 <h3 className="font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-[#1C1916]/45 mb-4">
@@ -368,17 +375,18 @@ export default function Navbar() {
 
         <a
           href="/"
-          className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap font-serif text-[20px] uppercase tracking-[0.32em] text-[#1C1916]"
+          className="absolute left-1/2 max-w-[42vw] -translate-x-1/2 truncate whitespace-nowrap text-center font-serif text-[14px] uppercase tracking-[0.18em] text-[#1C1916] sm:max-w-[48vw] sm:text-[18px] sm:tracking-[0.28em] lg:max-w-[32vw] lg:text-[20px] lg:tracking-[0.32em]"
+          title={storeName}
         >
-          {settings?.storeName?.toUpperCase() || "ZAEVYUL"}
+          {displayStoreName}
         </a>
 
-        <div className="flex items-center gap-3 text-[#1C1916]/70 sm:gap-5">
-          <CurrencySelector />
+        <div className="flex min-w-0 items-center gap-2 text-[#1C1916]/70 sm:gap-4 lg:gap-5">
+          <CurrencySelector className="hidden min-[420px]:inline-block" />
           <button
             aria-label="Search"
             onClick={openSearchPanel}
-            className="transition-colors hover:text-[#1C1916]"
+            className="shrink-0 p-1 transition-colors hover:text-[#1C1916]"
           >
             <Search size={17} strokeWidth={1.4} />
           </button>
@@ -463,8 +471,8 @@ export default function Navbar() {
         className={`fixed inset-0 z-[200] flex flex-col bg-[#FAF8F5] transition-transform duration-500 ease-in-out ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div className="flex h-[68px] items-center justify-between border-b border-[#E8E1D9] px-6 sm:px-8">
-          <span className="font-serif text-[18px] uppercase tracking-[0.28em] text-[#1C1916]">
-            {settings?.storeName?.toUpperCase() || "ZAEVYUL"}
+          <span className="max-w-[calc(100vw-96px)] truncate whitespace-nowrap font-serif text-[16px] uppercase tracking-[0.2em] text-[#1C1916] sm:text-[18px] sm:tracking-[0.28em]" title={storeName}>
+            {displayStoreName}
           </span>
           <button
             aria-label="Close menu"

@@ -5,6 +5,7 @@ const CustomerUserSchema = new mongoose.Schema(
     name: { type: String, default: '' },
     email: { type: String, default: null, sparse: true },
     phone: { type: String, default: null, sparse: true },
+    phoneCountryCode: { type: String, default: null },
     profileImage: { type: String, default: null },
 
     // Google OAuth
@@ -21,12 +22,20 @@ const CustomerUserSchema = new mongoose.Schema(
     addresses: [
       {
         label: { type: String, default: 'Home' },
+        recipientName: { type: String, default: '' },
         name: { type: String, default: '' },
+        country: { type: String, default: 'India' },
+        countryCode: { type: String, default: 'IN' },
         phone: { type: String, default: '' },
+        phoneCountryCode: { type: String, default: '' },
+        addressLine1: { type: String, default: '' },
+        addressLine2: { type: String, default: '' },
         addressLine: { type: String, default: '' },
         city: { type: String, default: '' },
         state: { type: String, default: '' },
+        stateCode: { type: String, default: '' },
         postalCode: { type: String, default: '' },
+        landmark: { type: String, default: '' },
         isDefault: { type: Boolean, default: false },
       }
     ],

@@ -1,4 +1,5 @@
 import { Eye, EyeOff, Edit3 } from "lucide-react";
+import PhoneNumberInput from "../../../components/PhoneNumberInput";
 
 export default function AccountDetailsPage({
   profile,
@@ -47,13 +48,14 @@ export default function AccountDetailsPage({
                 className="w-full p-3 bg-white border border-[#E6DED4] rounded-[2px] font-sans text-[12.5px] focus:outline-none focus:border-[#B58A5B]"
               />
             </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-[10px] font-semibold uppercase tracking-wider text-[#6B6560] mb-1.5">
                 Email Address
               </label>
               <input
                 type="email"
-                required
                 value={editForm.email}
                 onChange={(e) =>
                   setEditForm({ ...editForm, email: e.target.value })
@@ -61,6 +63,16 @@ export default function AccountDetailsPage({
                 className="w-full p-3 bg-white border border-[#E6DED4] rounded-[2px] font-sans text-[12.5px] focus:outline-none focus:border-[#B58A5B]"
               />
             </div>
+            <PhoneNumberInput
+              countryCode={editForm.countryCode}
+              phone={editForm.phone}
+              onCountryChange={(countryCode) =>
+                setEditForm({ ...editForm, countryCode })
+              }
+              onPhoneChange={(phone) => setEditForm({ ...editForm, phone })}
+              label="Phone Number"
+              required={false}
+            />
           </div>
           <div className="flex items-center justify-end gap-3 pt-2">
             <button
@@ -94,6 +106,14 @@ export default function AccountDetailsPage({
             </span>
             <span className="font-sans text-[13.5px] font-normal text-[#1C1916] md:col-span-3">
               {profile.email}
+            </span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 items-start gap-1 py-1 border-t border-[#E6DED4]/20 pt-4">
+            <span className="font-sans text-[11px] font-semibold uppercase tracking-wider text-[#8A857E]">
+              Phone
+            </span>
+            <span className="font-sans text-[13.5px] font-normal text-[#1C1916] md:col-span-3">
+              {profile.phone || "Not added"}
             </span>
           </div>
         </div>

@@ -54,17 +54,17 @@ export const customerApi = {
     },
 
     /** Send OTP to phone */
-    sendPhoneOtp: (phone) =>
+    sendPhoneOtp: (phone, countryCode) =>
       request('/auth/phone/send-otp', {
         method: 'POST',
-        body: JSON.stringify({ phone }),
+        body: JSON.stringify({ phone, countryCode }),
       }),
 
     /** Verify phone OTP → returns { success, token, user } */
-    verifyPhoneOtp: async (phone, otp) => {
+    verifyPhoneOtp: async (phone, otp, countryCode) => {
       const res = await request('/auth/phone/verify-otp', {
         method: 'POST',
-        body: JSON.stringify({ phone, otp }),
+        body: JSON.stringify({ phone, otp, countryCode }),
       });
       if (res.token) sessionStorage.setItem('zae_customer_jwt', res.token);
       return res;
@@ -112,27 +112,43 @@ export const customerApi = {
         body: JSON.stringify({ emailUpdates }),
       }),
 
-    /** Add customer address */
-    addAddress: (addressData) =>
-      request('/auth/address', {
+    /** Legacy address aliases retained for existing callers */
+    addAddress: (addressData) => customerApi.addresses.create(addressData),
+    deleteAddress: (addressId) => customerApi.addresses.remove(addressId),
+    setDefaultAddress: (addressId) => customerApi.addresses.setDefault(addressId),
+  },
+
+  addresses: {
+    getAll: () => request('/addresses'),
+    getById: (addressId) => request(`/addresses/${addressId}`),
+    create: (addressData) =>
+      request('/addresses', {
         method: 'POST',
         body: JSON.stringify(addressData),
       }),
-
-    /** Delete customer address */
-    deleteAddress: (addressId) =>
-      request(`/auth/address/${addressId}`, {
+    update: (addressId, addressData) =>
+      request(`/addresses/${addressId}`, {
+        method: 'PUT',
+        body: JSON.stringify(addressData),
+      }),
+    remove: (addressId) =>
+      request(`/addresses/${addressId}`, {
         method: 'DELETE',
       }),
-
-    /** Set customer default address */
-    setDefaultAddress: (addressId) =>
-      request(`/auth/address/${addressId}/default`, {
+    setDefault: (addressId) =>
+      request(`/addresses/${addressId}/default`, {
         method: 'PUT',
       }),
   },
 
   // ─── Favorites ───────────────────────────────────────────────────────────────
+
+  postalLookup: {
+    lookup: ({ countryCode, postalCode }) =>
+      request(
+        `/addresses/postal-lookup?countryCode=${encodeURIComponent(countryCode)}&postalCode=${encodeURIComponent(postalCode)}`,
+      ),
+  },
 
   favorites: {
     /** Get all favorites for the logged-in customer */

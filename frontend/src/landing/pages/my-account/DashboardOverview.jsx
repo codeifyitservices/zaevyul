@@ -553,7 +553,9 @@ function DashboardOverviewPreview({
                       color: C.inkStrong,
                     }}
                   >
-                    {addresses.find((a) => a.isDefault)?.addressLine ||
+                    {addresses.find((a) => a.isDefault)?.addressLine1 ||
+                      addresses.find((a) => a.isDefault)?.addressLine ||
+                      addresses[0].addressLine1 ||
                       addresses[0].addressLine}
                     <br />
                     {addresses.find((a) => a.isDefault)?.city ||

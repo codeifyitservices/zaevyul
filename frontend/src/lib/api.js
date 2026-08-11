@@ -959,6 +959,10 @@ export const api = {
 
   // Settings
   settings: {
+    getPublicLive: async () => {
+      const res = await publicRequest("/settings");
+      return res.settings;
+    },
     getPublic: async () => {
       try {
         const res = await publicRequest("/settings");

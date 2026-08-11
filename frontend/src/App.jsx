@@ -46,7 +46,7 @@ export default function App() {
                         element={<ProductDetailPage />}
                       />
                       <Route path="/cart" element={<CartPage />} />
-                      <Route path="/my-account" element={<MyAccountPage />} />
+                      <Route path="/my-account/*" element={<MyAccountPage />} />
                       <Route path="/journal" element={<JournalPage />} />
                       <Route path="/journal/:slug" element={<JournalDetailPage />} />
                       <Route path="/about" element={<OurStoryPage />} />

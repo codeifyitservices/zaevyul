@@ -4,6 +4,8 @@ import OtpRecord from '../model/OtpRecord.js';
 import { sendOtpEmail } from '../services/emailService.js';
 import { sendOtpSms, normalizePhone } from '../services/smsService.js';
 import { signCustomerToken, setCustomerCookie } from '../middleware/customerAuth.js';
+import { normalizeInternationalPhone } from '../utils/phone.js';
+import { normalizeAddressForResponse } from '../utils/addressValidation.js';
 
 const RESEND_COOLDOWN_SECONDS = 60;
 const MAX_OTP_ATTEMPTS = 5;
@@ -16,10 +18,11 @@ const formatCustomer = (c) => ({
   name: c.name,
   email: c.email,
   phone: c.phone,
+  phoneCountryCode: c.phoneCountryCode,
   profileImage: c.profileImage,
   emailVerified: c.emailVerified,
   phoneVerified: c.phoneVerified,
-  addresses: c.addresses || [],
+  addresses: (c.addresses || []).map(normalizeAddressForResponse),
   marketingPreferences: c.marketingPreferences || { emailUpdates: true },
   favoritesCount: c.favorites?.length ?? 0,
 });
@@ -164,15 +167,15 @@ export const verifyEmailOtp = async (req, res) => {
  * POST /api/customer/auth/phone/send-otp
  */
 export const sendPhoneOtp = async (req, res) => {
-  const { phone } = req.body;
+  const { phone, countryCode } = req.body;
 
-  if (!phone) {
-    return res.status(400).json({ success: false, message: 'Phone number is required.' });
+  if (!phone || !countryCode) {
+    return res.status(400).json({ success: false, message: 'Phone number and country are required.' });
   }
 
   let normalizedPhone;
   try {
-    normalizedPhone = normalizePhone(phone);
+    normalizedPhone = normalizePhone(phone, countryCode);
   } catch (err) {
     return res.status(400).json({ success: false, message: err.message });
   }
@@ -210,7 +213,7 @@ export const sendPhoneOtp = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: `A 6-digit code has been sent to +91 ${normalizedPhone}.`,
+      message: `A 6-digit code has been sent to ${normalizedPhone}.`,
       cooldownSeconds: RESEND_COOLDOWN_SECONDS,
     });
   } catch (error) {
@@ -223,15 +226,17 @@ export const sendPhoneOtp = async (req, res) => {
  * POST /api/customer/auth/phone/verify-otp
  */
 export const verifyPhoneOtp = async (req, res) => {
-  const { phone, otp } = req.body;
+  const { phone, otp, countryCode } = req.body;
 
-  if (!phone || !otp) {
-    return res.status(400).json({ success: false, message: 'Phone number and OTP are required.' });
+  if (!phone || !otp || !countryCode) {
+    return res.status(400).json({ success: false, message: 'Phone number, country, and OTP are required.' });
   }
 
   let normalizedPhone;
+  let parsedPhone;
   try {
-    normalizedPhone = normalizePhone(phone);
+    parsedPhone = normalizeInternationalPhone(phone, countryCode);
+    normalizedPhone = parsedPhone.phone;
   } catch (err) {
     return res.status(400).json({ success: false, message: err.message });
   }
@@ -272,10 +277,15 @@ export const verifyPhoneOtp = async (req, res) => {
     if (!customer) {
       customer = await CustomerUser.create({
         phone: normalizedPhone,
+        phoneCountryCode: parsedPhone.phoneCountryCode,
         phoneVerified: true,
       });
     } else if (!customer.phoneVerified) {
       customer.phoneVerified = true;
+      customer.phoneCountryCode = parsedPhone.phoneCountryCode;
+      await customer.save();
+    } else if (!customer.phoneCountryCode) {
+      customer.phoneCountryCode = parsedPhone.phoneCountryCode;
       await customer.save();
     }
 
@@ -395,7 +405,7 @@ export const logout = (req, res) => {
  * PUT /api/customer/auth/profile
  */
 export const updateCustomerProfile = async (req, res) => {
-  const { name, email, profileImage } = req.body;
+  const { name, email, phone, phoneCountryCode, countryCode, profileImage } = req.body;
   try {
     const customer = await CustomerUser.findById(req.customerUser._id);
     if (!customer) {
@@ -411,6 +421,27 @@ export const updateCustomerProfile = async (req, res) => {
           return res.status(400).json({ success: false, message: 'Email address is already in use.' });
         }
         customer.email = normalizedEmail;
+      }
+    }
+    if (phone !== undefined) {
+      if (!String(phone || '').trim()) {
+        if (!customer.email && !customer.googleId) {
+          return res.status(400).json({ success: false, message: 'Phone cannot be removed from this account.' });
+        }
+        customer.phone = null;
+        customer.phoneCountryCode = null;
+        customer.phoneVerified = false;
+      } else {
+      const parsedPhone = normalizeInternationalPhone(phone, countryCode || phoneCountryCode);
+      if (parsedPhone.phone !== customer.phone) {
+        const existing = await CustomerUser.findOne({ phone: parsedPhone.phone });
+        if (existing && String(existing._id) !== String(customer._id)) {
+          return res.status(400).json({ success: false, message: 'Phone number is already in use.' });
+        }
+        customer.phone = parsedPhone.phone;
+        customer.phoneVerified = false;
+      }
+      customer.phoneCountryCode = parsedPhone.phoneCountryCode;
       }
     }
     if (profileImage !== undefined) customer.profileImage = profileImage;
@@ -455,112 +486,3 @@ export const updateCustomerMarketing = async (req, res) => {
 };
 
 // ─── ADDRESS MANAGEMENT ──────────────────────────────────────────────────────
-
-/**
- * POST /api/customer/auth/address
- */
-export const addCustomerAddress = async (req, res) => {
-  const { label, name, phone, addressLine, city, state, postalCode } = req.body;
-  try {
-    const customer = await CustomerUser.findById(req.customerUser._id);
-    if (!customer) {
-      return res.status(404).json({ success: false, message: 'Customer not found.' });
-    }
-
-    const newAddress = {
-      label: label || 'Home',
-      name: name || '',
-      phone: phone || '',
-      addressLine: addressLine || '',
-      city: city || '',
-      state: state || '',
-      postalCode: postalCode || '',
-      isDefault: customer.addresses.length === 0, // Make default if it's the first address
-    };
-
-    customer.addresses.push(newAddress);
-    await customer.save();
-
-    return res.status(200).json({
-      success: true,
-      message: 'Address added successfully.',
-      user: formatCustomer(customer),
-    });
-  } catch (error) {
-    console.error('[customerAuth] addCustomerAddress error:', error.message);
-    return res.status(500).json({ success: false, message: 'Failed to add address.' });
-  }
-};
-
-/**
- * DELETE /api/customer/auth/address/:addressId
- */
-export const deleteCustomerAddress = async (req, res) => {
-  const { addressId } = req.params;
-  try {
-    const customer = await CustomerUser.findById(req.customerUser._id);
-    if (!customer) {
-      return res.status(404).json({ success: false, message: 'Customer not found.' });
-    }
-
-    const addressIndex = customer.addresses.findIndex((addr) => String(addr._id) === addressId);
-    if (addressIndex === -1) {
-      return res.status(404).json({ success: false, message: 'Address not found.' });
-    }
-
-    const wasDefault = customer.addresses[addressIndex].isDefault;
-    customer.addresses.splice(addressIndex, 1);
-
-    // If we deleted the default address, and we still have other addresses, make the first one default
-    if (wasDefault && customer.addresses.length > 0) {
-      customer.addresses[0].isDefault = true;
-    }
-
-    await customer.save();
-    return res.status(200).json({
-      success: true,
-      message: 'Address deleted successfully.',
-      user: formatCustomer(customer),
-    });
-  } catch (error) {
-    console.error('[customerAuth] deleteCustomerAddress error:', error.message);
-    return res.status(500).json({ success: false, message: 'Failed to delete address.' });
-  }
-};
-
-/**
- * PUT /api/customer/auth/address/:addressId/default
- */
-export const setDefaultCustomerAddress = async (req, res) => {
-  const { addressId } = req.params;
-  try {
-    const customer = await CustomerUser.findById(req.customerUser._id);
-    if (!customer) {
-      return res.status(404).json({ success: false, message: 'Customer not found.' });
-    }
-
-    let found = false;
-    customer.addresses.forEach((addr) => {
-      if (String(addr._id) === addressId) {
-        addr.isDefault = true;
-        found = true;
-      } else {
-        addr.isDefault = false;
-      }
-    });
-
-    if (!found) {
-      return res.status(404).json({ success: false, message: 'Address not found.' });
-    }
-
-    await customer.save();
-    return res.status(200).json({
-      success: true,
-      message: 'Default address updated.',
-      user: formatCustomer(customer),
-    });
-  } catch (error) {
-    console.error('[customerAuth] setDefaultCustomerAddress error:', error.message);
-    return res.status(500).json({ success: false, message: 'Failed to update default address.' });
-  }
-};

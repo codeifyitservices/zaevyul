@@ -1,31 +1,25 @@
+import { normalizeInternationalPhone } from '../utils/phone.js';
+
 /**
- * SMS Service — clean abstraction layer for sending OTP SMS messages.
- *
- * Default provider: Fast2SMS (popular in India, affordable).
- * To swap providers, change ONLY this file and the env variables.
+ * SMS Service - clean abstraction layer for sending OTP SMS messages.
  *
  * Environment variables:
- *   SMS_PROVIDER   — 'fast2sms' (default) | 'twilio' | 'console' (dev)
- *   FAST2SMS_API_KEY — Fast2SMS API key
- *   TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER — for Twilio
+ *   SMS_PROVIDER - 'fast2sms' | 'twilio' | 'console' (dev)
+ *   FAST2SMS_API_KEY - Fast2SMS API key
+ *   TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER - for Twilio
  */
 
 /**
- * Normalize an Indian mobile number to 10 digits.
- * Accepts: +91XXXXXXXXXX, 91XXXXXXXXXX, 0XXXXXXXXXX, XXXXXXXXXX
+ * Normalize a phone number to E.164.
+ * Accepts either an E.164 number or a national number plus ISO country code.
  */
-export const normalizePhone = (raw) => {
-  const digits = String(raw).replace(/\D/g, '');
-  if (digits.startsWith('91') && digits.length === 12) return digits.slice(2);
-  if (digits.startsWith('0') && digits.length === 11) return digits.slice(1);
-  if (digits.length === 10) return digits;
-  throw new Error('Invalid phone number format. Please enter a 10-digit Indian mobile number.');
-};
+export const normalizePhone = (raw, countryCode) =>
+  normalizeInternationalPhone(raw, countryCode).phone;
 
 /**
  * Send an OTP via SMS.
- * @param {string} phone — normalized 10-digit number
- * @param {string} otp   — the 6-digit OTP (never logged)
+ * @param {string} phone - normalized E.164 number
+ * @param {string} otp - the 6-digit OTP (never logged)
  */
 export const sendOtpSms = async (phone, otp) => {
   const provider = process.env.SMS_PROVIDER || 'console';
@@ -35,17 +29,19 @@ export const sendOtpSms = async (phone, otp) => {
   } else if (provider === 'twilio') {
     await sendViaTwilio(phone, otp);
   } else {
-    // 'console' provider — for local development without real SMS
     consoleDev(phone, otp);
   }
 };
 
-// ─── Provider: Fast2SMS ────────────────────────────────────────────────────────
 async function sendViaFast2SMS(phone, otp) {
   const apiKey = process.env.FAST2SMS_API_KEY;
   if (!apiKey) throw new Error('FAST2SMS_API_KEY is not set in environment variables.');
+  if (!phone.startsWith('+91')) {
+    throw new Error('Fast2SMS only supports Indian phone numbers. Use SMS_PROVIDER=twilio for international OTP delivery.');
+  }
 
   const message = `Your Zaevyul login code is ${otp}. Valid for 10 minutes. Do not share.`;
+  const nationalNumber = phone.replace(/^\+91/, '');
 
   const res = await fetch('https://www.fast2sms.com/dev/bulkV2', {
     method: 'POST',
@@ -54,11 +50,11 @@ async function sendViaFast2SMS(phone, otp) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      route: 'q',          // transactional route
+      route: 'q',
       message,
       language: 'english',
       flash: 0,
-      numbers: phone,
+      numbers: nationalNumber,
     }),
   });
 
@@ -68,7 +64,6 @@ async function sendViaFast2SMS(phone, otp) {
   }
 }
 
-// ─── Provider: Twilio ──────────────────────────────────────────────────────────
 async function sendViaTwilio(phone, otp) {
   const { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER } = process.env;
   if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_FROM_NUMBER) {
@@ -77,7 +72,7 @@ async function sendViaTwilio(phone, otp) {
 
   const url = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`;
   const body = new URLSearchParams({
-    To: `+91${phone}`,
+    To: phone,
     From: TWILIO_FROM_NUMBER,
     Body: `Your Zaevyul login code is ${otp}. Valid for 10 minutes.`,
   });
@@ -97,11 +92,10 @@ async function sendViaTwilio(phone, otp) {
   }
 }
 
-// ─── Provider: Console (dev fallback) ─────────────────────────────────────────
 function consoleDev(phone, otp) {
   if (process.env.NODE_ENV !== 'production') {
-    console.log(`[SmsService] Dev OTP for +91${phone}: ${otp}`);
+    console.log(`[SmsService] Dev OTP for ${phone}: ${otp}`);
   } else {
-    console.log(`[SmsService] SMS_PROVIDER=console — OTP sent to +91${phone}: [REDACTED for security]`);
+    console.log(`[SmsService] SMS_PROVIDER=console - OTP sent to ${phone}: [REDACTED for security]`);
   }
 }

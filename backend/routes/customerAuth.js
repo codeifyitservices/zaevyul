@@ -11,10 +11,15 @@ import {
   logout,
   updateCustomerProfile,
   updateCustomerMarketing,
+} from '../controllers/customerAuth.js';
+import {
   addCustomerAddress,
   deleteCustomerAddress,
+  getCustomerAddress,
+  getCustomerAddresses,
   setDefaultCustomerAddress,
-} from '../controllers/customerAuth.js';
+  updateCustomerAddress,
+} from '../controllers/customerAddresses.js';
 
 const router = express.Router();
 
@@ -65,7 +70,11 @@ router.put('/profile', requireCustomerAuth, updateCustomerProfile);
 router.put('/marketing', requireCustomerAuth, updateCustomerMarketing);
 
 // Address management
+router.get('/address', requireCustomerAuth, getCustomerAddresses);
 router.post('/address', requireCustomerAuth, addCustomerAddress);
+router.get('/address/:addressId', requireCustomerAuth, getCustomerAddress);
+router.put('/address/:addressId', requireCustomerAuth, updateCustomerAddress);
+router.patch('/address/:addressId', requireCustomerAuth, updateCustomerAddress);
 router.delete('/address/:addressId', requireCustomerAuth, deleteCustomerAddress);
 router.put('/address/:addressId/default', requireCustomerAuth, setDefaultCustomerAddress);
 

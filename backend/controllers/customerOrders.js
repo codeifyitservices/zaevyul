@@ -6,6 +6,7 @@ import Product from "../model/Product.js";
 import Coupon from "../model/Coupon.js";
 import Settings from "../model/Settings.js";
 import { sendOrderConfirmationEmail } from "../services/emailService.js";
+import { normalizeAddressForResponse } from "../utils/addressValidation.js";
 
 /**
  * GET /api/customer/orders
@@ -46,19 +47,28 @@ export const getCustomerOrders = async (req, res) => {
  * Fixes: AUD-001 (backend price recalculation), AUD-004 (atomic stock & rollback), AUD-020 (phone auth support), AUD-023 (email dispatch), AUD-024 (secure order numbers), AUD-014 (sync CustomerUser & Customer).
  */
 export const placeCustomerOrder = async (req, res) => {
-  const { items, couponCode, paymentMethod, shippingAddress, notes } = req.body;
+  const { items, couponCode, paymentMethod, shippingAddress, shippingAddressId, notes } = req.body;
 
   if (!items || items.length === 0) {
     return res.status(400).json({ success: false, message: "Cart items are required." });
   }
 
-  if (!shippingAddress) {
+  let resolvedShippingAddress = shippingAddress;
+  if (shippingAddressId) {
+    const savedAddress = req.customerUser.addresses.id(shippingAddressId);
+    if (!savedAddress) {
+      return res.status(404).json({ success: false, message: "Saved address not found." });
+    }
+    resolvedShippingAddress = normalizeAddressForResponse(savedAddress);
+  }
+
+  if (!resolvedShippingAddress) {
     return res.status(400).json({ success: false, message: "Shipping address is required." });
   }
 
   // Extract contact details — support both email and phone authenticated users (AUD-020)
   const email = req.customerUser?.email || req.body.email || null;
-  const phone = req.customerUser?.phone || req.body.phone || shippingAddress.phone || "";
+  const phone = req.customerUser?.phone || req.body.phone || resolvedShippingAddress.phone || "";
   const name = req.customerUser?.name || req.body.name || (email ? email.split("@")[0] : `Customer-${phone}`);
 
   if (!email && !phone) {
@@ -78,8 +88,8 @@ export const placeCustomerOrder = async (req, res) => {
         name,
         email: effectiveEmail,
         phone: phone || "",
-        city: shippingAddress.city || "",
-        country: shippingAddress.country || "India",
+        city: resolvedShippingAddress.city || "",
+        country: resolvedShippingAddress.country || "India",
         status: "active",
       });
     }
@@ -195,10 +205,18 @@ export const placeCustomerOrder = async (req, res) => {
         paymentMethod: paymentMethod || "UPI",
         paymentStatus: "pending",
         shippingAddress: {
-          line1: shippingAddress.line1 || shippingAddress.address || "",
-          city: shippingAddress.city || "",
-          country: shippingAddress.country || "India",
-          zip: shippingAddress.zip || shippingAddress.postalCode || "",
+          line1: resolvedShippingAddress.line1 || resolvedShippingAddress.addressLine1 || resolvedShippingAddress.addressLine || resolvedShippingAddress.address || "",
+          line2: resolvedShippingAddress.line2 || resolvedShippingAddress.addressLine2 || "",
+          city: resolvedShippingAddress.city || "",
+          state: resolvedShippingAddress.state || "",
+          stateCode: resolvedShippingAddress.stateCode || "",
+          country: resolvedShippingAddress.country || "India",
+          countryCode: resolvedShippingAddress.countryCode || "",
+          zip: resolvedShippingAddress.zip || resolvedShippingAddress.postalCode || "",
+          phone: resolvedShippingAddress.phone || phone || "",
+          phoneCountryCode: resolvedShippingAddress.phoneCountryCode || req.customerUser?.phoneCountryCode || "",
+          recipientName: resolvedShippingAddress.recipientName || resolvedShippingAddress.name || name,
+          landmark: resolvedShippingAddress.landmark || "",
         },
         notes: notes || "",
       });

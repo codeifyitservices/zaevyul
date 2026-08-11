@@ -1,14 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
-import { ArrowLeft, Mail, Phone, ArrowRight, RefreshCw } from "lucide-react";
+import { ArrowLeft, Mail, ArrowRight, RefreshCw } from "lucide-react";
 import { useCustomerAuth } from "../../context/CustomerAuthContext";
 import { customerApi } from "../../lib/customerApi";
 import { GoogleLogin } from "@react-oauth/google";
+import PhoneNumberInput, { normalizePhoneInput } from "../../components/PhoneNumberInput";
 
 const RESEND_COOLDOWN = 60; // seconds
 
-// Detect if input looks like a phone number
-const isPhone = (value) => /^[\d\s\-+()]{7,15}$/.test(value.trim());
 const isEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 
 export default function CustomerLoginPage() {
@@ -34,8 +33,10 @@ export default function CustomerLoginPage() {
 
   // ─── State ──────────────────────────────────────────────────────────────────
   const [step, setStep] = useState("input"); // 'input' | 'otp'
+  const [loginMethod, setLoginMethod] = useState("email");
   const [inputValue, setInputValue] = useState("");
-  const [inputType, setInputType] = useState(null); // 'email' | 'phone' | null
+  const [phoneCountryCode, setPhoneCountryCode] = useState("");
+  const [inputType, setInputType] = useState("email"); // 'email' | 'phone'
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
@@ -44,16 +45,10 @@ export default function CustomerLoginPage() {
 
   const otpRefs = useRef([]);
 
-  // Detect input type as user types
+  // Keep input type aligned with the selected login method.
   useEffect(() => {
-    if (!inputValue) {
-      setInputType(null);
-      return;
-    }
-    if (isEmail(inputValue)) setInputType("email");
-    else if (isPhone(inputValue)) setInputType("phone");
-    else setInputType(null);
-  }, [inputValue]);
+    setInputType(loginMethod);
+  }, [loginMethod]);
 
   // Countdown timer for resend cooldown
   useEffect(() => {
@@ -69,22 +64,30 @@ export default function CustomerLoginPage() {
     setInfo("");
 
     if (!inputValue.trim()) {
-      setError("Please enter your email or phone number.");
+      setError(loginMethod === "email" ? "Please enter your email address." : "Please enter your phone number.");
       return;
     }
-    if (!inputType) {
-      setError("Please enter a valid email address or 10-digit phone number.");
+    if (loginMethod === "email" && !isEmail(inputValue)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+    if (loginMethod === "phone" && !phoneCountryCode) {
+      setError("Please select your country code.");
       return;
     }
 
     setLoading(true);
     try {
-      if (inputType === "email") {
+      if (loginMethod === "email") {
         await customerApi.auth.sendEmailOtp(inputValue.trim());
         setInfo(`A 6-digit code has been sent to ${inputValue.trim()}.`);
       } else {
-        await customerApi.auth.sendPhoneOtp(inputValue.trim());
-        setInfo(`A 6-digit code has been sent to your mobile number.`);
+        const normalized = normalizePhoneInput({
+          phone: inputValue.trim(),
+          countryCode: phoneCountryCode,
+        });
+        await customerApi.auth.sendPhoneOtp(normalized.phone, normalized.countryCode);
+        setInfo(`A 6-digit code has been sent to ${normalized.phone}.`);
       }
       setOtp(["", "", "", "", "", ""]);
       setStep("otp");
@@ -142,7 +145,11 @@ export default function CustomerLoginPage() {
       if (inputType === "email") {
         await loginWithEmailOTP(inputValue.trim(), code);
       } else {
-        await loginWithPhoneOTP(inputValue.trim(), code);
+        const normalized = normalizePhoneInput({
+          phone: inputValue.trim(),
+          countryCode: phoneCountryCode,
+        });
+        await loginWithPhoneOTP(normalized.phone, code, normalized.countryCode);
       }
       navigate(from, { replace: true });
     } catch (err) {
@@ -215,10 +222,32 @@ export default function CustomerLoginPage() {
               </div>
 
               <form onSubmit={handleSendOtp} className="space-y-5">
+                <div className="grid grid-cols-2 gap-2 rounded-[2px] border border-[#E6DED4] bg-white p-1">
+                  {["email", "phone"].map((method) => (
+                    <button
+                      key={method}
+                      type="button"
+                      onClick={() => {
+                        setLoginMethod(method);
+                        setInputValue("");
+                        setError("");
+                      }}
+                      className={`py-2.5 font-sans text-[10px] font-semibold uppercase tracking-[0.16em] rounded-[2px] transition-colors cursor-pointer ${
+                        loginMethod === method
+                          ? "bg-[#1C1916] text-white"
+                          : "text-[#6B6560] hover:bg-[#FAF8F5]"
+                      }`}
+                    >
+                      {method === "email" ? "Email" : "Mobile"}
+                    </button>
+                  ))}
+                </div>
+
                 {/* Email / Phone input */}
-                <div>
+                {loginMethod === "email" ? (
+                  <div>
                   <label className="block font-sans text-[11px] font-semibold uppercase tracking-[0.12em] text-[#6B6560] mb-2">
-                    Email address or mobile number
+                    Email address
                   </label>
                   <div className="relative">
                     <input
@@ -228,28 +257,40 @@ export default function CustomerLoginPage() {
                         setInputValue(e.target.value);
                         setError("");
                       }}
-                      placeholder="Enter your email or 10-digit mobile"
+                      placeholder="Enter your email"
                       autoComplete="email"
                       autoFocus
                       className="w-full border border-[#E6DED4] bg-white px-4 py-3.5 font-sans text-[13px] text-[#1C1916] placeholder:text-[#B8AFA5] focus:outline-none focus:border-[#1C1916] rounded-[2px] transition-colors pr-10"
                     />
-                    {inputType && (
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#B58A5B]">
-                        {inputType === "email" ? (
-                          <Mail size={15} strokeWidth={1.5} />
-                        ) : (
-                          <Phone size={15} strokeWidth={1.5} />
-                        )}
-                      </span>
-                    )}
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#B58A5B]">
+                      <Mail size={15} strokeWidth={1.5} />
+                    </span>
                   </div>
-                  {inputType && (
+                  <p className="mt-1.5 font-sans text-[11px] text-[#8A857E]">
+                    We'll send a verification code via email
+                  </p>
+                  </div>
+                ) : (
+                  <div>
+                    <PhoneNumberInput
+                      countryCode={phoneCountryCode}
+                      phone={inputValue}
+                      onCountryChange={(code) => {
+                        setPhoneCountryCode(code);
+                        setError("");
+                      }}
+                      onPhoneChange={(value) => {
+                        setInputValue(value);
+                        setError("");
+                      }}
+                      label="Mobile Number"
+                      showCountrySearch={false}
+                    />
                     <p className="mt-1.5 font-sans text-[11px] text-[#8A857E]">
-                      We'll send a verification code via{" "}
-                      {inputType === "email" ? "email" : "SMS"}
+                      We'll send a verification code via SMS
                     </p>
-                  )}
-                </div>
+                  </div>
+                )}
 
                 {error && (
                   <div className="bg-red-50 border border-red-200 rounded-[2px] px-4 py-3 font-sans text-[12px] text-red-700">
@@ -259,7 +300,7 @@ export default function CustomerLoginPage() {
 
                 <button
                   type="submit"
-                  disabled={loading || !inputType}
+                  disabled={loading}
                   className="w-full bg-[#1C1916] hover:bg-[#B58A5B] text-white font-sans text-[11px] font-semibold tracking-[0.18em] uppercase py-4 rounded-[2px] transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
                 >
                   {loading ? (

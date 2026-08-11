@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import {
   Bookmark,
   Bell,
@@ -32,6 +32,7 @@ import { useEffect } from "react";
 
 export default function CartPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const toast = useToast();
   const { cart, updateQuantity, removeItem, totals, clearCart } = useCart();
   const { formatPrice } = useCurrency();
@@ -146,12 +147,14 @@ export default function CartPage() {
     cardExpiry: "12/29",
     cardCvc: "123",
   });
+  const [selectedAddressId, setSelectedAddressId] = useState("");
 
   // Prefill when checkout modal opens
   useEffect(() => {
     if (showCheckoutModal && isAuthenticated && user) {
       const defaultAddr =
         user.addresses?.find((a) => a.isDefault) || user.addresses?.[0];
+      setSelectedAddressId(defaultAddr?._id || "");
       setCheckoutForm({
         email: user.email || "",
         name: user.name || "",
@@ -164,6 +167,15 @@ export default function CartPage() {
       });
     }
   }, [showCheckoutModal, isAuthenticated, user]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("checkout") === "1" && isAuthenticated) {
+      setCheckoutStep(1);
+      setShowCheckoutModal(true);
+      navigate("/cart", { replace: true });
+    }
+  }, [location.search, isAuthenticated, navigate]);
 
   const handleSaveGiftNote = (e) => {
     e.preventDefault();
@@ -182,8 +194,8 @@ export default function CartPage() {
 
   const handleCheckoutSubmit = async (e) => {
     e.preventDefault();
-    if (!checkoutForm.email || !checkoutForm.name || !checkoutForm.address) {
-      toast("Please fill in all shipping details", "error");
+    if (!selectedAddressId) {
+      toast("Please select a saved shipping address", "error");
       return;
     }
 
@@ -207,11 +219,7 @@ export default function CartPage() {
         coupon: appliedCoupon?.code || "",
         total: finalTotal,
         paymentMethod: "Credit Card",
-        shippingAddress: {
-          address: checkoutForm.address,
-          city: checkoutForm.city,
-          zip: checkoutForm.postalCode,
-        },
+        shippingAddressId: selectedAddressId,
         notes: giftNote,
       });
 
@@ -709,7 +717,7 @@ export default function CartPage() {
                   Checkout
                 </h3>
                 <p className="font-sans text-[12.5px] text-[#8A857E] mb-6 font-light">
-                  Provide your shipping information to complete the order.
+                  Select a saved shipping address to complete the order.
                 </p>
 
                 <div className="space-y-4">
@@ -733,80 +741,67 @@ export default function CartPage() {
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-semibold uppercase tracking-wider text-[#6B6560] mb-1.5">
-                      Full Name *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={checkoutForm.name}
-                      onChange={(e) =>
-                        setCheckoutForm({
-                          ...checkoutForm,
-                          name: e.target.value,
-                        })
-                      }
-                      placeholder="e.g. Devendra Singh"
-                      className="w-full p-3 bg-white border border-[#E6DED4] rounded-[2px] font-sans text-[12.5px] placeholder:text-[#8A857E]/50 focus:outline-none focus:border-[#B58A5B]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] font-semibold uppercase tracking-wider text-[#6B6560] mb-1.5">
-                      Shipping Address *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={checkoutForm.address}
-                      onChange={(e) =>
-                        setCheckoutForm({
-                          ...checkoutForm,
-                          address: e.target.value,
-                        })
-                      }
-                      placeholder="Street address, apartment, suite"
-                      className="w-full p-3 bg-white border border-[#E6DED4] rounded-[2px] font-sans text-[12.5px] placeholder:text-[#8A857E]/50 focus:outline-none focus:border-[#B58A5B]"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-[10px] font-semibold uppercase tracking-wider text-[#6B6560] mb-1.5">
-                        City *
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-[10px] font-semibold uppercase tracking-wider text-[#6B6560]">
+                        Shipping Address *
                       </label>
-                      <input
-                        type="text"
-                        required
-                        value={checkoutForm.city}
-                        onChange={(e) =>
-                          setCheckoutForm({
-                            ...checkoutForm,
-                            city: e.target.value,
-                          })
-                        }
-                        placeholder="Srinagar"
-                        className="w-full p-3 bg-white border border-[#E6DED4] rounded-[2px] font-sans text-[12.5px] placeholder:text-[#8A857E]/50 focus:outline-none focus:border-[#B58A5B]"
-                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowCheckoutModal(false);
+                          navigate("/my-account/addresses/new?returnTo=checkout");
+                        }}
+                        className="text-[10px] font-semibold uppercase tracking-wider text-[#B58A5B] hover:text-[#1C1916] cursor-pointer"
+                      >
+                        Add Address
+                      </button>
                     </div>
-                    <div>
-                      <label className="block text-[10px] font-semibold uppercase tracking-wider text-[#6B6560] mb-1.5">
-                        Postal Code *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={checkoutForm.postalCode}
-                        onChange={(e) =>
-                          setCheckoutForm({
-                            ...checkoutForm,
-                            postalCode: e.target.value,
-                          })
-                        }
-                        placeholder="190001"
-                        className="w-full p-3 bg-white border border-[#E6DED4] rounded-[2px] font-sans text-[12.5px] placeholder:text-[#8A857E]/50 focus:outline-none focus:border-[#B58A5B]"
-                      />
-                    </div>
+
+                    {user?.addresses?.length ? (
+                      <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
+                        {user.addresses.map((addr) => (
+                          <label
+                            key={addr._id}
+                            className={`block cursor-pointer rounded-[4px] border p-3 bg-white ${
+                              selectedAddressId === addr._id
+                                ? "border-[#B58A5B]"
+                                : "border-[#E6DED4]"
+                            }`}
+                          >
+                            <div className="flex gap-3">
+                              <input
+                                type="radio"
+                                name="shippingAddress"
+                                checked={selectedAddressId === addr._id}
+                                onChange={() => setSelectedAddressId(addr._id)}
+                                className="mt-1"
+                              />
+                              <div className="min-w-0 text-[12.5px] text-[#3D3833] leading-relaxed">
+                                <p className="font-medium text-[#1C1916]">
+                                  {addr.recipientName || addr.name}
+                                  {addr.isDefault && (
+                                    <span className="ml-2 text-[10px] uppercase tracking-wider text-[#B58A5B]">
+                                      Default
+                                    </span>
+                                  )}
+                                </p>
+                                <p>{addr.addressLine1 || addr.addressLine}</p>
+                                {addr.addressLine2 && <p>{addr.addressLine2}</p>}
+                                <p>
+                                  {addr.city}, {addr.state} {addr.postalCode}
+                                </p>
+                                <p>{addr.country}</p>
+                                <p>{addr.phone}</p>
+                              </div>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="rounded-[4px] border border-[#E6DED4] bg-white p-4 text-[12.5px] text-[#8A857E]">
+                        No saved addresses yet. Add an address to continue checkout.
+                      </div>
+                    )}
                   </div>
 
                   <div className="border-t border-[#E6DED4]/60 pt-4 mt-2">

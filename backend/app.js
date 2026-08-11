@@ -19,6 +19,7 @@ import reportsRoutes from "./routes/reports.js";
 import settingsRoutes from "./routes/settings.js";
 import profileRoutes from "./routes/profile.js";
 import customerAuthRoutes from "./routes/customerAuth.js";
+import customerAddressesRoutes from "./routes/customerAddresses.js";
 import customerFavoritesRoutes from "./routes/customerFavorites.js";
 import customerOrdersRoutes from "./routes/customerOrders.js";
 import publicRoutes from "./routes/public.js";
@@ -85,6 +86,7 @@ app.use("/api/admin/profile", apiLimiter, profileRoutes);
 
 // ── Customer storefront routes ────────────────────────────────────────────────
 app.use("/api/customer/favorites", apiLimiter, customerFavoritesRoutes);
+app.use("/api/customer/addresses", apiLimiter, customerAddressesRoutes);
 app.use("/api/customer/orders", apiLimiter, customerOrdersRoutes);
 
 // ── Health check ──────────────────────────────────────────────────────────────
