@@ -36,6 +36,14 @@ let db = {
   coupons: loadCollection("coupons", mock.MOCK_COUPONS),
   newsletter: loadCollection("newsletter", mock.MOCK_NEWSLETTER),
   settings: loadCollection("settings", [mock.MOCK_SETTINGS])[0],
+  blogCategories: loadCollection("blogCategories", [
+    { id: "bcat-1", name: "Heritage" },
+    { id: "bcat-2", name: "Craft" },
+    { id: "bcat-3", name: "Guide" },
+    { id: "bcat-4", name: "Care" },
+    { id: "bcat-5", name: "Sustainability" },
+    { id: "bcat-6", name: "Story" }
+  ]),
 };
 
 const sleep = (ms = 400) => new Promise((r) => setTimeout(r, ms));
@@ -178,6 +186,18 @@ export const api = {
         return list;
       }
     },
+    featured: async () => {
+      try {
+        const res = await request("/products/featured");
+        return res.products;
+      } catch (err) {
+        await sleep(300);
+        return db.products
+          .filter((p) => p.featured)
+          .sort((a, b) => (a.featuredOrder || 999) - (b.featuredOrder || 999))
+          .slice(0, 6);
+      }
+    },
     get: async (id) => {
       try {
         const res = await request(`/products/${id}`);
@@ -268,11 +288,41 @@ export const api = {
           sku: `${original.sku}-COPY`,
           slug: `${original.slug}-copy`,
           status: "draft",
+          featured: false,
+          featuredOrder: null,
           createdAt: new Date().toISOString(),
         };
         db.products = [copy, ...db.products];
         saveCollection("products", db.products);
         return copy;
+      }
+    },
+    toggleFeatured: async (id) => {
+      try {
+        const res = await request(`/products/${id}/featured`, { method: "PATCH" });
+        return res.product;
+      } catch (err) {
+        await sleep(300);
+        const product = db.products.find((p) => p.id === id || p._id === id);
+        if (!product) throw new Error("Product not found");
+        if (!product.featured && db.products.filter((p) => p.featured).length >= 6) {
+          throw new Error("Maximum 6 products can be featured. Disable one first.");
+        }
+        if (product.featured) {
+          const removedOrder = product.featuredOrder;
+          db.products = db.products.map((p) => {
+            if ((p.id === id || p._id === id)) return { ...p, featured: false, featuredOrder: null };
+            if (p.featured && p.featuredOrder > removedOrder) return { ...p, featuredOrder: p.featuredOrder - 1 };
+            return p;
+          });
+        } else {
+          const nextOrder = db.products.filter((p) => p.featured).length + 1;
+          db.products = db.products.map((p) => (
+            (p.id === id || p._id === id) ? { ...p, featured: true, featuredOrder: nextOrder } : p
+          ));
+        }
+        saveCollection("products", db.products);
+        return db.products.find((p) => p.id === id || p._id === id);
       }
     },
     bulkDelete: async (ids) => {
@@ -356,6 +406,18 @@ export const api = {
         );
         saveCollection("categories", db.categories);
         saveCollection("products", db.products);
+      }
+    },
+    toggleFeatured: async (id) => {
+      const res = await request(`/categories/${id}/featured`, { method: "PATCH" });
+      return res.category;
+    },
+    featured: async () => {
+      try {
+        const res = await request("/categories/featured");
+        return res.categories;
+      } catch {
+        return db.categories.filter((c) => c.featured).sort((a, b) => a.featuredOrder - b.featuredOrder);
       }
     },
   },
@@ -489,12 +551,21 @@ export const api = {
 
   // Blogs
   blogs: {
+    publicList: async () => {
+      try {
+        const res = await request("/blogs/public");
+        return res.blogs;
+      } catch {
+        await sleep(300);
+        return db.blogs.filter((b) => b.status === "published");
+      }
+    },
     list: async (filters = {}) => {
       try {
         const query = new URLSearchParams(filters).toString();
         const res = await request(`/blogs?${query}`);
         return res.blogs;
-      } catch (err) {
+      } catch {
         await sleep(300);
         let list = [...db.blogs];
         if (filters.status)
@@ -556,6 +627,88 @@ export const api = {
         await sleep(200);
         db.blogs = db.blogs.filter((b) => b.id !== id);
         saveCollection("blogs", db.blogs);
+      }
+    },
+  },
+  
+  // Blog Categories
+  blogCategories: {
+    list: async () => {
+      try {
+        const res = await request("/blog-categories");
+        return res.categories;
+      } catch (err) {
+        await sleep(200);
+        return db.blogCategories.map((c) => ({
+          ...c,
+          blogCount: db.blogs.filter((b) => b.category === c.name).length,
+        }));
+      }
+    },
+    get: async (id) => {
+      try {
+        const res = await request(`/blog-categories/${id}`);
+        return res.category;
+      } catch (err) {
+        await sleep(200);
+        const category = db.blogCategories.find((c) => c.id === id);
+        if (!category) throw new Error("Blog category not found");
+        return category;
+      }
+    },
+    create: async (data) => {
+      try {
+        const res = await request("/blog-categories", {
+          method: "POST",
+          body: JSON.stringify(data),
+        });
+        return res.category;
+      } catch (err) {
+        await sleep(400);
+        const category = { ...data, id: `bcat-${Date.now()}` };
+        db.blogCategories = [...db.blogCategories, category];
+        saveCollection("blogCategories", db.blogCategories);
+        return category;
+      }
+    },
+    update: async (id, data) => {
+      try {
+        const res = await request(`/blog-categories/${id}`, {
+          method: "PUT",
+          body: JSON.stringify(data),
+        });
+        return res.category;
+      } catch (err) {
+        await sleep(300);
+        const oldCategory = db.blogCategories.find((c) => c.id === id);
+        db.blogCategories = db.blogCategories.map((c) =>
+          c.id === id ? { ...c, ...data } : c,
+        );
+        saveCollection("blogCategories", db.blogCategories);
+        // update associated blogs categories
+        if (oldCategory && data.name && data.name !== oldCategory.name) {
+          db.blogs = db.blogs.map((b) =>
+            b.category === oldCategory.name ? { ...b, category: data.name } : b
+          );
+          saveCollection("blogs", db.blogs);
+        }
+        return db.blogCategories.find((c) => c.id === id);
+      }
+    },
+    delete: async (id) => {
+      try {
+        await request(`/blog-categories/${id}`, { method: "DELETE" });
+      } catch (err) {
+        await sleep(300);
+        const category = db.blogCategories.find((c) => c.id === id);
+        db.blogCategories = db.blogCategories.filter((c) => c.id !== id);
+        saveCollection("blogCategories", db.blogCategories);
+        if (category) {
+          db.blogs = db.blogs.map((b) =>
+            b.category === category.name ? { ...b, category: "" } : b
+          );
+          saveCollection("blogs", db.blogs);
+        }
       }
     },
   },

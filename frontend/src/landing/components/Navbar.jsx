@@ -5,12 +5,12 @@ import { api } from "../../lib/api";
 import { useCart } from "../../context/CartContext";
 
 const NAV_LINKS = [
-  "New arrivals",
-  "Men",
-  "Women",
-  "Tailoring",
-  "About",
-  "Shop",
+  { label: "New Arrivals", href: "/collections" },
+  { label: "Men", href: "/collections" },
+  { label: "Women", href: "/collections" },
+  { label: "Tailoring", href: "/collections" },
+  { label: "About", href: "/" },
+  { label: "Shop", href: "/collections" },
 ];
 
 export default function Navbar() {
@@ -45,19 +45,18 @@ export default function Navbar() {
     };
   }, [mobileOpen]);
 
-
   return (
     <>
       <nav className="fixed top-0 left-0 right-0 z-50 flex h-[68px] items-center justify-between border-b border-[#E7DED3] bg-[#FAF8F5]/92 px-5 backdrop-blur-xl sm:px-8 lg:px-14 xl:px-18">
         <div className="hidden items-center lg:flex gap-6">
           {NAV_LINKS.map((link) => (
-            <a
-              key={link}
-              href="/collections"
+            <Link
+              key={link.label}
+              to={link.href}
               className="font-sans text-[10px] font-semibold uppercase tracking-[0.16em] text-[#1C1916]/64 transition-colors duration-200 hover:text-[#1C1916]"
             >
-              {link}
-            </a>
+              {link.label}
+            </Link>
           ))}
         </div>
 
@@ -113,7 +112,9 @@ export default function Navbar() {
         </div>
       </nav>
 
-      <div className={`fixed inset-0 z-[200] flex flex-col bg-[#FAF8F5] transition-transform duration-500 ease-in-out ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}>
+      <div
+        className={`fixed inset-0 z-[200] flex flex-col bg-[#FAF8F5] transition-transform duration-500 ease-in-out ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
+      >
         <div className="flex h-[68px] items-center justify-between border-b border-[#E8E1D9] px-6 sm:px-8">
           <span className="font-serif text-[18px] uppercase tracking-[0.28em] text-[#1C1916]">
             {settings?.storeName?.toUpperCase() || "ZAEVYUL"}
@@ -128,9 +129,9 @@ export default function Navbar() {
         </div>
         <nav className="flex flex-col px-6 pt-10 sm:px-8">
           {NAV_LINKS.map((link, idx) => (
-            <a
-              key={link}
-              href="/collections"
+            <Link
+              key={link.label}
+              to={link.href}
               onClick={() => setMobileOpen(false)}
               style={{
                 transitionDelay: mobileOpen ? `${idx * 70}ms` : "0ms",
@@ -138,8 +139,8 @@ export default function Navbar() {
               className={`border-b border-[#E8E1D9] py-5 font-serif text-[27px] font-light text-[#1C1916] transition-all duration-[750ms] [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] first:border-t hover:pl-3
                 ${mobileOpen ? "translate-x-0 opacity-100" : "-translate-x-12 opacity-0"}`}
             >
-              {link}
-            </a>
+              {link.label}
+            </Link>
           ))}
         </nav>
 

@@ -1,19 +1,27 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Plus, Minus, Heart, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from "lucide-react";
-import Navbar from "./components/Navbar";
-import SiteFooter from "./components/SiteFooter";
-import CraftHighlight from "./components/CraftHighlight";
-import RelatedProducts from "./components/RelatedProducts";
+import {
+  Plus,
+  Minus,
+  Heart,
+  ChevronDown,
+  ChevronUp,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import Navbar from "../components/Navbar";
+import SiteFooter from "../components/SiteFooter";
+import CraftHighlight from "../components/CraftHighlight";
+import RelatedProducts from "../components/RelatedProducts";
 
-import { api } from "../lib/api";
-import { useCart } from "../context/CartContext";
+import { api } from "../../lib/api";
+import { useCart } from "../../context/CartContext";
 
 const getProductPrice = (p) => {
   if (!p) return "";
-  if (typeof p.price === 'string') return p.price;
+  if (typeof p.price === "string") return p.price;
   const priceVal = p.discountPrice || p.basePrice;
-  return priceVal ? `₹ ${priceVal.toLocaleString('en-IN')}` : "₹ 30,000";
+  return priceVal ? `₹ ${priceVal.toLocaleString("en-IN")}` : "₹ 30,000";
 };
 
 const getProductCategory = (p) => {
@@ -87,7 +95,9 @@ export default function ProductDetailPage() {
         <Navbar />
         <div className="flex-1 flex flex-col items-center justify-center py-20">
           <div className="w-10 h-10 border-2 border-[#B58A5B] border-t-transparent rounded-full animate-spin mb-4" />
-          <p className="font-serif text-[18px] font-light text-[#6B6560] italic">Loading heritage...</p>
+          <p className="font-serif text-[18px] font-light text-[#6B6560] italic">
+            Loading heritage...
+          </p>
         </div>
         <SiteFooter />
       </div>
@@ -99,11 +109,17 @@ export default function ProductDetailPage() {
       <div className="min-h-screen bg-[#FAF8F5] text-[#1C1916] font-sans flex flex-col justify-between">
         <Navbar />
         <div className="flex-1 flex flex-col items-center justify-center py-20 px-6 text-center">
-          <h2 className="font-serif text-[24px] font-light text-[#1C1916] mb-3">Product Not Found</h2>
+          <h2 className="font-serif text-[24px] font-light text-[#1C1916] mb-3">
+            Product Not Found
+          </h2>
           <p className="text-[14px] text-[#6B6560] font-light mb-8 max-w-[360px]">
-            The product you are looking for does not exist or may have been removed from our collection.
+            The product you are looking for does not exist or may have been
+            removed from our collection.
           </p>
-          <Link to="/collections" className="bg-[#1C1916] hover:bg-[#B58A5B] text-white py-3.5 px-8 font-sans text-[10px] font-semibold uppercase tracking-[0.2em] rounded-[1px] transition-colors duration-300">
+          <Link
+            to="/collections"
+            className="bg-[#1C1916] hover:bg-[#B58A5B] text-white py-3.5 px-8 font-sans text-[10px] font-semibold uppercase tracking-[0.2em] rounded-[1px] transition-colors duration-300"
+          >
             EXPLORE COLLECTIONS
           </Link>
         </div>
@@ -121,11 +137,23 @@ export default function ProductDetailPage() {
         {/* 3. Breadcrumbs */}
         <div className="mx-auto max-w-[1200px] px-6 sm:px-10 lg:px-16 w-full pt-6 pb-6 sm:pb-10">
           <nav className="text-[9px] sm:text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8A857E]">
-            <Link to="/" className="hover:text-[#1C1916] transition-colors">HOME</Link>
+            <Link to="/" className="hover:text-[#1C1916] transition-colors">
+              HOME
+            </Link>
             <span className="mx-2 text-[#E6DED4] sm:mx-3">/</span>
-            <Link to="/collections" className="hover:text-[#1C1916] transition-colors">COLLECTIONS</Link>
+            <Link
+              to="/collections"
+              className="hover:text-[#1C1916] transition-colors"
+            >
+              COLLECTIONS
+            </Link>
             <span className="mx-2 text-[#E6DED4] sm:mx-3">/</span>
-            <Link to="/collections" className="hover:text-[#1C1916] transition-colors">{getProductCategory(product)}</Link>
+            <Link
+              to="/collections"
+              className="hover:text-[#1C1916] transition-colors"
+            >
+              {getProductCategory(product)}
+            </Link>
             <span className="mx-2 text-[#E6DED4] sm:mx-3">/</span>
             <span className="text-[#1C1916]">{product.name}</span>
           </nav>
@@ -134,13 +162,16 @@ export default function ProductDetailPage() {
         {/* 4. Product Gallery & Specs Block */}
         <section className="mx-auto max-w-[1200px] px-6 sm:px-10 lg:px-16 w-full">
           <div className="grid grid-cols-1 lg:grid-cols-[1.12fr_0.88fr] gap-10 lg:gap-16 xl:gap-20 items-start">
-            
             {/* Left Side: Product Gallery */}
             <div className="flex flex-col gap-4">
               {/* Main Image Container */}
               <div className="relative aspect-[4/5] overflow-hidden rounded-[2px] bg-[#EFE9E1]">
                 <img
-                  src={product.images && product.images[activeImageIdx] ? product.images[activeImageIdx].url : getProductImage(product)}
+                  src={
+                    product.images && product.images[activeImageIdx]
+                      ? product.images[activeImageIdx].url
+                      : getProductImage(product)
+                  }
                   alt={`${product.name} - View ${activeImageIdx + 1}`}
                   className="absolute inset-0 w-full h-full object-cover transition-opacity duration-300"
                 />
@@ -148,14 +179,24 @@ export default function ProductDetailPage() {
                   <>
                     {/* Navigation Arrows */}
                     <button
-                      onClick={() => setActiveImageIdx((prev) => (prev - 1 + product.images.length) % product.images.length)}
+                      onClick={() =>
+                        setActiveImageIdx(
+                          (prev) =>
+                            (prev - 1 + product.images.length) %
+                            product.images.length,
+                        )
+                      }
                       className="absolute left-4 top-1/2 -translate-y-1/2 bg-[#FAF8F5]/80 hover:bg-[#FAF8F5] text-[#1C1916] p-2 rounded-full backdrop-blur-sm transition-colors border border-[#ECE7E1] z-10 flex items-center justify-center"
                       aria-label="Previous image"
                     >
                       <ChevronLeft size={16} />
                     </button>
                     <button
-                      onClick={() => setActiveImageIdx((prev) => (prev + 1) % product.images.length)}
+                      onClick={() =>
+                        setActiveImageIdx(
+                          (prev) => (prev + 1) % product.images.length,
+                        )
+                      }
                       className="absolute right-4 top-1/2 -translate-y-1/2 bg-[#FAF8F5]/80 hover:bg-[#FAF8F5] text-[#1C1916] p-2 rounded-full backdrop-blur-sm transition-colors border border-[#ECE7E1] z-10 flex items-center justify-center"
                       aria-label="Next image"
                     >
@@ -169,7 +210,9 @@ export default function ProductDetailPage() {
                           key={idx}
                           onClick={() => setActiveImageIdx(idx)}
                           className={`w-1.5 h-1.5 rounded-full transition-all ${
-                            idx === activeImageIdx ? "bg-[#B58A5B] w-3" : "bg-white/60"
+                            idx === activeImageIdx
+                              ? "bg-[#B58A5B] w-3"
+                              : "bg-white/60"
                           }`}
                           aria-label={`Go to image ${idx + 1}`}
                         />
@@ -187,7 +230,9 @@ export default function ProductDetailPage() {
                       key={img.id || idx}
                       onClick={() => setActiveImageIdx(idx)}
                       className={`relative w-20 aspect-[4/5] shrink-0 overflow-hidden rounded-[2px] border bg-[#EFE9E1] transition-all ${
-                        idx === activeImageIdx ? "border-[#B58A5B] ring-1 ring-[#B58A5B]" : "border-[#ECE7E1]"
+                        idx === activeImageIdx
+                          ? "border-[#B58A5B] ring-1 ring-[#B58A5B]"
+                          : "border-[#ECE7E1]"
                       }`}
                     >
                       <img
@@ -294,7 +339,6 @@ export default function ProductDetailPage() {
 
               {/* Accordion Menus */}
               <div className="divide-y divide-[#ECE7E1] border-t border-b border-[#ECE7E1]">
-                
                 {/* Accordion 1: Details */}
                 <div className="py-4.5">
                   <button
@@ -302,17 +346,35 @@ export default function ProductDetailPage() {
                     className="flex w-full items-center justify-between text-[10px] font-semibold tracking-[0.16em] uppercase text-[#1C1916]"
                   >
                     <span>Product Details</span>
-                    {accordions.details ? <ChevronUp size={14} strokeWidth={1.5} /> : <ChevronDown size={14} strokeWidth={1.5} />}
+                    {accordions.details ? (
+                      <ChevronUp size={14} strokeWidth={1.5} />
+                    ) : (
+                      <ChevronDown size={14} strokeWidth={1.5} />
+                    )}
                   </button>
-                  <div className={`grid transition-[grid-template-rows,opacity] duration-[350ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
-                    accordions.details ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-                  }`}>
+                  <div
+                    className={`grid transition-[grid-template-rows,opacity] duration-[350ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                      accordions.details
+                        ? "grid-rows-[1fr] opacity-100"
+                        : "grid-rows-[0fr] opacity-0"
+                    }`}
+                  >
                     <div className="overflow-hidden">
                       <div className="mt-3.5 pl-0.5 text-[12.5px] sm:text-[13px] leading-relaxed text-[#6B6560] font-light pb-1">
-                        <p className="mb-2">100% pure premium cashmere (Pashmina).</p>
-                        <p className="mb-2">Authentic hand-spun yarn and hand-loomed weave.</p>
-                        <p className="mb-2">Features traditional Sozni fine needle embroidery along the borders.</p>
-                        <p>Dimensions: 70 x 200 cm (approximately 28 x 80 inches).</p>
+                        <p className="mb-2">
+                          100% pure premium cashmere (Pashmina).
+                        </p>
+                        <p className="mb-2">
+                          Authentic hand-spun yarn and hand-loomed weave.
+                        </p>
+                        <p className="mb-2">
+                          Features traditional Sozni fine needle embroidery
+                          along the borders.
+                        </p>
+                        <p>
+                          Dimensions: 70 x 200 cm (approximately 28 x 80
+                          inches).
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -325,16 +387,31 @@ export default function ProductDetailPage() {
                     className="flex w-full items-center justify-between text-[10px] font-semibold tracking-[0.16em] uppercase text-[#1C1916]"
                   >
                     <span>Shipping & Returns</span>
-                    {accordions.shipping ? <ChevronUp size={14} strokeWidth={1.5} /> : <ChevronDown size={14} strokeWidth={1.5} />}
+                    {accordions.shipping ? (
+                      <ChevronUp size={14} strokeWidth={1.5} />
+                    ) : (
+                      <ChevronDown size={14} strokeWidth={1.5} />
+                    )}
                   </button>
-                  <div className={`grid transition-[grid-template-rows,opacity] duration-[350ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
-                    accordions.shipping ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-                  }`}>
+                  <div
+                    className={`grid transition-[grid-template-rows,opacity] duration-[350ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                      accordions.shipping
+                        ? "grid-rows-[1fr] opacity-100"
+                        : "grid-rows-[0fr] opacity-0"
+                    }`}
+                  >
                     <div className="overflow-hidden">
                       <div className="mt-3.5 pl-0.5 text-[12.5px] sm:text-[13px] leading-relaxed text-[#6B6560] font-light pb-1">
-                        <p className="mb-2">Enjoy complimentary worldwide shipping on all orders.</p>
-                        <p className="mb-2">Standard delivery takes 5-9 business days.</p>
-                        <p>Handcrafted luxury items are eligible for exchange within 14 days of delivery.</p>
+                        <p className="mb-2">
+                          Enjoy complimentary worldwide shipping on all orders.
+                        </p>
+                        <p className="mb-2">
+                          Standard delivery takes 5-9 business days.
+                        </p>
+                        <p>
+                          Handcrafted luxury items are eligible for exchange
+                          within 14 days of delivery.
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -347,16 +424,30 @@ export default function ProductDetailPage() {
                     className="flex w-full items-center justify-between text-[10px] font-semibold tracking-[0.16em] uppercase text-[#1C1916]"
                   >
                     <span>Care Instructions</span>
-                    {accordions.care ? <ChevronUp size={14} strokeWidth={1.5} /> : <ChevronDown size={14} strokeWidth={1.5} />}
+                    {accordions.care ? (
+                      <ChevronUp size={14} strokeWidth={1.5} />
+                    ) : (
+                      <ChevronDown size={14} strokeWidth={1.5} />
+                    )}
                   </button>
-                  <div className={`grid transition-[grid-template-rows,opacity] duration-[350ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
-                    accordions.care ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-                  }`}>
+                  <div
+                    className={`grid transition-[grid-template-rows,opacity] duration-[350ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                      accordions.care
+                        ? "grid-rows-[1fr] opacity-100"
+                        : "grid-rows-[0fr] opacity-0"
+                    }`}
+                  >
                     <div className="overflow-hidden">
                       <div className="mt-3.5 pl-0.5 text-[12.5px] sm:text-[13px] leading-relaxed text-[#6B6560] font-light pb-1">
                         <p className="mb-2">Dry clean only.</p>
-                        <p className="mb-2">Store in a cool, dry place wrapped in a muslin cloth to protect from moths.</p>
-                        <p>Iron on low heat under a protective cotton sheet if necessary.</p>
+                        <p className="mb-2">
+                          Store in a cool, dry place wrapped in a muslin cloth
+                          to protect from moths.
+                        </p>
+                        <p>
+                          Iron on low heat under a protective cotton sheet if
+                          necessary.
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -369,25 +460,39 @@ export default function ProductDetailPage() {
                     className="flex w-full items-center justify-between text-[10px] font-semibold tracking-[0.16em] uppercase text-[#1C1916]"
                   >
                     <span>Artisan Story</span>
-                    {accordions.artisan ? <ChevronUp size={14} strokeWidth={1.5} /> : <ChevronDown size={14} strokeWidth={1.5} />}
+                    {accordions.artisan ? (
+                      <ChevronUp size={14} strokeWidth={1.5} />
+                    ) : (
+                      <ChevronDown size={14} strokeWidth={1.5} />
+                    )}
                   </button>
-                  <div className={`grid transition-[grid-template-rows,opacity] duration-[350ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
-                    accordions.artisan ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-                  }`}>
+                  <div
+                    className={`grid transition-[grid-template-rows,opacity] duration-[350ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                      accordions.artisan
+                        ? "grid-rows-[1fr] opacity-100"
+                        : "grid-rows-[0fr] opacity-0"
+                    }`}
+                  >
                     <div className="overflow-hidden">
                       <div className="mt-3.5 pl-0.5 text-[12.5px] sm:text-[13px] leading-relaxed text-[#6B6560] font-light pb-1">
-                        <p className="mb-2">Hand-spun by Kashmiri women and hand-woven by local master weavers.</p>
-                        <p className="mb-2">Embroidered by a skilled craftsman in Srinagar over a span of 120 hours.</p>
-                        <p>Supports sustainable fair-trade livelihoods in the Kashmir valley.</p>
+                        <p className="mb-2">
+                          Hand-spun by Kashmiri women and hand-woven by local
+                          master weavers.
+                        </p>
+                        <p className="mb-2">
+                          Embroidered by a skilled craftsman in Srinagar over a
+                          span of 120 hours.
+                        </p>
+                        <p>
+                          Supports sustainable fair-trade livelihoods in the
+                          Kashmir valley.
+                        </p>
                       </div>
                     </div>
                   </div>
                 </div>
-
               </div>
-
             </div>
-
           </div>
         </section>
       </main>

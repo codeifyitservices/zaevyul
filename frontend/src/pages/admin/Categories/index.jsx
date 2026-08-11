@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Search, Trash2, Pencil } from 'lucide-react';
 import PageHeader from '../../../components/PageHeader';
@@ -16,6 +16,7 @@ export default function CategoriesList() {
   const [selected, setSelected] = useState([]);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [togglingId, setTogglingId] = useState(null);
 
   const fetchCategories = async () => {
     try {
@@ -70,6 +71,32 @@ export default function CategoriesList() {
     }
   };
 
+  const handleToggleFeatured = useCallback(async (cat) => {
+    const id = cat._id || cat.id;
+    const featuredCount = categories.filter(c => c.featured).length;
+    // Prevent enabling if max reached and this one isn't already featured
+    if (!cat.featured && featuredCount >= 4) {
+      toast('Maximum 4 categories can be featured. Disable one first.', 'error');
+      return;
+    }
+    setTogglingId(id);
+    try {
+      const updated = await api.categories.toggleFeatured(id);
+      setCategories(prev => {
+        const next = prev.map(c => (c._id || c.id) === id ? { ...c, featured: updated.featured, featuredOrder: updated.featuredOrder } : c);
+        // Re-compact featuredOrder across all items to stay in sync
+        const featured = next.filter(c => c.featured).sort((a, b) => a.featuredOrder - b.featuredOrder);
+        featured.forEach((c, i) => { c.featuredOrder = i + 1; });
+        return [...next];
+      });
+      toast(updated.featured ? `"${cat.name}" featured at #${updated.featuredOrder}` : `"${cat.name}" removed from featured`, 'success');
+    } catch (err) {
+      toast(err.message || 'Failed to update featured status', 'error');
+    } finally {
+      setTogglingId(null);
+    }
+  }, [categories, toast]);
+
   const COLUMNS = [
     {
       key: 'name', label: 'Category', sortable: true, maxWidth: 280,
@@ -99,6 +126,48 @@ export default function CategoriesList() {
     {
       key: 'productCount', label: 'Products', sortable: true,
       render: val => <span style={{ fontSize: 13, fontWeight: 500 }}>{val || 0}</span>
+    },
+    {
+      key: 'featured', label: 'Featured on Homepage', sortable: false,
+      render: (val, row) => {
+        const id = row._id || row.id;
+        const featuredCount = categories.filter(c => c.featured).length;
+        const isToggling = togglingId === id;
+        const disabled = isToggling || (!row.featured && featuredCount >= 4);
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {/* Toggle switch */}
+            <button
+              onClick={() => handleToggleFeatured(row)}
+              disabled={disabled}
+              title={!row.featured && featuredCount >= 4 ? 'Max 4 featured — disable one first' : ''}
+              style={{
+                position: 'relative', width: 32, height: 18, borderRadius: 9,
+                border: 'none', cursor: disabled ? 'not-allowed' : 'pointer',
+                background: row.featured ? 'var(--color-walnut)' : 'var(--color-border)',
+                opacity: disabled && !isToggling ? 0.45 : 1,
+                flexShrink: 0, transition: 'background 0.2s',
+              }}
+            >
+              <span style={{
+                position: 'absolute', top: 2, left: row.featured ? 16 : 2,
+                width: 14, height: 14, borderRadius: '50%', background: '#fff',
+                transition: 'left 0.2s', display: 'block',
+              }} />
+            </button>
+            {/* Order badge */}
+            {row.featured && row.featuredOrder && (
+              <span style={{
+                fontSize: 10, fontWeight: 700, lineHeight: 1,
+                background: 'var(--color-walnut)', color: '#fff',
+                borderRadius: 3, padding: '2px 6px',
+              }}>
+                #{row.featuredOrder}
+              </span>
+            )}
+          </div>
+        );
+      }
     },
     {
       key: 'id', label: '',

@@ -7,12 +7,24 @@ export const getBlogs = async (req, res) => {
     if (status) filter.status = status;
 
     const blogs = await Blog.find(filter)
-      .populate("author", "name email initials")
       .sort({ createdAt: -1 });
 
     return res.status(200).json({ success: true, blogs });
   } catch (error) {
     console.error("Fetch blogs error:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal server error" });
+  }
+};
+
+export const getPublicBlogs = async (req, res) => {
+  try {
+    const blogs = await Blog.find({ status: "published" })
+      .sort({ publishedAt: -1 });
+    return res.status(200).json({ success: true, blogs });
+  } catch (error) {
+    console.error("Fetch public blogs error:", error);
     return res
       .status(500)
       .json({ success: false, message: "Internal server error" });

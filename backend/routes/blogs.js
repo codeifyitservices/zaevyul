@@ -2,6 +2,7 @@ import express from "express";
 import { requireAuth } from "../middleware/auth.js";
 import {
   getBlogs,
+  getPublicBlogs,
   getBlogById,
   createBlog,
   updateBlog,
@@ -9,6 +10,9 @@ import {
 } from "../controllers/blogs.js";
 
 const router = express.Router();
+
+// GET /api/admin/blogs/public
+router.get("/public", getPublicBlogs);
 
 // GET /api/admin/blogs
 router.get("/", requireAuth, getBlogs);

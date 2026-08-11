@@ -1,37 +1,31 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { 
-  Bookmark, 
-  Bell, 
-  MoreHorizontal, 
-  ArrowRight, 
-  Minus, 
-  Plus, 
-  Trash2, 
-  Gift, 
-  Truck, 
-  RotateCcw, 
-  Lock, 
+import {
+  Bookmark,
+  Bell,
+  MoreHorizontal,
+  ArrowRight,
+  Minus,
+  Plus,
+  Trash2,
+  Gift,
+  Truck,
+  RotateCcw,
+  Lock,
   Check,
   ShoppingBag,
-  CreditCard
+  CreditCard,
 } from "lucide-react";
-import Navbar from "./components/Navbar";
-import SiteFooter from "./components/SiteFooter";
-import { useCart } from "../context/CartContext";
-import { getCategorySlug } from "../lib/api";
-import { useToast } from "../context/ToastContext";
+import Navbar from "../components/Navbar";
+import SiteFooter from "../components/SiteFooter";
+import { useCart } from "../../context/CartContext";
+import { getCategorySlug } from "../../lib/api";
+import { useToast } from "../../context/ToastContext";
 
 export default function CartPage() {
   const navigate = useNavigate();
   const toast = useToast();
-  const {
-    cart,
-    updateQuantity,
-    removeItem,
-    totals,
-    clearCart
-  } = useCart();
+  const { cart, updateQuantity, removeItem, totals, clearCart } = useCart();
 
   // State for gift note
   const [showGiftInput, setShowGiftInput] = useState(false);
@@ -51,7 +45,7 @@ export default function CartPage() {
     postalCode: "",
     cardNumber: "4111 2222 3333 4444",
     cardExpiry: "12/29",
-    cardCvc: "123"
+    cardCvc: "123",
   });
 
   const handleSaveGiftNote = (e) => {
@@ -93,32 +87,36 @@ export default function CartPage() {
 
       {/* Main Container with top padding to clear the fixed navbar */}
       <main className="flex-1 pt-[68px]">
-        
         {/* Dedicated Minimal Cart Header */}
         <div className="border-b border-[#E6DED4]/60 bg-[#FAF8F5]">
           <div className="mx-auto max-w-[1200px] w-full px-6 sm:px-10 lg:px-16 py-4 flex items-center justify-between">
-            <button 
+            <button
               onClick={() => navigate(-1)}
               className="group flex items-center gap-2 text-[10px] font-semibold tracking-[0.25em] uppercase text-[#1C1916]/70 hover:text-[#1C1916] cursor-pointer transition-colors duration-200"
             >
-              <span className="inline-block transition-transform duration-200 group-hover:-translate-x-1">←</span> CART
+              <span className="inline-block transition-transform duration-200 group-hover:-translate-x-1">
+                ←
+              </span>{" "}
+              CART
             </button>
             <div className="flex items-center gap-5 text-[#1C1916]/70">
-              <button 
+              <button
                 onClick={() => toast("Added to saved items", "success")}
                 className="hover:text-[#1C1916] cursor-pointer transition-colors"
                 aria-label="Bookmark cart status"
               >
                 <Bookmark size={15} strokeWidth={1.4} />
               </button>
-              <button 
-                onClick={() => toast("Notifications set for this cart", "success")}
+              <button
+                onClick={() =>
+                  toast("Notifications set for this cart", "success")
+                }
                 className="hover:text-[#1C1916] cursor-pointer transition-colors"
                 aria-label="Notifications"
               >
                 <Bell size={15} strokeWidth={1.4} />
               </button>
-              <button 
+              <button
                 onClick={() => toast("More options coming soon", "success")}
                 className="hover:text-[#1C1916] cursor-pointer transition-colors"
                 aria-label="More options"
@@ -131,7 +129,6 @@ export default function CartPage() {
 
         {/* Cart Contents Section */}
         <div className="mx-auto max-w-[1200px] w-full px-6 sm:px-10 lg:px-16 py-12">
-          
           {/* Title Area */}
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-10 pb-6 border-b border-[#E6DED4]/60">
             <div>
@@ -142,11 +139,15 @@ export default function CartPage() {
                 {totals.itemCount} {totals.itemCount === 1 ? "item" : "items"}
               </p>
             </div>
-            <Link 
-              to="/collections" 
+            <Link
+              to="/collections"
               className="group inline-flex items-center gap-2 text-[10px] font-semibold tracking-[0.2em] uppercase text-[#1C1916] hover:text-[#B58A5B] transition-colors duration-200 cursor-pointer"
             >
-              Continue Shopping <ArrowRight size={12} className="transition-transform duration-200 group-hover:translate-x-1" />
+              Continue Shopping{" "}
+              <ArrowRight
+                size={12}
+                className="transition-transform duration-200 group-hover:translate-x-1"
+              />
             </Link>
           </div>
 
@@ -160,7 +161,8 @@ export default function CartPage() {
                 Your cart is empty
               </h2>
               <p className="font-sans text-[13.5px] text-[#8A857E] font-light mb-8 max-w-[320px] leading-relaxed">
-                Explore our handwoven luxury collections to add a touch of Kashmiri heritage to your wardrobe.
+                Explore our handwoven luxury collections to add a touch of
+                Kashmiri heritage to your wardrobe.
               </p>
               <Link
                 to="/collections"
@@ -172,27 +174,28 @@ export default function CartPage() {
           ) : (
             /* Main Cart Layout */
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 lg:gap-16 items-start">
-              
               {/* Left Side: Items List & Extras */}
               <div className="lg:col-span-2 space-y-8">
                 <div className="divide-y divide-[#E6DED4]/60 bg-white rounded-lg border border-[#E6DED4]/40 px-6">
                   {cart.map((item) => {
-                    const productSlug = item.slug || (item.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+                    const productSlug =
+                      item.slug ||
+                      (item.name || "")
+                        .toLowerCase()
+                        .replace(/[^a-z0-9]+/g, "-")
+                        .replace(/(^-|-$)/g, "");
                     const detailPath = `/collection/${getCategorySlug(item.category)}/${productSlug}`;
 
                     return (
-                      <div 
-                        key={item.key} 
-                        className="flex gap-6 py-6 md:py-8"
-                      >
+                      <div key={item.key} className="flex gap-6 py-6 md:py-8">
                         {/* Image */}
-                        <Link 
-                          to={detailPath} 
+                        <Link
+                          to={detailPath}
                           className="aspect-[4/5] w-[100px] sm:w-[130px] shrink-0 overflow-hidden rounded-[4px] bg-[#EFE9E1] border border-[#E6DED4]/30 shadow-sm"
                         >
-                          <img 
-                            src={item.image} 
-                            alt={item.name} 
+                          <img
+                            src={item.image}
+                            alt={item.name}
                             className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
                           />
                         </Link>
@@ -201,24 +204,29 @@ export default function CartPage() {
                         <div className="flex-1 flex flex-col justify-between">
                           <div>
                             <div className="flex items-start justify-between gap-4">
-                              <Link 
+                              <Link
                                 to={detailPath}
                                 className="font-serif text-[16px] sm:text-[19px] font-normal leading-snug text-[#1C1916] hover:text-[#B58A5B] transition-colors cursor-pointer"
                               >
                                 {item.name}
                               </Link>
-                              
+
                               {/* Price */}
                               <span className="font-sans text-[15px] sm:text-[16px] font-medium text-[#1C1916] whitespace-nowrap">
-                                ₹{(item.price * item.quantity).toLocaleString("en-IN")}
+                                ₹
+                                {(item.price * item.quantity).toLocaleString(
+                                  "en-IN",
+                                )}
                               </span>
                             </div>
 
                             {/* Options Details */}
                             <p className="font-sans text-[11px] sm:text-[12px] text-[#8A857E] mt-2 font-light">
-                              {item.color} <span className="mx-1.5 text-[#E6DED4]">•</span> {item.size}
+                              {item.color}{" "}
+                              <span className="mx-1.5 text-[#E6DED4]">•</span>{" "}
+                              {item.size}
                             </p>
-                            
+
                             {/* Stock Indicator */}
                             {item.stockQuantity <= 5 && (
                               <span className="inline-block mt-2 font-sans text-[9px] font-semibold uppercase tracking-wider text-[#C94C4C] bg-[#C94C4C]/5 px-2 py-0.5 rounded-[2px]">
@@ -229,11 +237,12 @@ export default function CartPage() {
 
                           {/* Controls & Delete */}
                           <div className="flex items-center justify-between mt-4">
-                            
                             {/* Quantity Selector */}
                             <div className="flex items-center border border-[#E6DED4] bg-white rounded-[2px] shadow-xs">
                               <button
-                                onClick={() => updateQuantity(item.key, item.quantity - 1)}
+                                onClick={() =>
+                                  updateQuantity(item.key, item.quantity - 1)
+                                }
                                 disabled={item.quantity <= 1}
                                 className="px-3 py-1.5 text-[#8A857E] hover:text-[#1C1916] disabled:opacity-30 transition-colors cursor-pointer disabled:cursor-not-allowed"
                                 aria-label="Decrease quantity"
@@ -244,7 +253,9 @@ export default function CartPage() {
                                 {item.quantity}
                               </span>
                               <button
-                                onClick={() => updateQuantity(item.key, item.quantity + 1)}
+                                onClick={() =>
+                                  updateQuantity(item.key, item.quantity + 1)
+                                }
                                 disabled={item.quantity >= item.stockQuantity}
                                 className="px-3 py-1.5 text-[#8A857E] hover:text-[#1C1916] disabled:opacity-30 transition-colors cursor-pointer disabled:cursor-not-allowed"
                                 aria-label="Increase quantity"
@@ -264,7 +275,6 @@ export default function CartPage() {
                             >
                               <Trash2 size={16} strokeWidth={1.5} />
                             </button>
-
                           </div>
                         </div>
                       </div>
@@ -297,7 +307,10 @@ export default function CartPage() {
                   </button>
 
                   {showGiftInput && (
-                    <form onSubmit={handleSaveGiftNote} className="px-5 pb-5 pt-1 border-t border-[#E6DED4]/40">
+                    <form
+                      onSubmit={handleSaveGiftNote}
+                      className="px-5 pb-5 pt-1 border-t border-[#E6DED4]/40"
+                    >
                       <textarea
                         value={giftNote}
                         onChange={(e) => setGiftNote(e.target.value)}
@@ -338,14 +351,18 @@ export default function CartPage() {
                   <div className="space-y-4 font-sans text-[12.5px] font-light text-[#6B6560]">
                     <div className="flex justify-between">
                       <span>Subtotal</span>
-                      <span className="text-[#1C1916] font-medium">₹{totals.subtotal.toLocaleString("en-IN")}</span>
+                      <span className="text-[#1C1916] font-medium">
+                        ₹{totals.subtotal.toLocaleString("en-IN")}
+                      </span>
                     </div>
 
                     <div className="flex justify-between">
                       <span>Shipping</span>
                       <span className="text-[#1C1916]">
                         {totals.shipping === 0 ? (
-                          <span className="text-[#2E7D32] font-semibold uppercase tracking-wider text-[10px] bg-[#2E7D32]/5 px-2 py-0.5 rounded-[2px]">Free</span>
+                          <span className="text-[#2E7D32] font-semibold uppercase tracking-wider text-[10px] bg-[#2E7D32]/5 px-2 py-0.5 rounded-[2px]">
+                            Free
+                          </span>
                         ) : (
                           "Calculated at checkout"
                         )}
@@ -355,7 +372,9 @@ export default function CartPage() {
                     {totals.tax > 0 && (
                       <div className="flex justify-between">
                         <span>Estimated Tax</span>
-                        <span className="text-[#1C1916]">₹{totals.tax.toLocaleString("en-IN")}</span>
+                        <span className="text-[#1C1916]">
+                          ₹{totals.tax.toLocaleString("en-IN")}
+                        </span>
                       </div>
                     )}
 
@@ -363,9 +382,15 @@ export default function CartPage() {
                       <span className="font-medium">Total</span>
                       <div className="text-right">
                         <span className="font-serif text-[18px] font-semibold">
-                          ₹{(totals.subtotal + (totals.shipping > 0 ? totals.shipping : 0)).toLocaleString("en-IN")}
+                          ₹
+                          {(
+                            totals.subtotal +
+                            (totals.shipping > 0 ? totals.shipping : 0)
+                          ).toLocaleString("en-IN")}
                         </span>
-                        <p className="text-[10px] text-[#8A857E] mt-0.5 font-light">Taxes included</p>
+                        <p className="text-[10px] text-[#8A857E] mt-0.5 font-light">
+                          Taxes included
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -397,14 +422,12 @@ export default function CartPage() {
                   </div>
                 </div>
               </div>
-
             </div>
           )}
 
           {/* Footer Trust Badges (Matching details exactly) */}
           <div className="border-t border-[#E6DED4]/60 mt-20 pt-12 max-w-[1000px] mx-auto">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-4 divide-y md:divide-y-0 md:divide-x divide-[#E6DED4]/60">
-              
               <div className="flex flex-col items-center text-center p-4">
                 <div className="w-10 h-10 rounded-full bg-[#F5EFE7] flex items-center justify-center mb-3">
                   <Truck size={17} className="text-[#B58A5B]" />
@@ -440,10 +463,8 @@ export default function CartPage() {
                   100% protected checkout
                 </p>
               </div>
-
             </div>
           </div>
-
         </div>
       </main>
 
@@ -454,7 +475,7 @@ export default function CartPage() {
       {showCheckoutModal && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
           {/* Backdrop overlay */}
-          <div 
+          <div
             onClick={() => setShowCheckoutModal(false)}
             className="fixed inset-0 bg-[#1C1916]/45 backdrop-blur-[4px] cursor-pointer"
           />
@@ -472,7 +493,8 @@ export default function CartPage() {
             {checkoutStep === 1 && (
               <form onSubmit={handleCheckoutSubmit}>
                 <h3 className="font-serif text-[22px] font-normal tracking-wide text-[#1C1916] mb-2 flex items-center gap-2">
-                  <CreditCard className="text-[#B58A5B]" size={20} /> Heritage Checkout
+                  <CreditCard className="text-[#B58A5B]" size={20} /> Heritage
+                  Checkout
                 </h3>
                 <p className="font-sans text-[12.5px] text-[#8A857E] mb-6 font-light">
                   Provide your shipping information to complete the order.
@@ -487,7 +509,12 @@ export default function CartPage() {
                       type="email"
                       required
                       value={checkoutForm.email}
-                      onChange={(e) => setCheckoutForm({ ...checkoutForm, email: e.target.value })}
+                      onChange={(e) =>
+                        setCheckoutForm({
+                          ...checkoutForm,
+                          email: e.target.value,
+                        })
+                      }
                       placeholder="e.g. customer@luxury.com"
                       className="w-full p-3 bg-white border border-[#E6DED4] rounded-[2px] font-sans text-[12.5px] placeholder:text-[#8A857E]/50 focus:outline-none focus:border-[#B58A5B]"
                     />
@@ -501,7 +528,12 @@ export default function CartPage() {
                       type="text"
                       required
                       value={checkoutForm.name}
-                      onChange={(e) => setCheckoutForm({ ...checkoutForm, name: e.target.value })}
+                      onChange={(e) =>
+                        setCheckoutForm({
+                          ...checkoutForm,
+                          name: e.target.value,
+                        })
+                      }
                       placeholder="e.g. Devendra Singh"
                       className="w-full p-3 bg-white border border-[#E6DED4] rounded-[2px] font-sans text-[12.5px] placeholder:text-[#8A857E]/50 focus:outline-none focus:border-[#B58A5B]"
                     />
@@ -515,7 +547,12 @@ export default function CartPage() {
                       type="text"
                       required
                       value={checkoutForm.address}
-                      onChange={(e) => setCheckoutForm({ ...checkoutForm, address: e.target.value })}
+                      onChange={(e) =>
+                        setCheckoutForm({
+                          ...checkoutForm,
+                          address: e.target.value,
+                        })
+                      }
                       placeholder="Street address, apartment, suite"
                       className="w-full p-3 bg-white border border-[#E6DED4] rounded-[2px] font-sans text-[12.5px] placeholder:text-[#8A857E]/50 focus:outline-none focus:border-[#B58A5B]"
                     />
@@ -530,7 +567,12 @@ export default function CartPage() {
                         type="text"
                         required
                         value={checkoutForm.city}
-                        onChange={(e) => setCheckoutForm({ ...checkoutForm, city: e.target.value })}
+                        onChange={(e) =>
+                          setCheckoutForm({
+                            ...checkoutForm,
+                            city: e.target.value,
+                          })
+                        }
                         placeholder="Srinagar"
                         className="w-full p-3 bg-white border border-[#E6DED4] rounded-[2px] font-sans text-[12.5px] placeholder:text-[#8A857E]/50 focus:outline-none focus:border-[#B58A5B]"
                       />
@@ -543,7 +585,12 @@ export default function CartPage() {
                         type="text"
                         required
                         value={checkoutForm.postalCode}
-                        onChange={(e) => setCheckoutForm({ ...checkoutForm, postalCode: e.target.value })}
+                        onChange={(e) =>
+                          setCheckoutForm({
+                            ...checkoutForm,
+                            postalCode: e.target.value,
+                          })
+                        }
                         placeholder="190001"
                         className="w-full p-3 bg-white border border-[#E6DED4] rounded-[2px] font-sans text-[12.5px] placeholder:text-[#8A857E]/50 focus:outline-none focus:border-[#B58A5B]"
                       />
@@ -567,7 +614,12 @@ export default function CartPage() {
                   type="submit"
                   className="w-full mt-6 bg-[#1C1916] text-white py-4 font-sans text-[10.5px] font-semibold uppercase tracking-[0.2em] rounded-[2px] hover:bg-[#B58A5B] transition-colors duration-200 cursor-pointer flex items-center justify-center gap-2"
                 >
-                  Pay Now (₹{(totals.subtotal + (totals.shipping > 0 ? totals.shipping : 0)).toLocaleString("en-IN")})
+                  Pay Now (₹
+                  {(
+                    totals.subtotal +
+                    (totals.shipping > 0 ? totals.shipping : 0)
+                  ).toLocaleString("en-IN")}
+                  )
                 </button>
               </form>
             )}
@@ -575,9 +627,12 @@ export default function CartPage() {
             {checkoutStep === 2 && (
               <div className="py-12 flex flex-col items-center justify-center text-center">
                 <div className="w-12 h-12 border-3 border-[#B58A5B] border-t-transparent rounded-full animate-spin mb-6" />
-                <h3 className="font-serif text-[19px] text-[#1C1916] mb-2">Authenticating Transaction</h3>
+                <h3 className="font-serif text-[19px] text-[#1C1916] mb-2">
+                  Authenticating Transaction
+                </h3>
                 <p className="font-sans text-[13px] text-[#8A857E] font-light max-w-[280px] leading-relaxed">
-                  Connecting to secure payment gateway. Please do not close this window.
+                  Connecting to secure payment gateway. Please do not close this
+                  window.
                 </p>
               </div>
             )}
@@ -587,9 +642,13 @@ export default function CartPage() {
                 <div className="w-16 h-16 rounded-full bg-[#2E7D32]/8 flex items-center justify-center text-[#2E7D32] mb-6 animate-bounce">
                   <Check size={32} strokeWidth={2} />
                 </div>
-                <h3 className="font-serif text-[24px] text-[#1C1916] mb-3">Order Confirmed</h3>
+                <h3 className="font-serif text-[24px] text-[#1C1916] mb-3">
+                  Order Confirmed
+                </h3>
                 <p className="font-sans text-[13.5px] text-[#8A857E] font-light max-w-[320px] leading-relaxed mb-8">
-                  Thank you for your purchase. We have received your order and are preparing your luxury packaging. A confirmation email has been sent.
+                  Thank you for your purchase. We have received your order and
+                  are preparing your luxury packaging. A confirmation email has
+                  been sent.
                 </p>
                 <button
                   onClick={() => setShowCheckoutModal(false)}
@@ -602,7 +661,6 @@ export default function CartPage() {
           </div>
         </div>
       )}
-
     </div>
   );
 }

@@ -46,22 +46,25 @@ const SECTIONS = [
         badge: MOCK_ORDERS.filter((o) => o.status === "pending").length || null,
         badgeTitle: "Pending",
       },
-      { to: "/admin/customers", icon: Users,    label: "Customers" },
-      { to: "/admin/coupons",   icon: Tag,      label: "Coupons"   },
+      { to: "/admin/customers", icon: Users, label: "Customers" },
+      { to: "/admin/coupons", icon: Tag, label: "Coupons" },
     ],
   },
   {
     label: "Content",
     items: [
-      { to: "/admin/blogs",      icon: FileText, label: "Blogs"      },
-      { to: "/admin/newsletter", icon: Mail,     label: "Newsletter" },
+      {
+        to: "/admin/blog-categories",
+        icon: FolderOpen,
+        label: "Blog Categories",
+      },
+      { to: "/admin/blogs", icon: FileText, label: "Blogs" },
+      { to: "/admin/newsletter", icon: Mail, label: "Newsletter" },
     ],
   },
   {
     label: "Analytics",
-    items: [
-      { to: "/admin/reports", icon: BarChart3, label: "Reports" },
-    ],
+    items: [{ to: "/admin/reports", icon: BarChart3, label: "Reports" }],
   },
   {
     label: "Settings",
@@ -76,7 +79,12 @@ const SECTIONS = [
   },
 ];
 
-export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }) {
+export default function Sidebar({
+  collapsed,
+  onToggle,
+  mobileOpen,
+  onMobileClose,
+}) {
   const { can } = useAuth();
 
   return (
@@ -87,27 +95,55 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
         onClick={onMobileClose}
       />
 
-      <aside className={`sidebar ${collapsed ? "collapsed" : ""} ${mobileOpen ? "mobile-open" : ""}`}>
+      <aside
+        className={`sidebar ${collapsed ? "collapsed" : ""} ${mobileOpen ? "mobile-open" : ""}`}
+      >
         {/* Logo */}
         <div className="sidebar-logo">
           {!collapsed ? (
-            <div style={{ textAlign: "center", width: "100%", padding: "10px 0" }}>
-              <span className="sidebar-logo-text" style={{ fontSize: 16, letterSpacing: "0.2em", fontFamily: "var(--font-serif)", display: "block" }}>
+            <div
+              style={{ textAlign: "center", width: "100%", padding: "10px 0" }}
+            >
+              <span
+                className="sidebar-logo-text"
+                style={{
+                  fontSize: 16,
+                  letterSpacing: "0.2em",
+                  fontFamily: "var(--font-serif)",
+                  display: "block",
+                }}
+              >
                 Zaevyul
               </span>
-              <span className="sidebar-logo-sub" style={{ fontSize: 9, letterSpacing: "0.3em", fontFamily: "var(--font-sans)", color: "rgba(255,255,255,0.4)" }}>
+              <span
+                className="sidebar-logo-sub"
+                style={{
+                  fontSize: 9,
+                  letterSpacing: "0.3em",
+                  fontFamily: "var(--font-sans)",
+                  color: "rgba(255,255,255,0.4)",
+                }}
+              >
                 PASHMINA
               </span>
             </div>
           ) : (
-            <div className="sidebar-logo-mark" style={{ margin: "0 auto", color: "white" }}>Z</div>
+            <div
+              className="sidebar-logo-mark"
+              style={{ margin: "0 auto", color: "white" }}
+            >
+              Z
+            </div>
           )}
         </div>
 
         {/* Navigation */}
         <nav className="sidebar-nav">
           {SECTIONS.map((section, idx) => (
-            <div key={idx} style={{ marginBottom: section.label ? "12px" : "6px" }}>
+            <div
+              key={idx}
+              style={{ marginBottom: section.label ? "12px" : "6px" }}
+            >
               {section.label && !collapsed && (
                 <div className="sidebar-section-label">{section.label}</div>
               )}
@@ -117,12 +153,16 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
                   <NavLink
                     key={item.to}
                     to={item.to}
-                    className={({ isActive }) => `sidebar-item${isActive ? " active" : ""}`}
+                    className={({ isActive }) =>
+                      `sidebar-item${isActive ? " active" : ""}`
+                    }
                     title={collapsed ? item.label : undefined}
                     onClick={onMobileClose}
                   >
                     <item.icon className="sidebar-item-icon" size={14} />
-                    {!collapsed && <span style={{ flex: 1 }}>{item.label}</span>}
+                    {!collapsed && (
+                      <span style={{ flex: 1 }}>{item.label}</span>
+                    )}
                     {!collapsed && item.badge && (
                       <span className="sidebar-item-badge">{item.badge}</span>
                     )}
@@ -138,7 +178,14 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
           <button
             onClick={onToggle}
             className="sidebar-item"
-            style={{ width: "100%", border: "none", background: "none", cursor: "pointer", display: "flex", justifyContent: collapsed ? "center" : "flex-start" }}
+            style={{
+              width: "100%",
+              border: "none",
+              background: "none",
+              cursor: "pointer",
+              display: "flex",
+              justifyContent: collapsed ? "center" : "flex-start",
+            }}
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             {collapsed ? (

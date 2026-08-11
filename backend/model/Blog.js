@@ -6,8 +6,16 @@ const BlogSchema = new mongoose.Schema({
   excerpt: { type: String, default: '' },
   content: { type: String, default: '' },
   status: { type: String, enum: ['draft', 'published'], default: 'draft' },
-  author: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin', required: true },
+  author: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' },
   featuredImage: { type: String, default: null },
+  mainImage: {
+    url: { type: String, default: null }
+  },
+  bannerImage: {
+    url: { type: String, default: null }
+  },
+  readTime: { type: String, default: '' },
+  category: { type: String, default: '' },
   categories: [{ type: String }],
   tags: [{ type: String }],
   seo: {

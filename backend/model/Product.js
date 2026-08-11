@@ -7,6 +7,13 @@ const ProductSchema = new mongoose.Schema({
   category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', default: null },
   basePrice: { type: Number, required: true },
   discountPrice: { type: Number, default: null },
+  costPrice: { type: Number, default: null },
+  quantity: { type: Number, default: 0 },
+  lowStockThreshold: { type: Number, default: 5 },
+  status: { type: String, enum: ['draft', 'published', 'archived'], default: 'draft' },
+  tags: [{ type: String }],
+  featured: { type: Boolean, default: false },
+  featuredOrder: { type: Number, default: null, min: 1, max: 6 },
   material: { type: String, default: '' },
   color: { type: String, default: '' },
   size: { type: String, default: '' },
@@ -27,5 +34,6 @@ const ProductSchema = new mongoose.Schema({
 // Index for low-stock queries
 ProductSchema.index({ quantity: 1 });
 ProductSchema.index({ category: 1 });
+ProductSchema.index({ featured: 1, featuredOrder: 1 });
 
 export default mongoose.model('Product', ProductSchema);

@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Save, X, Plus } from 'lucide-react';
-import { MOCK_BLOGS, formatDate } from '../../../lib/mockData';
+import { Save } from 'lucide-react';
+import { formatDate } from '../../../lib/mockData';
 import PageHeader from '../../../components/PageHeader';
 import ImageUploader from '../../../components/ImageUploader';
 import { useToast } from '../../../context/ToastContext';
+import { api } from '../../../lib/api';
 
 const BLANK = {
   title: '', slug: '', excerpt: '', content: '',
   status: 'draft',
+  category: '',
   seo: { title: '', description: '' },
   mainImage: null,
   bannerImage: null
@@ -21,23 +23,41 @@ export default function BlogForm() {
   const isNew = !id || id === 'new';
 
   const [form, setForm] = useState(BLANK);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('content');
 
   useEffect(() => {
-    if (!isNew) {
-      const post = MOCK_BLOGS.find(b => b.id === id);
-      if (post) {
-        setForm({
-          ...BLANK,
-          ...post,
-          mainImage: post.mainImage || null,
-          bannerImage: post.bannerImage || null
-        });
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const catList = await api.blogCategories.list();
+        setCategories(catList);
+
+        if (!isNew) {
+          const post = await api.blogs.get(id);
+          if (post) {
+            setForm({
+              ...BLANK,
+              ...post,
+              mainImage: post.mainImage || null,
+              bannerImage: post.bannerImage || null,
+              category: post.category || ''
+            });
+          } else {
+            toast('Post not found', 'error');
+            navigate('/admin/blogs');
+          }
+        }
+      } catch {
+        toast('Error loading details', 'error');
+      } finally {
+        setLoading(false);
       }
-      else { toast('Post not found', 'error'); navigate('/admin/blogs'); }
-    }
-  }, [id]);
+    };
+    loadData();
+  }, [id, isNew, navigate, toast]);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const setSeo = (k, v) => setForm(f => ({ ...f, seo: { ...f.seo, [k]: v } }));
@@ -47,7 +67,6 @@ export default function BlogForm() {
   const handleSave = async (status = form.status) => {
     if (!form.title) { toast('Title is required', 'error'); return; }
     setSaving(true);
-    await new Promise(r => setTimeout(r, 700));
 
     const postData = {
       ...form,
@@ -55,28 +74,28 @@ export default function BlogForm() {
       publishedAt: status === 'published' && !form.publishedAt ? new Date().toISOString() : form.publishedAt
     };
 
-    if (isNew) {
-      const newPost = {
-        ...postData,
-        id: `blg-${Date.now()}`,
-        author: 'adm-001',
-        createdAt: new Date().toISOString(),
-      };
-      MOCK_BLOGS.unshift(newPost);
-    } else {
-      const idx = MOCK_BLOGS.findIndex(b => b.id === id);
-      if (idx !== -1) {
-        MOCK_BLOGS[idx] = {
-          ...MOCK_BLOGS[idx],
-          ...postData
-        };
+    try {
+      if (isNew) {
+        await api.blogs.create(postData);
+      } else {
+        await api.blogs.update(id, postData);
       }
+      toast(isNew ? 'Post created' : 'Changes saved', 'success');
+      navigate('/admin/blogs');
+    } catch (err) {
+      toast(err.message || 'Failed to save post', 'error');
+    } finally {
+      setSaving(false);
     }
-
-    setSaving(false);
-    toast(isNew ? 'Post created' : 'Changes saved', 'success');
-    if (isNew) navigate('/admin/blogs');
   };
+
+  if (loading) {
+    return (
+      <div className="page flex-center py-20">
+        <div className="spinner" />
+      </div>
+    );
+  }
 
   return (
     <div className="page page-enter">
@@ -187,19 +206,33 @@ export default function BlogForm() {
         </div>
 
         {/* Sidebar */}
-        <div className="card">
-          <div className="card-header"><span className="card-title">Status</span></div>
-          <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <select className="field-select" value={form.status} onChange={e => set('status', e.target.value)}>
-              <option value="draft">Draft</option>
-              <option value="published">Published</option>
-            </select>
-            {!isNew && form.publishedAt && (
-              <p style={{ fontSize: 11, color: 'var(--color-text-caption)' }}>Published {formatDate(form.publishedAt)}</p>
-            )}
-            <button className="btn btn-primary" style={{ justifyContent: 'center' }} onClick={() => handleSave()} disabled={saving}>
-              <Save size={13} /> {saving ? 'Saving…' : 'Save'}
-            </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div className="card">
+            <div className="card-header"><span className="card-title">Status</span></div>
+            <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <select className="field-select" value={form.status} onChange={e => set('status', e.target.value)}>
+                <option value="draft">Draft</option>
+                <option value="published">Published</option>
+              </select>
+              {!isNew && form.publishedAt && (
+                <p style={{ fontSize: 11, color: 'var(--color-text-caption)' }}>Published {formatDate(form.publishedAt)}</p>
+              )}
+              <button className="btn btn-primary" style={{ justifyContent: 'center' }} onClick={() => handleSave()} disabled={saving}>
+                <Save size={13} /> {saving ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="card-header"><span className="card-title">Category</span></div>
+            <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <select className="field-select" value={form.category} onChange={e => set('category', e.target.value)}>
+                <option value="">Uncategorised</option>
+                {categories.map(c => (
+                  <option key={c._id || c.id} value={c.name}>{c.name}</option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
       </div>

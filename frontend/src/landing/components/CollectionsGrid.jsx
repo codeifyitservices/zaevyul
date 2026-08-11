@@ -50,11 +50,11 @@ export default function CollectionsGrid() {
     const fetchCategories = async () => {
       try {
         setLoading(true);
-        const data = await api.categories.list();
-        // Take top 4 categories
-        setCategories(data.slice(0, 4));
+        // Fetch only the admin-featured categories in their configured order
+        const data = await api.categories.featured();
+        setCategories(data || []);
       } catch (error) {
-        console.error("Error fetching categories for homepage:", error);
+        console.error("Error fetching featured categories for homepage:", error);
       } finally {
         setLoading(false);
       }

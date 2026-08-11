@@ -1,19 +1,37 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Pencil, Trash2, Eye } from 'lucide-react';
-import { MOCK_BLOGS, MOCK_ADMINS, formatDate } from '../../../lib/mockData';
+import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { formatDate } from '../../../lib/mockData';
 import PageHeader from '../../../components/PageHeader';
 import DataTable from '../../../components/DataTable';
 import StatusBadge from '../../../components/StatusBadge';
 import { DeleteDialog } from '../../../components/Modal';
 import { useToast } from '../../../context/ToastContext';
+import { api } from '../../../lib/api';
 
 export default function Blogs() {
   const toast = useToast();
-  const [blogs, setBlogs] = useState(MOCK_BLOGS);
+  const [blogs, setBlogs] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState([]);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [filter, setFilter] = useState('');
+
+  useEffect(() => {
+    const fetchBlogs = async () => {
+      try {
+        setLoading(true);
+        const data = await api.blogs.list();
+        setBlogs(data);
+      } catch {
+        toast('Failed to load blog posts', 'error');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchBlogs();
+  }, [toast]);
 
   const filtered = useMemo(() => {
     setSelected([]);
@@ -21,54 +39,55 @@ export default function Blogs() {
   }, [blogs, filter]);
 
   const handleDelete = async () => {
-    await new Promise(r => setTimeout(r, 400));
-    
-    // Mutate global array
-    const idx = MOCK_BLOGS.findIndex(b => b.id === deleteTarget);
-    if (idx !== -1) MOCK_BLOGS.splice(idx, 1);
-
-    setBlogs(bs => bs.filter(b => b.id !== deleteTarget));
-    setSelected(s => s.filter(id => id !== deleteTarget));
-    setDeleteTarget(null);
-    toast('Post deleted', 'success');
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
+    try {
+      await api.blogs.delete(deleteTarget);
+      setBlogs(bs => bs.filter(b => (b._id || b.id) !== deleteTarget));
+      setSelected(s => s.filter(id => id !== deleteTarget));
+      toast('Post deleted', 'success');
+    } catch {
+      toast('Failed to delete post', 'error');
+    } finally {
+      setDeleteTarget(null);
+      setDeleteLoading(false);
+    }
   };
 
   const handleBulkDelete = async () => {
-    await new Promise(r => setTimeout(r, 400));
-    
-    // Mutate global array
-    selected.forEach(id => {
-      const idx = MOCK_BLOGS.findIndex(b => b.id === id);
-      if (idx !== -1) MOCK_BLOGS.splice(idx, 1);
-    });
-    
-    setBlogs(bs => bs.filter(b => !selected.includes(b.id)));
-    toast(`${selected.length} posts deleted`, 'success');
-    setSelected([]);
+    try {
+      await Promise.all(selected.map(id => api.blogs.delete(id)));
+      setBlogs(bs => bs.filter(b => !selected.includes(b._id || b.id)));
+      toast(`${selected.length} posts deleted`, 'success');
+    } catch {
+      toast('Failed to delete selected posts', 'error');
+    } finally {
+      setSelected([]);
+    }
   };
-
-  const authorName = (id) => MOCK_ADMINS.find(a => a.id === id)?.name || 'Unknown';
 
   const COLUMNS = [
     {
       key: 'title', label: 'Title', sortable: true, maxWidth: 280,
-      render: (val, row) => (
-        <div>
-          <Link to={`/admin/blogs/${row.id}`} style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text-primary)', textDecoration: 'none' }}
-            onMouseOver={e => e.target.style.color = 'var(--color-walnut)'}
-            onMouseOut={e => e.target.style.color = 'var(--color-text-primary)'}
-          >{val}</Link>
-          <p style={{ fontSize: 11, color: 'var(--color-text-caption)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 260 }}>
-            {row.excerpt}
-          </p>
-        </div>
-      )
+      render: (val, row) => {
+        const itemId = row._id || row.id;
+        return (
+          <div>
+            <Link to={`/admin/blogs/${itemId}`} style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text-primary)', textDecoration: 'none' }}
+              onMouseOver={e => e.target.style.color = 'var(--color-walnut)'}
+              onMouseOut={e => e.target.style.color = 'var(--color-text-primary)'}
+            >{val}</Link>
+            <p style={{ fontSize: 11, color: 'var(--color-text-caption)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 260 }}>
+              {row.excerpt}
+            </p>
+          </div>
+        );
+      }
     },
     {
-      key: 'author', label: 'Author',
-      render: val => <span style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>{authorName(val)}</span>
+      key: 'category', label: 'Category', sortable: true,
+      render: val => <span style={{ fontSize: 12, color: 'var(--color-text-secondary)', fontWeight: 500 }}>{val || <em style={{ color: 'var(--color-text-caption)' }}>Uncategorised</em>}</span>
     },
-
     { key: 'status', label: 'Status', render: val => <StatusBadge status={val} /> },
     {
       key: 'publishedAt', label: 'Published', sortable: true,
@@ -76,14 +95,27 @@ export default function Blogs() {
     },
     {
       key: 'id', label: '',
-      render: (val, row) => (
-        <div style={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-          <Link to={`/admin/blogs/${val}`} className="btn btn-ghost btn-sm"><Pencil size={13} /></Link>
-          <button className="btn btn-ghost btn-sm" style={{ color: 'var(--color-error)' }} onClick={() => setDeleteTarget(val)}><Trash2 size={13} /></button>
-        </div>
-      )
+      render: (val, row) => {
+        const itemId = row._id || row.id;
+        return (
+          <div style={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+            <Link to={`/admin/blogs/${itemId}`} className="btn btn-ghost btn-sm"><Pencil size={13} /></Link>
+            <button className="btn btn-ghost btn-sm" style={{ color: 'var(--color-error)' }} onClick={() => setDeleteTarget(itemId)}><Trash2 size={13} /></button>
+          </div>
+        );
+      }
     }
   ];
+
+  if (loading) {
+    return (
+      <div className="page flex-center py-20">
+        <div className="spinner" />
+      </div>
+    );
+  }
+
+  const activeRowKey = blogs[0]?._id ? "_id" : "id";
 
   return (
     <div className="page page-enter">
@@ -134,6 +166,7 @@ export default function Blogs() {
           selected={selected}
           onSelect={setSelected}
           pageSize={12}
+          rowKey={activeRowKey}
           emptyTitle="No posts found"
         />
       </div>
@@ -142,6 +175,7 @@ export default function Blogs() {
         open={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDelete}
+        loading={deleteLoading}
         title="Delete post"
         desc="This post will be permanently deleted. This cannot be undone."
       />

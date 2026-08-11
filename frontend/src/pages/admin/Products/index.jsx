@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Search, Trash2, Copy, Archive, Eye } from 'lucide-react';
 import { formatCurrency, formatDate } from '../../../lib/mockData';
@@ -20,6 +20,7 @@ export default function Products() {
   const [selected, setSelected] = useState([]);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [togglingId, setTogglingId] = useState(null);
 
   const fetchProductsAndCategories = async () => {
     try {
@@ -91,6 +92,30 @@ export default function Products() {
     }
   };
 
+  const handleToggleFeatured = useCallback(async (product) => {
+    const id = product._id || product.id;
+    const featuredCount = products.filter(p => p.featured).length;
+    if (!product.featured && featuredCount >= 6) {
+      toast('Maximum 6 products can be featured. Disable one first.', 'error');
+      return;
+    }
+    setTogglingId(id);
+    try {
+      const updated = await api.products.toggleFeatured(id);
+      setProducts(prev => {
+        const next = prev.map(p => (p._id || p.id) === id ? { ...p, featured: updated.featured, featuredOrder: updated.featuredOrder } : p);
+        const featured = next.filter(p => p.featured).sort((a, b) => a.featuredOrder - b.featuredOrder);
+        featured.forEach((p, i) => { p.featuredOrder = i + 1; });
+        return [...next];
+      });
+      toast(updated.featured ? `"${product.name}" featured at #${updated.featuredOrder}` : `"${product.name}" removed from homepage`, 'success');
+    } catch (err) {
+      toast(err.message || 'Failed to update homepage status', 'error');
+    } finally {
+      setTogglingId(null);
+    }
+  }, [products, toast]);
+
   const COLUMNS = [
     {
       key: 'name', label: 'Product', sortable: true, maxWidth: 280,
@@ -144,6 +169,46 @@ export default function Products() {
       )
     },
     { key: 'status', label: 'Status', render: val => <StatusBadge status={val} /> },
+    {
+      key: 'featured', label: 'Homepage', sortable: false,
+      render: (val, row) => {
+        const id = row._id || row.id;
+        const featuredCount = products.filter(p => p.featured).length;
+        const isToggling = togglingId === id;
+        const disabled = isToggling || (!row.featured && featuredCount >= 6);
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button
+              onClick={() => handleToggleFeatured(row)}
+              disabled={disabled}
+              title={!row.featured && featuredCount >= 6 ? 'Max 6 homepage products - disable one first' : ''}
+              style={{
+                position: 'relative', width: 32, height: 18, borderRadius: 9,
+                border: 'none', cursor: disabled ? 'not-allowed' : 'pointer',
+                background: row.featured ? 'var(--color-walnut)' : 'var(--color-border)',
+                opacity: disabled && !isToggling ? 0.45 : 1,
+                flexShrink: 0, transition: 'background 0.2s',
+              }}
+            >
+              <span style={{
+                position: 'absolute', top: 2, left: row.featured ? 16 : 2,
+                width: 14, height: 14, borderRadius: '50%', background: '#fff',
+                transition: 'left 0.2s', display: 'block',
+              }} />
+            </button>
+            {row.featured && row.featuredOrder && (
+              <span style={{
+                fontSize: 10, fontWeight: 700, lineHeight: 1,
+                background: 'var(--color-walnut)', color: '#fff',
+                borderRadius: 3, padding: '2px 6px',
+              }}>
+                #{row.featuredOrder}
+              </span>
+            )}
+          </div>
+        );
+      }
+    },
     {
       key: 'createdAt', label: 'Added', sortable: true,
       render: val => <span style={{ fontSize: 12, color: 'var(--color-text-caption)' }}>{formatDate(val)}</span>

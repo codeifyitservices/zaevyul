@@ -14,6 +14,8 @@ import Customers from './pages/admin/Customers/index';
 import CustomerDetail from './pages/admin/Customers/CustomerDetail';
 import Blogs from './pages/admin/Blogs/index';
 import BlogForm from './pages/admin/Blogs/BlogForm';
+import BlogCategories from './pages/admin/BlogCategories/index';
+import BlogCategoryForm from './pages/admin/BlogCategories/BlogCategoryForm';
 import Coupons from './pages/admin/Coupons';
 import Newsletter from './pages/admin/Newsletter';
 import Reports from './pages/admin/Reports';
@@ -50,6 +52,9 @@ export default function AdminRouter() {
         <Route path="blogs"             element={<Blogs />} />
         <Route path="blogs/new"         element={<BlogForm />} />
         <Route path="blogs/:id"         element={<BlogForm />} />
+        <Route path="blog-categories"        element={<BlogCategories />} />
+        <Route path="blog-categories/new"    element={<BlogCategoryForm />} />
+        <Route path="blog-categories/:id"    element={<BlogCategoryForm />} />
         <Route path="coupons"           element={<Coupons />} />
         <Route path="newsletter"        element={<Newsletter />} />
         <Route path="reports"           element={<Reports />} />

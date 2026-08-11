@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { seedDatabase } from "./seed.js";
 
 const connectMongoDB = async () => {
   try {
@@ -8,6 +9,7 @@ const connectMongoDB = async () => {
       socketTimeoutMS: 45000,
     });
     console.log("MongoDB connected successfully");
+    await seedDatabase();
   } catch (err) {
     console.error("MongoDB connection error:", err.message);
     process.exit(1);
