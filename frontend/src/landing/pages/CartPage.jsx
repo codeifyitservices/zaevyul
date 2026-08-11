@@ -21,6 +21,9 @@ import SiteFooter from "../components/SiteFooter";
 import { useCart } from "../../context/CartContext";
 import { getCategorySlug } from "../../lib/api";
 import { useToast } from "../../context/ToastContext";
+import { useCustomerAuth } from "../../context/CustomerAuthContext";
+import { customerApi } from "../../lib/customerApi";
+import { useEffect } from "react";
 
 export default function CartPage() {
   const navigate = useNavigate();
@@ -33,6 +36,8 @@ export default function CartPage() {
     return localStorage.getItem("zae_cart_gift_note") || "";
   });
   const [isGiftSaved, setIsGiftSaved] = useState(!!giftNote);
+
+  const { user, isAuthenticated } = useCustomerAuth();
 
   // State for checkout modal
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
@@ -47,6 +52,23 @@ export default function CartPage() {
     cardExpiry: "12/29",
     cardCvc: "123",
   });
+
+  // Prefill when checkout modal opens
+  useEffect(() => {
+    if (showCheckoutModal && isAuthenticated && user) {
+      const defaultAddr = user.addresses?.find((a) => a.isDefault) || user.addresses?.[0];
+      setCheckoutForm({
+        email: user.email || "",
+        name: user.name || "",
+        address: defaultAddr?.addressLine || "",
+        city: defaultAddr?.city || "",
+        postalCode: defaultAddr?.postalCode || "",
+        cardNumber: "4111 2222 3333 4444",
+        cardExpiry: "12/29",
+        cardCvc: "123",
+      });
+    }
+  }, [showCheckoutModal, isAuthenticated, user]);
 
   const handleSaveGiftNote = (e) => {
     e.preventDefault();
@@ -63,21 +85,46 @@ export default function CartPage() {
     toast("Gift note removed", "success");
   };
 
-  const handleCheckoutSubmit = (e) => {
+  const handleCheckoutSubmit = async (e) => {
     e.preventDefault();
     if (!checkoutForm.email || !checkoutForm.name || !checkoutForm.address) {
       toast("Please fill in all shipping details", "error");
       return;
     }
+    
     setCheckoutStep(2);
-    setTimeout(() => {
+    try {
+      if (isAuthenticated) {
+        await customerApi.orders.place({
+          items: cart.map((item) => ({
+            product: item._id || item.id,
+            qty: item.quantity,
+            price: item.discountPrice || item.basePrice,
+          })),
+          subtotal: totals.subtotal,
+          shipping: totals.shipping || 0,
+          discount: totals.discount || 0,
+          total: totals.total,
+          paymentMethod: 'Credit Card',
+          shippingAddress: {
+            address: checkoutForm.address,
+            city: checkoutForm.city,
+            zip: checkoutForm.postalCode,
+          },
+          notes: giftNote,
+        });
+      }
+      
       setCheckoutStep(3);
       clearCart();
       localStorage.removeItem("zae_cart_gift_note");
       setGiftNote("");
       setIsGiftSaved(false);
       toast("Order placed successfully!", "success");
-    }, 2500);
+    } catch (err) {
+      setCheckoutStep(1);
+      toast(err.message || "Failed to place order. Please try again.", "error");
+    }
   };
 
   return (

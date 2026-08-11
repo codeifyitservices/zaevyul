@@ -96,22 +96,6 @@ export default function AccountDetailsPage({
               {profile.email}
             </span>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-1 py-1 border-t border-[#E6DED4]/20 pt-4">
-            <span className="font-sans text-[11px] font-semibold uppercase tracking-wider text-[#8A857E]">
-              Password
-            </span>
-            <div className="md:col-span-3 flex items-center justify-between">
-              <span className="font-sans text-[13.5px] font-normal text-[#1C1916] tracking-widest">
-                {showPassword ? "ZaevyulPass123" : "••••••••"}
-              </span>
-              <button
-                onClick={() => setShowPassword(!showPassword)}
-                className="text-xs text-[#8A857E] hover:text-[#1C1916] cursor-pointer transition-colors p-1"
-              >
-                {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-              </button>
-            </div>
-          </div>
         </div>
       )}
     </div>

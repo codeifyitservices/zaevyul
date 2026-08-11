@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import SiteFooter from "../components/SiteFooter";
 import Navbar from "../components/Navbar";
+import ProductCard from "../components/ProductCard";
 
 import { api, getCategorySlug, getHoverImage } from "../../lib/api";
 import { useCart } from "../../context/CartContext";
@@ -939,55 +940,11 @@ export default function CollectionsPage() {
 
                       // Standard Product Card
                       return (
-                        <Link
+                        <ProductCard
                           key={p._id || p.id}
-                          to={`/collection/${getCategorySlug(p.category)}/${p.slug}`}
-                          className={`group flex text-decoration-none ${viewMode === "list" ? "flex-col sm:flex-row gap-6 items-center border-b border-[#ECE7E1] pb-8" : "flex-col"}`}
-                        >
-                          {/* Image container */}
-                          <div
-                            className={`relative overflow-hidden bg-[#EFE9E1] rounded-[2px] shrink-0
-                              ${viewMode === "list" ? "w-full sm:w-[220px] aspect-[4/5]" : "w-full aspect-[4/5]"}`}
-                          >
-                            <img
-                              src={getProductImage(p)}
-                              alt={p.name}
-                              className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-in-out group-hover:opacity-0"
-                            />
-                            <img
-                              src={getHoverImage(p)}
-                              alt={`${p.name} hover detail`}
-                              className="absolute inset-0 w-full h-full object-cover transition-all duration-700 ease-in-out opacity-0 scale-[1.02] group-hover:opacity-100 group-hover:scale-100"
-                            />
-                          </div>
-
-                          {/* Details container */}
-                          <div
-                            className={`flex-1 w-full ${viewMode === "list" ? "pt-2" : "mt-4"}`}
-                          >
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="flex flex-col">
-                                <h3 className="font-serif text-[15px] sm:text-[16px] font-normal leading-snug text-[#1C1916] group-hover:text-[#B58A5B] transition-colors duration-200">
-                                  {p.name}
-                                </h3>
-                                <span className="font-sans text-[12px] sm:text-[13px] font-normal text-[#1C1916] mt-1.5">
-                                  {getProductPrice(p)}
-                                </span>
-                              </div>
-                              <button
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  addToCart(p, 1);
-                                }}
-                                aria-label={`Add ${p.name} to bag`}
-                                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#1C1916]/20 text-[#1C1916] transition-colors duration-200 hover:border-[#1C1916] hover:bg-[#1C1916] hover:text-white sm:h-8 sm:w-8 mt-0.5"
-                              >
-                                <Plus size={13} strokeWidth={1.5} />
-                              </button>
-                            </div>
-                          </div>
-                        </Link>
+                          p={p}
+                          viewMode={viewMode}
+                        />
                       );
                     })}
                   </div>

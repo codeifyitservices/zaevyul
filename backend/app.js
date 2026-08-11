@@ -17,6 +17,9 @@ import newsletterRoutes from "./routes/newsletter.js";
 import reportsRoutes from "./routes/reports.js";
 import settingsRoutes from "./routes/settings.js";
 import profileRoutes from "./routes/profile.js";
+import customerAuthRoutes from "./routes/customerAuth.js";
+import customerFavoritesRoutes from "./routes/customerFavorites.js";
+import customerOrdersRoutes from "./routes/customerOrders.js";
 
 const PORT = 5000;
 const app = express();
@@ -48,6 +51,11 @@ app.use("/api/admin/newsletter", newsletterRoutes);
 app.use("/api/admin/reports", reportsRoutes);
 app.use("/api/admin/settings", settingsRoutes);
 app.use("/api/admin/profile", profileRoutes);
+
+// Customer storefront routes — completely separate from admin routes
+app.use("/api/customer/auth", customerAuthRoutes);
+app.use("/api/customer/favorites", customerFavoritesRoutes);
+app.use("/api/customer/orders", customerOrdersRoutes);
 
 // Health check endpoint (fixed: parameters were swapped in original)
 app.get("/health", (req, res) => {

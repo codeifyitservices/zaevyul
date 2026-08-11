@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import ProductCard from "./ProductCard";
 
 const RELATED = [
   {
@@ -61,36 +61,12 @@ export default function RelatedProducts() {
         {/* Product Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 lg:gap-6 xl:gap-8">
           {RELATED.slice(0, 4).map((p) => (
-            <Link
+            <ProductCard
               key={p.id}
-              to={`/collection/${p.categorySlug}/${p.slug}`}
+              p={p}
+              showAddButton={false}
               onClick={() => window.scrollTo(0, 0)}
-              className="group flex flex-col text-decoration-none"
-            >
-              {/* Image Container */}
-              <div className="relative aspect-[4/5] overflow-hidden rounded-[2px] bg-[#EFE9E1]">
-                <img
-                  src={p.img}
-                  alt={p.name}
-                  className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-in-out group-hover:opacity-0"
-                />
-                <img
-                  src={p.hoverImg || p.images?.[1]?.url || "/storefront/prod-2.png"}
-                  alt={`${p.name} hover detail`}
-                  className="absolute inset-0 w-full h-full object-cover transition-all duration-700 ease-in-out opacity-0 scale-[1.02] group-hover:opacity-100 group-hover:scale-100"
-                />
-              </div>
-
-              {/* Title & Price */}
-              <div className="mt-4 flex flex-col">
-                <h3 className="font-serif text-[13px] sm:text-[14px] font-normal leading-snug text-[#1C1916] group-hover:text-[#B58A5B] transition-colors duration-200">
-                  {p.name}
-                </h3>
-                <span className="font-sans text-[11px] sm:text-[12px] font-light text-[#6B6560] mt-1">
-                  {p.price}
-                </span>
-              </div>
-            </Link>
+            />
           ))}
         </div>
 

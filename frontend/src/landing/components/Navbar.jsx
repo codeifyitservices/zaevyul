@@ -1,8 +1,17 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { Heart, Menu, Search, ShoppingBag, User, X } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  Heart,
+  Menu,
+  Search,
+  ShoppingBag,
+  User,
+  X,
+  LogOut,
+} from "lucide-react";
 import { api } from "../../lib/api";
 import { useCart } from "../../context/CartContext";
+import { useCustomerAuth } from "../../context/CustomerAuthContext";
 
 const NAV_LINKS = [
   { label: "New Arrivals", href: "/collections" },
@@ -17,6 +26,8 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [settings, setSettings] = useState(null);
   const { setIsOpen: setCartOpen, totals, isBadgeAnimated } = useCart();
+  const { user, isAuthenticated, logout } = useCustomerAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     let active = true;
@@ -44,6 +55,19 @@ export default function Navbar() {
       document.body.style.overflow = "";
     };
   }, [mobileOpen]);
+
+  const handleWishlistClick = () => {
+    if (isAuthenticated) {
+      navigate("/my-account");
+    } else {
+      navigate("/login", { state: { from: "/my-account" } });
+    }
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/");
+  };
 
   return (
     <>
@@ -82,19 +106,54 @@ export default function Navbar() {
           >
             <Search size={17} strokeWidth={1.4} />
           </button>
-          <Link
-            to="/my-account"
-            aria-label="Account"
-            className="hidden lg:block transition-colors hover:text-[#1C1916] cursor-pointer"
-          >
-            <User size={17} strokeWidth={1.4} />
-          </Link>
+
+          {/* User icon — links to account or login */}
+          {isAuthenticated ? (
+            <div className="hidden lg:flex items-center gap-3">
+              <Link
+                to="/my-account"
+                aria-label="My Account"
+                className="transition-colors hover:text-[#1C1916] cursor-pointer flex items-center gap-1.5"
+                title={user?.name || "My Account"}
+              >
+                {user?.profileImage ? (
+                  <img
+                    src={user.profileImage}
+                    alt={user.name}
+                    className="w-6 h-6 rounded-full object-cover border border-[#E6DED4]"
+                  />
+                ) : (
+                  <User size={17} strokeWidth={1.4} />
+                )}
+              </Link>
+            </div>
+          ) : (
+            <Link
+              to="/login"
+              aria-label="Sign In"
+              className="hidden lg:block transition-colors hover:text-[#1C1916] cursor-pointer"
+            >
+              <User size={17} strokeWidth={1.4} />
+            </Link>
+          )}
+
+          {/* Heart / Wishlist */}
           <button
-            aria-label="Wishlist"
-            className="hidden lg:block transition-colors hover:text-[#1C1916]"
+            aria-label={
+              isAuthenticated ? "Wishlist" : "Sign in to save favorites"
+            }
+            className="hidden lg:block transition-colors hover:text-[#1C1916] relative"
+            onClick={handleWishlistClick}
           >
-            <Heart size={17} strokeWidth={1.4} />
+            <Heart
+              size={17}
+              strokeWidth={1.4}
+              className={
+                isAuthenticated ? "text-[#1C1916]/70" : "text-[#1C1916]/70"
+              }
+            />
           </button>
+
           <Link
             to="/cart"
             aria-label="Bag"
@@ -112,6 +171,7 @@ export default function Navbar() {
         </div>
       </nav>
 
+      {/* Mobile Drawer */}
       <div
         className={`fixed inset-0 z-[200] flex flex-col bg-[#FAF8F5] transition-transform duration-500 ease-in-out ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
@@ -144,25 +204,61 @@ export default function Navbar() {
           ))}
         </nav>
 
-        {/* Mobile Drawer Footer Actions (Profile & Wishlist) */}
+        {/* Mobile Drawer Footer */}
         <div className="mt-auto border-t border-[#E8E1D9] p-6 sm:p-8 flex justify-around items-center bg-[#FAF8F5]">
-          <Link
-            to="/my-account"
-            onClick={() => setMobileOpen(false)}
-            className="flex items-center gap-3 font-sans text-[11px] font-semibold uppercase tracking-[0.2em] text-[#1C1916]/70 hover:text-[#1C1916] cursor-pointer"
-          >
-            <User size={16} strokeWidth={1.4} />
-            <span>Profile</span>
-          </Link>
-          <div className="h-4 w-px bg-[#E8E1D9]" />
-          <a
-            href="#"
-            onClick={() => setMobileOpen(false)}
-            className="flex items-center gap-3 font-sans text-[11px] font-semibold uppercase tracking-[0.2em] text-[#1C1916]/70 hover:text-[#1C1916]"
-          >
-            <Heart size={16} strokeWidth={1.4} />
-            <span>Wishlist</span>
-          </a>
+          {isAuthenticated ? (
+            <>
+              <Link
+                to="/my-account"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-3 font-sans text-[11px] font-semibold uppercase tracking-[0.2em] text-[#1C1916]/70 hover:text-[#1C1916] cursor-pointer"
+              >
+                {user?.profileImage ? (
+                  <img
+                    src={user.profileImage}
+                    alt=""
+                    className="w-5 h-5 rounded-full object-cover"
+                  />
+                ) : (
+                  <User size={16} strokeWidth={1.4} />
+                )}
+                <span>{user?.name?.split(" ")[0] || "Account"}</span>
+              </Link>
+              <div className="h-4 w-px bg-[#E8E1D9]" />
+              <button
+                onClick={() => {
+                  setMobileOpen(false);
+                  handleLogout();
+                }}
+                className="flex items-center gap-3 font-sans text-[11px] font-semibold uppercase tracking-[0.2em] text-[#1C1916]/70 hover:text-[#1C1916]"
+              >
+                <LogOut size={16} strokeWidth={1.4} />
+                <span>Sign Out</span>
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                to="/login"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-3 font-sans text-[11px] font-semibold uppercase tracking-[0.2em] text-[#1C1916]/70 hover:text-[#1C1916] cursor-pointer"
+              >
+                <User size={16} strokeWidth={1.4} />
+                <span>Sign In</span>
+              </Link>
+              <div className="h-4 w-px bg-[#E8E1D9]" />
+              <button
+                onClick={() => {
+                  setMobileOpen(false);
+                  handleWishlistClick();
+                }}
+                className="flex items-center gap-3 font-sans text-[11px] font-semibold uppercase tracking-[0.2em] text-[#1C1916]/70 hover:text-[#1C1916]"
+              >
+                <Heart size={16} strokeWidth={1.4} />
+                <span>Wishlist</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
     </>

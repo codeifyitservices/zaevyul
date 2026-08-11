@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
+import ProductCard from "../../components/ProductCard";
 import {
   List,
   Heart,
@@ -90,22 +92,35 @@ const DEMO_SAVED_PIECES = [
 
 function DashboardOverviewPreview({
   profile = DEMO_PROFILE,
-  savedPieces: initialSaved = DEMO_SAVED_PIECES,
-  addresses: initialAddresses = [],
+  savedPieces: propSavedPieces = DEMO_SAVED_PIECES,
+  addresses = [],
   marketingPreferences: marketingPreferencesProp,
   onToggleMarketing: onToggleMarketingProp,
+  onAddAddress,
+  onToggleHeart: onToggleHeartProp,
+  setActiveTab = () => {},
+  setIsEditing = () => {},
 }) {
   const [showAvatarSelector, setShowAvatarSelector] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({ ...profile });
-  const [savedPieces, setSavedPieces] = useState(initialSaved);
-  const [addresses] = useState(initialAddresses);
+  const [localSavedPieces, setLocalSavedPieces] = useState(null);
   const [localMarketingPreferences, setLocalMarketingPreferences] = useState({
     emailUpdates: true,
   });
 
-  const onToggleHeart = (id) =>
-    setSavedPieces((prev) => prev.filter((p) => p.id !== id));
+  const savedPieces =
+    localSavedPieces !== null ? localSavedPieces : propSavedPieces;
+
+  const onToggleHeart = (id, name) => {
+    if (onToggleHeartProp) {
+      onToggleHeartProp(id, name);
+    } else {
+      setLocalSavedPieces(
+        (localSavedPieces || propSavedPieces).filter((p) => p.id !== id),
+      );
+    }
+  };
+
   const marketingPreferences =
     marketingPreferencesProp || localMarketingPreferences;
   const onToggleMarketing =
@@ -117,114 +132,61 @@ function DashboardOverviewPreview({
       })));
 
   return (
-    <div
-      style={{
-        margin: "0 auto",
-        padding: "40px 24px",
-        backgroundColor: "#ffffff",
-      }}
-    >
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "250px minmax(0,1fr)",
-          alignItems: "start",
-          gap: 56,
-        }}
-      >
+    <div className="bg-white border border-[#E6DED4]/40 rounded-[4px] p-6 sm:p-8 shadow-xs">
+      <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr] items-start gap-10 lg:gap-14">
         {/* LEFT COLUMN */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "flex-start",
-            paddingTop: 8,
-          }}
-        >
+        <div className="flex flex-col items-center lg:items-start pt-2 w-full">
           <div style={{ position: "relative" }}>
-            <div
-              style={{
-                height: 142,
-                width: 142,
-                overflow: "hidden",
-                borderRadius: "9999px",
-                background: C.avatarBg,
-              }}
-            >
-              <img
-                src={profile.avatar}
-                alt={profile.name}
-                style={{ height: "100%", width: "100%", objectFit: "cover" }}
-              />
-            </div>
-            <button
-              onClick={() => setShowAvatarSelector(!showAvatarSelector)}
-              aria-label="Change profile picture"
-              style={{
-                position: "absolute",
-                bottom: 8,
-                right: 8,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                height: 28,
-                width: 28,
-                borderRadius: "9999px",
-                border: `1px solid ${C.avatarEditBorder}`,
-                background: "#fff",
-                color: C.textMuted,
-                boxShadow: "0 6px 18px rgba(28,25,22,0.08)",
-                cursor: "pointer",
-              }}
-            >
-              <Edit3 size={12} strokeWidth={1.45} />
-            </button>
-            {showAvatarSelector && (
+            {profile.avatar &&
+            (profile.avatar.startsWith("http") ||
+              profile.avatar.startsWith("https")) ? (
               <div
                 style={{
-                  position: "absolute",
-                  left: 0,
-                  top: 156,
-                  zIndex: 20,
-                  display: "flex",
-                  gap: 8,
-                  borderRadius: 10,
-                  border: `1px solid ${C.border}`,
-                  background: "#fff",
-                  padding: 12,
-                  boxShadow: "0 20px 40px rgba(0,0,0,0.12)",
+                  height: 142,
+                  width: 142,
+                  overflow: "hidden",
+                  borderRadius: "9999px",
+                  background: C.avatarBg,
                 }}
               >
-                {AVATARS.map((url, idx) => (
-                  <button
-                    key={idx}
-                    style={{
-                      height: 36,
-                      width: 36,
-                      overflow: "hidden",
-                      borderRadius: "9999px",
-                      border: `1px solid ${C.avatarOptBorder}`,
-                      cursor: "pointer",
-                      padding: 0,
-                      background: "none",
-                    }}
-                  >
-                    <img
-                      src={url}
-                      alt=""
-                      style={{
-                        height: "100%",
-                        width: "100%",
-                        objectFit: "cover",
-                      }}
-                    />
-                  </button>
-                ))}
+                <img
+                  src={profile.avatar}
+                  alt={profile.name}
+                  style={{ height: "100%", width: "100%", objectFit: "cover" }}
+                />
+              </div>
+            ) : (
+              <div
+                style={{
+                  height: 142,
+                  width: 142,
+                  color: "#1C1916",
+                  borderRadius: "9999px",
+                  background: "#d8cebe",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontFamily: "Georgia, serif",
+                  fontSize: 38,
+                  fontWeight: 300,
+                  letterSpacing: "0.05em",
+                }}
+              >
+                {(() => {
+                  if (!profile.name) return "Z";
+                  const parts = profile.name.trim().split(/\s+/);
+                  return parts
+                    .map((p) => p[0])
+                    .join("")
+                    .toUpperCase()
+                    .slice(0, 2);
+                })()}
               </div>
             )}
           </div>
 
           <h2
+            className="text-center lg:text-left"
             style={{
               marginTop: 28,
               fontSize: 25,
@@ -235,6 +197,7 @@ function DashboardOverviewPreview({
             {profile.name}
           </h2>
           <p
+            className="text-center lg:text-left"
             style={{
               marginTop: 8,
               fontSize: 12,
@@ -246,6 +209,7 @@ function DashboardOverviewPreview({
           </p>
 
           <button
+            onClick={onAddAddress}
             style={{
               marginTop: 32,
               display: "inline-flex",
@@ -303,7 +267,10 @@ function DashboardOverviewPreview({
                 Account Details
               </h3>
               <button
-                onClick={() => setIsEditing(true)}
+                onClick={() => {
+                  setActiveTab("Account Details");
+                  setIsEditing(true);
+                }}
                 style={{
                   display: "flex",
                   height: 28,
@@ -320,11 +287,10 @@ function DashboardOverviewPreview({
                 <Edit3 size={12} strokeWidth={1.45} />
               </button>
             </div>
-            <div style={{ fontSize: 12 }}>
+            <div className="space-y-4 sm:space-y-0" style={{ fontSize: 12 }}>
               <div
+                className="grid grid-cols-1 sm:grid-cols-[180px_1fr] gap-1 sm:gap-4"
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: "180px 1fr",
                   borderBottom: `1px solid ${C.borderLight}`,
                   paddingBottom: 16,
                 }}
@@ -333,9 +299,8 @@ function DashboardOverviewPreview({
                 <span style={{ color: C.ink }}>{profile.name}</span>
               </div>
               <div
+                className="grid grid-cols-1 sm:grid-cols-[180px_1fr] gap-1 sm:gap-4"
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: "180px 1fr",
                   paddingTop: 16,
                 }}
               >
@@ -380,22 +345,6 @@ function DashboardOverviewPreview({
                 </span>
                 Latest Orders
               </h3>
-              <button
-                style={{
-                  display: "flex",
-                  height: 28,
-                  width: 28,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderRadius: "9999px",
-                  background: C.hoverBg,
-                  color: C.textMuted,
-                  border: "none",
-                  cursor: "pointer",
-                }}
-              >
-                <Plus size={14} strokeWidth={1.55} />
-              </button>
             </div>
             <div
               style={{
@@ -448,7 +397,8 @@ function DashboardOverviewPreview({
                   </p>
                 </div>
               </div>
-              <span
+              <Link
+                to="/collections"
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -456,10 +406,12 @@ function DashboardOverviewPreview({
                   fontSize: 11,
                   fontWeight: 500,
                   color: C.ink,
+                  textDecoration: "none",
+                  cursor: "pointer",
                 }}
               >
                 Explore Collection <ArrowRight size={14} strokeWidth={1.45} />
-              </span>
+              </Link>
             </div>
           </section>
 
@@ -486,6 +438,7 @@ function DashboardOverviewPreview({
                 Pieces
               </h3>
               <span
+                onClick={() => setActiveTab("Saved Pieces")}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -493,6 +446,7 @@ function DashboardOverviewPreview({
                   fontSize: 11,
                   fontWeight: 500,
                   color: C.ink,
+                  cursor: "pointer",
                 }}
               >
                 View all <ArrowRight size={14} strokeWidth={1.45} />
@@ -510,94 +464,19 @@ function DashboardOverviewPreview({
                 No saved pieces yet. Browse items and click heart icon to save.
               </div>
             ) : (
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(4, 1fr)",
-                  gap: 24,
-                }}
-              >
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 {savedPieces.map((p) => (
-                  <div
-                    key={p.id}
-                    style={{ display: "flex", flexDirection: "column" }}
-                  >
-                    <div
-                      style={{
-                        position: "relative",
-                        aspectRatio: "1.62",
-                        overflow: "hidden",
-                        borderRadius: 7,
-                        background: C.avatarBg,
-                      }}
-                    >
-                      <img
-                        src={p.image}
-                        alt={p.name}
-                        style={{
-                          height: "100%",
-                          width: "100%",
-                          objectFit: "cover",
-                        }}
-                      />
-                      <button
-                        onClick={() => onToggleHeart(p.id)}
-                        aria-label="Remove from saved"
-                        style={{
-                          position: "absolute",
-                          right: 12,
-                          top: 12,
-                          display: "flex",
-                          height: 28,
-                          width: 28,
-                          alignItems: "center",
-                          justifyContent: "center",
-                          borderRadius: "9999px",
-                          background: "rgba(255,255,255,0.95)",
-                          color: C.textMuted,
-                          border: "none",
-                          cursor: "pointer",
-                        }}
-                      >
-                        <Heart size={15} strokeWidth={1.45} />
-                      </button>
-                    </div>
-                    <h4
-                      style={{
-                        marginTop: 12,
-                        fontSize: 11,
-                        fontWeight: 500,
-                        color: C.ink,
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                      }}
-                    >
-                      {p.name}
-                    </h4>
-                    <span
-                      style={{
-                        marginTop: 4,
-                        fontSize: 10.5,
-                        fontWeight: 500,
-                        color: C.ink,
-                      }}
-                    >
-                      &#8377; {p.price.toLocaleString("en-IN")}
-                    </span>
-                  </div>
+                  <ProductCard
+                    key={p._id || p.id}
+                    p={p}
+                    showAddButton={false}
+                  />
                 ))}
               </div>
             )}
           </section>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)",
-              gap: 24,
-            }}
-          >
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <section
               style={{
                 display: "flex",
@@ -633,6 +512,7 @@ function DashboardOverviewPreview({
                     Addresses
                   </h4>
                   <button
+                    onClick={onAddAddress}
                     style={{
                       display: "flex",
                       height: 28,
@@ -663,9 +543,26 @@ function DashboardOverviewPreview({
                     <br />
                     Add a delivery address for faster checkout.
                   </p>
-                ) : null}
+                ) : (
+                  <p
+                    style={{
+                      marginBottom: 16,
+                      fontSize: 11,
+                      fontWeight: 300,
+                      lineHeight: 1.6,
+                      color: C.inkStrong,
+                    }}
+                  >
+                    {addresses.find((a) => a.isDefault)?.addressLine ||
+                      addresses[0].addressLine}
+                    <br />
+                    {addresses.find((a) => a.isDefault)?.city ||
+                      addresses[0].city}
+                  </p>
+                )}
               </div>
-              <span
+              <button
+                onClick={() => setActiveTab("Addresses")}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -673,10 +570,15 @@ function DashboardOverviewPreview({
                   fontSize: 11,
                   fontWeight: 500,
                   color: C.ink,
+                  border: "none",
+                  background: "none",
+                  cursor: "pointer",
+                  padding: 0,
+                  textAlign: "left",
                 }}
               >
-                Add Address <ArrowRight size={14} strokeWidth={1.45} />
-              </span>
+                Manage Addresses <ArrowRight size={14} strokeWidth={1.45} />
+              </button>
             </section>
 
             <section
@@ -714,6 +616,10 @@ function DashboardOverviewPreview({
                     Details
                   </h4>
                   <button
+                    onClick={() => {
+                      setActiveTab("Account Details");
+                      setIsEditing(true);
+                    }}
                     style={{
                       display: "flex",
                       height: 28,
@@ -771,6 +677,10 @@ function DashboardOverviewPreview({
                 </div>
               </div>
               <span
+                onClick={() => {
+                  setActiveTab("Account Details");
+                  setIsEditing(true);
+                }}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -779,6 +689,7 @@ function DashboardOverviewPreview({
                   fontWeight: 500,
                   color: C.ink,
                   paddingTop: 16,
+                  cursor: "pointer",
                 }}
               >
                 Full Details <ArrowRight size={14} strokeWidth={1.45} />
@@ -856,23 +767,27 @@ function DashboardOverviewPreview({
                     style={{
                       position: "relative",
                       marginLeft: 12,
-                      display: "inline-flex",
+                      display: "block",
                       height: 22,
-                      width: 40,
-                      alignItems: "center",
+                      width: 58,
                       borderRadius: "9999px",
-                      border: "1px solid transparent",
+                      border: "none",
+                      padding: 0,
                       cursor: "pointer",
                       background: marketingPreferences.emailUpdates
                         ? C.accent
                         : C.toggleOff,
+                      transition: "background .2s ease",
                     }}
                   >
                     <span
                       style={{
-                        display: "inline-block",
-                        height: 20,
-                        width: 20,
+                        position: "absolute",
+                        top: 2,
+                        left: 2,
+                        display: "block",
+                        height: 18,
+                        width: 18,
                         borderRadius: "9999px",
                         background: "#fff",
                         boxShadow: "0 1px 3px rgba(0,0,0,0.15)",

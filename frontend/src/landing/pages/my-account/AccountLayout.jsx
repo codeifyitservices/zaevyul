@@ -13,6 +13,7 @@ import {
   LayoutDashboard,
 } from "lucide-react";
 import Navbar from "../../components/Navbar";
+import { useCustomerAuth } from "../../../context/CustomerAuthContext";
 
 const accountNavItems = [
   { tab: "Overview", label: "Dashboard", icon: LayoutDashboard },
@@ -35,36 +36,37 @@ export default function AccountLayout({
   children,
 }) {
   const activeNavLabel = activeTab === "Saved Pieces" ? "Wishlist" : activeTab;
+  const { user, isAuthenticated, logout } = useCustomerAuth();
+  const handleLogout = async () => {
+    await logout();
+    navigate("/");
+  };
 
   return (
     <main className="flex-1 pt-[68px] bg-[#fffeff]">
       <Navbar />
 
       <div className="flex w-full items-stretch">
-        <aside className="z-30 hidden min-h-[calc(100vh-68px)] w-16 shrink-0 self-stretch border-r border-[#E6DED4]/70 bg-[#F8F7F3] lg:block">
-          <div className="sticky top-[68px] flex h-[calc(100vh-68px)] flex-col items-center justify-between px-2.5 py-6">
-            <div className="flex flex-col items-center  gap-6">
-              <button
-                onClick={() => navigate(-1)}
-                className="group flex h-9 w-9 items-center justify-center rounded-full text-[#6B6560] transition-all duration-200 hover:bg-white hover:text-[#1C1916] hover:shadow-[0_8px_24px_rgba(28,25,22,0.06)] cursor-pointer"
-                aria-label="Back to previous page"
-                title="My Account"
-              >
-                <ArrowLeft
-                  size={15}
-                  strokeWidth={1.45}
-                  className="transition-transform duration-200 group-hover:-translate-x-0.5"
-                />
-              </button>
-
-              <nav className="flex flex-col items-center gap-3">
+        <aside className="z-30 hidden min-h-[calc(100vh-68px)] w-[80px] shrink-0 self-stretch border-r border-[#E6DED4]/70 bg-[#F8F7F3] lg:block">
+          <div className="sticky top-[68px] flex h-[calc(100vh-68px)] flex-col items-center justify-between px-2 py-6">
+            <div className="flex flex-col items-center gap-6 w-full">
+              <nav className="flex flex-col items-center gap-3 w-full">
                 {accountNavItems.map(({ tab, label, icon: Icon }) => {
                   const isActive = activeTab === tab;
+                  const displayLabel =
+                    label === "Account Details"
+                      ? "Profile"
+                      : label === "Marketing Preferences"
+                        ? "Marketing"
+                        : label === "Dashboard"
+                          ? "Overview"
+                          : label;
+
                   return (
                     <button
                       key={tab}
                       onClick={() => setActiveTab(tab)}
-                      className={`relative flex h-9 w-9 items-center justify-center rounded-full transition-all duration-200 cursor-pointer ${
+                      className={`relative flex flex-col items-center justify-center w-14 h-12 py-2 rounded-lg transition-all duration-200 cursor-pointer ${
                         isActive
                           ? "bg-[#d8cebe] text-[#0a0a0a] shadow-[0_10px_26px_rgba(28,25,22,0.07)]"
                           : "text-[#8A857E] hover:bg-white hover:text-[#1C1916]"
@@ -73,9 +75,12 @@ export default function AccountLayout({
                       title={label}
                     >
                       {isActive && (
-                        <span className="absolute -left-2.5 top-1/2 h-5 w-px -translate-y-1/2 bg-[#1C1916]" />
+                        <span className="absolute -left-2 top-1/2 h-6 w-px -translate-y-1/2 bg-[#1C1916]" />
                       )}
-                      <Icon size={15} strokeWidth={1.35} />
+                      <Icon size={14} strokeWidth={1.35} />
+                      <span className="mt-1 text-[7px] font-medium tracking-wider uppercase opacity-85 text-center leading-none">
+                        {displayLabel}
+                      </span>
                     </button>
                   );
                 })}
@@ -84,30 +89,12 @@ export default function AccountLayout({
 
             <div className="flex flex-col items-center gap-3 border-t border-[#E6DED4]/70 pt-5 text-[#8A857E]">
               <button
-                onClick={() =>
-                  toast("Bookmark capability integrated", "success")
-                }
-                className="flex h-9 w-9 items-center justify-center rounded-full transition-all duration-200 hover:bg-white hover:text-[#1C1916] hover:shadow-[0_8px_24px_rgba(28,25,22,0.06)] cursor-pointer"
-                aria-label="Bookmark Account"
-                title="Bookmark Account"
-              >
-                <Bookmark size={14} strokeWidth={1.35} />
-              </button>
-              <button
                 onClick={() => toast("No new account alerts", "info")}
                 className="flex h-9 w-9 items-center justify-center rounded-full transition-all duration-200 hover:bg-white hover:text-[#1C1916] hover:shadow-[0_8px_24px_rgba(28,25,22,0.06)] cursor-pointer"
                 aria-label="Notifications"
                 title="Notifications"
               >
                 <Bell size={14} strokeWidth={1.35} />
-              </button>
-              <button
-                onClick={() => toast("More options menu", "success")}
-                className="flex h-9 w-9 items-center justify-center rounded-full transition-all duration-200 hover:bg-white hover:text-[#1C1916] hover:shadow-[0_8px_24px_rgba(28,25,22,0.06)] cursor-pointer"
-                aria-label="Options"
-                title="Options"
-              >
-                <MoreHorizontal size={14} strokeWidth={1.35} />
               </button>
               <button
                 onClick={() =>
@@ -120,7 +107,7 @@ export default function AccountLayout({
                 <HelpCircle size={14} strokeWidth={1.35} />
               </button>
               <button
-                onClick={() => toast("Logged out of account view", "info")}
+                onClick={handleLogout}
                 className="flex h-9 w-9 items-center justify-center rounded-full transition-all duration-200 hover:bg-white hover:text-[#1C1916] hover:shadow-[0_8px_24px_rgba(28,25,22,0.06)] cursor-pointer"
                 aria-label="Logout"
                 title="Logout"
@@ -131,7 +118,7 @@ export default function AccountLayout({
           </div>
         </aside>
 
-        <div className="min-w-0 flex-1 px-6 py-10 sm:px-10 lg:px-10 xl:px-14">
+        <div className="min-w-0 flex-1 px-6 pb-10 pt-0 lg:pt-10 sm:px-10 lg:px-10 xl:px-14">
           <div className="mb-8 hidden items-center justify-between border-b border-[#E6DED4]/60 pb-4 lg:flex">
             <button
               onClick={() => navigate(-1)}
