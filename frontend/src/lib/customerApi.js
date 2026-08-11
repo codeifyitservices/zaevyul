@@ -159,5 +159,11 @@ export const customerApi = {
         method: 'POST',
         body: JSON.stringify(orderData),
       }),
+
+    /** Cancel pending order */
+    cancel: (orderId) =>
+      request(`/orders/${orderId}/cancel`, {
+        method: 'POST',
+      }),
   },
 };

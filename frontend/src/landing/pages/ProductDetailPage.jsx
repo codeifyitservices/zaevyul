@@ -16,13 +16,11 @@ import RelatedProducts from "../components/RelatedProducts";
 
 import { api } from "../../lib/api";
 import { useCart } from "../../context/CartContext";
+import { useCurrency } from "../../context/CurrencyContext";
+import { useToast } from "../../context/ToastContext";
+import { useFavorite } from "../../context/FavoritesContext";
 
-const getProductPrice = (p) => {
-  if (!p) return "";
-  if (typeof p.price === "string") return p.price;
-  const priceVal = p.discountPrice || p.basePrice;
-  return priceVal ? `₹ ${priceVal.toLocaleString("en-IN")}` : "₹ 30,000";
-};
+// getProductPrice is now defined inside the component using useCurrency
 
 const getProductCategory = (p) => {
   if (!p) return "";
@@ -43,6 +41,14 @@ export default function ProductDetailPage() {
   const [quantity, setQuantity] = useState(1);
   const [adding, setAdding] = useState(false);
   const { addToCart } = useCart();
+  const { formatPrice } = useCurrency();
+  const toast = useToast();
+  const { isFavorite, toggleFavorites } = useFavorite();
+
+  const getProductPrice = (p) => {
+    if (!p) return "";
+    return formatPrice(p.discountPrice || p.basePrice);
+  };
   const [activeImageIdx, setActiveImageIdx] = useState(0);
   const [accordions, setAccordions] = useState({
     details: true,
@@ -58,6 +64,7 @@ export default function ProductDetailPage() {
         const data = await api.products.getBySlug(productSlug);
         setProduct(data);
         setActiveImageIdx(0);
+        setQuantity(data && data.quantity === 0 ? 0 : 1);
         setError(null);
       } catch (err) {
         console.error("Error fetching product:", err);
@@ -77,11 +84,15 @@ export default function ProductDetailPage() {
     setAccordions((prev) => ({ ...prev, [section]: !prev[section] }));
   };
 
-  const handleIncrement = () => setQuantity((q) => q + 1);
-  const handleDecrement = () => setQuantity((q) => (q > 1 ? q - 1 : 1));
+  const handleIncrement = () => setQuantity((q) => (product && q < product.quantity ? q + 1 : q));
+  const handleDecrement = () => setQuantity((q) => (product && product.quantity === 0 ? 0 : q > 1 ? q - 1 : 1));
 
   const handleAddToBag = () => {
     if (!product) return;
+    if (product.quantity <= 0) {
+      toast("This product is currently out of stock", "error");
+      return;
+    }
     setAdding(true);
     setTimeout(() => {
       addToCart(product, quantity);
@@ -319,21 +330,31 @@ export default function ProductDetailPage() {
               <div className="flex flex-col gap-4 mb-10">
                 <button
                   onClick={handleAddToBag}
-                  disabled={adding}
-                  className="w-full bg-[#1C1916] hover:bg-[#B58A5B] text-white py-4 font-sans text-[10px] font-semibold uppercase tracking-[0.2em] rounded-[1px] transition-colors duration-300 flex items-center justify-center gap-2"
+                  disabled={adding || (product && product.quantity <= 0)}
+                  className="w-full bg-[#1C1916] hover:bg-[#B58A5B] text-white py-4 font-sans text-[10px] font-semibold uppercase tracking-[0.2em] rounded-[1px] transition-colors duration-300 flex items-center justify-center gap-2 disabled:bg-[#8A857E] disabled:cursor-not-allowed"
                 >
                   {adding ? (
                     <>
                       <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                       <span>ADDING...</span>
                     </>
+                  ) : product && product.quantity <= 0 ? (
+                    "OUT OF STOCK"
                   ) : (
                     "ADD TO BAG"
                   )}
                 </button>
-                <button className="w-full border border-[#1C1916] hover:bg-[#1C1916]/5 text-[#1C1916] py-4 font-sans text-[10px] font-semibold uppercase tracking-[0.2em] rounded-[1px] flex items-center justify-center gap-2.5 transition-colors duration-300">
-                  <Heart size={14} strokeWidth={1.5} />
-                  <span>ADD TO WISHLIST</span>
+                <button
+                  onClick={async () => {
+                    const res = await toggleFavorites(product._id || product.id);
+                    if (res === 'unauthenticated') {
+                      toast("Please log in to add to wishlist", "info");
+                    }
+                  }}
+                  className="w-full border border-[#1C1916] hover:bg-[#1C1916]/5 text-[#1C1916] py-4 font-sans text-[10px] font-semibold uppercase tracking-[0.2em] rounded-[1px] flex items-center justify-center gap-2.5 transition-colors duration-300"
+                >
+                  <Heart size={14} strokeWidth={1.5} fill={product && isFavorite(product._id || product.id) ? "currentColor" : "none"} className={product && isFavorite(product._id || product.id) ? "text-[#C94C4C]" : ""} />
+                  <span>{product && isFavorite(product._id || product.id) ? "REMOVE FROM WISHLIST" : "ADD TO WISHLIST"}</span>
                 </button>
               </div>
 

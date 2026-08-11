@@ -1,7 +1,20 @@
 import * as mock from "./mockData";
 
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api/admin";
+const PUBLIC_BASE_URL = import.meta.env.VITE_PUBLIC_API_URL || "http://localhost:5000/api/public";
 const USE_MOCK = import.meta.env.VITE_USE_MOCK_API === "true" || false;
+
+// Helper for public (unauthenticated) storefront fetch calls (AUD-002)
+const publicRequest = async (url, options = {}) => {
+  options.headers = {
+    "Content-Type": "application/json",
+    ...options.headers,
+  };
+  const res = await fetch(`${PUBLIC_BASE_URL}${url}`, options);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Public API request failed");
+  return data;
+};
 
 // Initialize in-memory collections for fallback mock data
 const loadCollection = (key, defaultData) => {
@@ -47,6 +60,10 @@ let db = {
 };
 
 const sleep = (ms = 400) => new Promise((r) => setTimeout(r, ms));
+
+const shouldUseMockFallback = (err) => (
+  USE_MOCK || err.message.includes("Failed to fetch") || err.message === "Mock mode enabled"
+);
 
 // Helper for fetch calls
 const request = async (url, options = {}) => {
@@ -166,7 +183,7 @@ export const api = {
     list: async (filters = {}) => {
       try {
         const query = new URLSearchParams(filters).toString();
-        const res = await request(`/products?${query}`);
+        const res = await publicRequest(`/products?${query}`);
         return res.products;
       } catch (err) {
         await sleep(300);
@@ -188,7 +205,7 @@ export const api = {
     },
     featured: async () => {
       try {
-        const res = await request("/products/featured");
+        const res = await publicRequest("/products?featured=true");
         return res.products;
       } catch (err) {
         await sleep(300);
@@ -200,7 +217,7 @@ export const api = {
     },
     get: async (id) => {
       try {
-        const res = await request(`/products/${id}`);
+        const res = await publicRequest(`/products/${id}`);
         return res.product;
       } catch (err) {
         await sleep(200);
@@ -216,10 +233,8 @@ export const api = {
     },
     getBySlug: async (slug) => {
       try {
-        const res = await request(`/products`);
-        const product = res.products.find((p) => p.slug === slug);
-        if (!product) throw new Error("Product not found");
-        return product;
+        const res = await publicRequest(`/products/${slug}`);
+        return res.product;
       } catch (err) {
         await sleep(200);
         const product = db.products.find((p) => p.slug === slug);
@@ -343,7 +358,7 @@ export const api = {
   categories: {
     list: async () => {
       try {
-        const res = await request("/categories");
+        const res = await publicRequest("/categories");
         return res.categories;
       } catch (err) {
         await sleep(200);
@@ -553,11 +568,22 @@ export const api = {
   blogs: {
     publicList: async () => {
       try {
-        const res = await request("/blogs/public");
+        const res = await publicRequest("/blogs");
         return res.blogs;
       } catch {
         await sleep(300);
         return db.blogs.filter((b) => b.status === "published");
+      }
+    },
+    getBySlug: async (slug) => {
+      try {
+        const res = await publicRequest(`/blogs/${slug}`);
+        return res.blog;
+      } catch (err) {
+        await sleep(200);
+        const blog = db.blogs.find((b) => b.slug === slug || b.id === slug || b._id === slug);
+        if (!blog) throw new Error("Article not found");
+        return blog;
       }
     },
     list: async (filters = {}) => {
@@ -732,6 +758,7 @@ export const api = {
         });
         return res.coupon;
       } catch (err) {
+        if (!shouldUseMockFallback(err)) throw err;
         await sleep(400);
         const coupon = {
           ...data,
@@ -752,6 +779,7 @@ export const api = {
         });
         return res.coupon;
       } catch (err) {
+        if (!shouldUseMockFallback(err)) throw err;
         await sleep(300);
         db.coupons = db.coupons.map((c) =>
           c.id === id ? { ...c, ...data } : c,
@@ -765,6 +793,7 @@ export const api = {
         const res = await request(`/coupons/${id}/toggle`, { method: "PUT" });
         return res.coupon;
       } catch (err) {
+        if (!shouldUseMockFallback(err)) throw err;
         await sleep(200);
         db.coupons = db.coupons.map((c) =>
           c.id === id ? { ...c, active: !c.active } : c,
@@ -777,9 +806,37 @@ export const api = {
       try {
         await request(`/coupons/${id}`, { method: "DELETE" });
       } catch (err) {
+        if (!shouldUseMockFallback(err)) throw err;
         await sleep(200);
         db.coupons = db.coupons.filter((c) => c.id !== id);
         saveCollection("coupons", db.coupons);
+      }
+    },
+    validate: async (code, cartSubtotal = 0) => {
+      try {
+        const res = await publicRequest("/coupons/validate", {
+          method: "POST",
+          body: JSON.stringify({ code, cartSubtotal }),
+        });
+        return res;
+      } catch (err) {
+        await sleep(200);
+        const coupon = db.coupons.find(
+          (c) => c.code.toUpperCase() === code.toUpperCase() && c.active,
+        );
+        if (!coupon) throw new Error("Invalid or inactive coupon code");
+        let discountAmount = coupon.discountType === "percentage"
+          ? Math.round((cartSubtotal * coupon.discountValue) / 100)
+          : coupon.discountValue;
+        return {
+          success: true,
+          coupon: {
+            code: coupon.code,
+            discountType: coupon.discountType,
+            discountValue: coupon.discountValue,
+            discountAmount,
+          },
+        };
       }
     },
     bulkDelete: async (ids) => {
@@ -789,15 +846,41 @@ export const api = {
           body: JSON.stringify({ ids }),
         });
       } catch (err) {
+        if (!shouldUseMockFallback(err)) throw err;
         await sleep(400);
         db.coupons = db.coupons.filter((c) => !ids.includes(c.id));
         saveCollection("coupons", db.coupons);
       }
     },
+    // Public storefront — list all active coupons (no auth required)
+    listPublic: async () => {
+      const res = await publicRequest("/coupons");
+      return res.coupons; // [{ code, type, value, description, minOrderValue }]
+    },
+    // Public storefront — validate a coupon code
+    validate: async (code, cartSubtotal = 0) => {
+      const res = await publicRequest("/coupons/validate", {
+        method: "POST",
+        body: JSON.stringify({ code, cartSubtotal }),
+      });
+      return res.coupon; // { code, discountType, discountValue, discountAmount }
+    },
   },
 
   // Newsletter
   newsletter: {
+    subscribe: async (email) => {
+      try {
+        const res = await publicRequest("/newsletter/subscribe", {
+          method: "POST",
+          body: JSON.stringify({ email }),
+        });
+        return res;
+      } catch (err) {
+        await sleep(300);
+        return { success: true, message: "Thank you for subscribing!" };
+      }
+    },
     list: async (filters = {}) => {
       try {
         const query = new URLSearchParams(filters).toString();
@@ -876,6 +959,15 @@ export const api = {
 
   // Settings
   settings: {
+    getPublic: async () => {
+      try {
+        const res = await publicRequest("/settings");
+        return res.settings;
+      } catch (err) {
+        await sleep(200);
+        return db.settings;
+      }
+    },
     get: async () => {
       try {
         const res = await request("/settings");

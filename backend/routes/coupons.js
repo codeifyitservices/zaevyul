@@ -6,6 +6,7 @@ import {
   updateCoupon,
   toggleCouponStatus,
   deleteCoupon,
+  bulkDeleteCoupons,
 } from '../controllers/coupons.js';
 
 const router = express.Router();
@@ -15,6 +16,9 @@ router.get('/', requireAuth, getCoupons);
 
 // POST /api/admin/coupons
 router.post('/', requireAuth, requireRole(['super_admin', 'admin']), createCoupon);
+
+// POST /api/admin/coupons/bulk-delete
+router.post('/bulk-delete', requireAuth, requireRole(['super_admin', 'admin']), bulkDeleteCoupons);
 
 // PUT /api/admin/coupons/:id
 router.put('/:id', requireAuth, requireRole(['super_admin', 'admin']), updateCoupon);

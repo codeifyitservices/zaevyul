@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Printer, CheckCircle } from 'lucide-react';
-import { MOCK_ORDERS, MOCK_CUSTOMERS, formatCurrency, formatDate, ORDER_STATUS } from '../../../lib/mockData';
+import { formatCurrency, formatDate, ORDER_STATUS } from '../../../lib/mockData';
 import PageHeader from '../../../components/PageHeader';
 import StatusBadge from '../../../components/StatusBadge';
 import { useToast } from '../../../context/ToastContext';
+import { api } from '../../../lib/api';
 
 const STATUS_FLOW = ['pending', 'processing', 'packed', 'shipped', 'delivered'];
 
@@ -12,23 +13,79 @@ export default function OrderDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
-  const [orders, setOrders] = useState(MOCK_ORDERS);
+  const [order, setOrder] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [note, setNote] = useState('');
+  const [trackingInput, setTrackingInput] = useState('');
 
-  const order = orders.find(o => o.id === id);
+  const fetchOrder = async () => {
+    try {
+      setLoading(true);
+      const data = await api.orders.get(id);
+      setOrder(data);
+      if (data) {
+        setTrackingInput(data.trackingNumber || '');
+      }
+    } catch (err) {
+      toast('Failed to load order details', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrder();
+  }, [id]);
+
+  const updateStatus = async (newStatus) => {
+    try {
+      const updated = await api.orders.updateStatus(id, { status: newStatus });
+      setOrder(updated);
+      toast(`Order marked as ${ORDER_STATUS[newStatus]?.label}`, 'success');
+    } catch (err) {
+      toast(err.message || 'Failed to update status', 'error');
+    }
+  };
+
+  const handleAddNote = async () => {
+    if (!note) return;
+    try {
+      const updated = await api.orders.addNote(id, note);
+      setOrder(updated);
+      toast('Note added to order', 'success');
+      setNote('');
+    } catch (err) {
+      toast('Failed to add note', 'error');
+    }
+  };
+
+  const handleSaveTracking = async () => {
+    try {
+      const updated = await api.orders.updateStatus(id, { trackingNumber: trackingInput });
+      setOrder(updated);
+      toast('Tracking number updated', 'success');
+    } catch (err) {
+      toast('Failed to update tracking number', 'error');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="page flex-center py-20">
+        <div className="spinner" />
+      </div>
+    );
+  }
+
   if (!order) return (
     <div className="page">
       <p style={{ color: 'var(--color-text-secondary)' }}>Order not found. <Link to="/admin/orders" style={{ color: 'var(--color-walnut)' }}>Back to Orders</Link></p>
     </div>
   );
 
-  const customer = MOCK_CUSTOMERS.find(c => c.id === order.customer);
+  const customer = typeof order.customer === 'object' ? order.customer : null;
+  const customerId = customer?._id || order.customer;
   const currentStep = STATUS_FLOW.indexOf(order.status);
-
-  const updateStatus = (newStatus) => {
-    setOrders(os => os.map(o => o.id === id ? { ...o, status: newStatus } : o));
-    toast(`Order marked as ${ORDER_STATUS[newStatus]?.label}`, 'success');
-  };
 
   return (
     <div className="page page-enter">
@@ -141,7 +198,7 @@ export default function OrderDetail() {
               )}
               <div style={{ display: 'flex', gap: 8 }}>
                 <input className="field-input" style={{ flex: 1 }} placeholder="Add a note…" value={note} onChange={e => setNote(e.target.value)} />
-                <button className="btn btn-secondary" onClick={() => { if (note) { toast('Note added', 'success'); setNote(''); } }}>Add</button>
+                <button className="btn btn-secondary" onClick={handleAddNote}>Add</button>
               </div>
             </div>
           </div>
@@ -153,7 +210,7 @@ export default function OrderDetail() {
           <div className="card">
             <div className="card-header"><span className="card-title">Customer</span></div>
             <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <Link to={`/admin/customers/${order.customer}`} style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-walnut)', textDecoration: 'none' }}>
+              <Link to={`/admin/customers/${customerId}`} style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-walnut)', textDecoration: 'none' }}>
                 {order.customerName}
               </Link>
               {customer && (
@@ -178,9 +235,16 @@ export default function OrderDetail() {
                   <p style={{ fontFamily: 'monospace', fontWeight: 500, color: 'var(--color-text-primary)' }}>{order.trackingNumber}</p>
                 </div>
               )}
-              {!order.trackingNumber && order.status !== 'pending' && (
-                <div style={{ marginTop: 10 }}>
-                  <input className="field-input" placeholder="Add tracking number…" style={{ fontSize: 12 }} />
+              {order.status !== 'pending' && (
+                <div style={{ marginTop: 10, display: 'flex', gap: 6 }}>
+                  <input
+                    className="field-input"
+                    placeholder="Tracking number…"
+                    style={{ fontSize: 12, flex: 1 }}
+                    value={trackingInput}
+                    onChange={e => setTrackingInput(e.target.value)}
+                  />
+                  <button className="btn btn-secondary btn-sm" style={{ height: '32px' }} onClick={handleSaveTracking}>Save</button>
                 </div>
               )}
             </div>

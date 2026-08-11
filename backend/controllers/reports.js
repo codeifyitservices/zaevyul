@@ -13,6 +13,7 @@ export const getReports = async (req, res) => {
       pendingOrdersCount,
       revenueAgg,
       categoryAgg,
+      monthlyReportAgg,
     ] = await Promise.all([
       // 1. Count customers
       Customer.countDocuments(),
@@ -20,8 +21,10 @@ export const getReports = async (req, res) => {
       // 2. Count products
       Product.countDocuments(),
 
-      // 3. Low stock count (using field from schema; default threshold = 5)
-      Product.countDocuments({ quantity: { $lte: 5 } }),
+      // 3. Low stock count using individual product thresholds
+      Product.countDocuments({
+        $expr: { $lte: ['$quantity', '$lowStockThreshold'] }
+      }),
 
       // 4. Total orders count
       Order.countDocuments(),
@@ -69,6 +72,27 @@ export const getReports = async (req, res) => {
             qtySold: 1
           }
         }
+      ]),
+
+      // 8. Monthly sales aggregate for the last 12 months
+      Order.aggregate([
+        {
+          $match: {
+            status: 'delivered',
+            createdAt: { $gte: new Date(new Date().setFullYear(new Date().getFullYear() - 1)) }
+          }
+        },
+        {
+          $group: {
+            _id: {
+              year: { $year: '$createdAt' },
+              month: { $month: '$createdAt' }
+            },
+            revenue: { $sum: '$total' },
+            orders: { $sum: 1 }
+          }
+        },
+        { $sort: { '_id.year': 1, '_id.month': 1 } }
       ])
     ]);
 
@@ -92,29 +116,29 @@ export const getReports = async (req, res) => {
       ];
     }
 
-    // Monthly revenue/orders base chart
-    const baseChart = [
-      { month: 'Feb', revenue: 124000, orders: 9 },
-      { month: 'Mar', revenue: 168000, orders: 13 },
-      { month: 'Apr', revenue: 142000, orders: 11 },
-      { month: 'May', revenue: 195000, orders: 15 },
-      { month: 'Jun', revenue: 221000, orders: 17 },
-      { month: 'Jul', revenue: 187000, orders: 14 },
-      { month: 'Aug', revenue: 243000, orders: 19 },
-      { month: 'Sep', revenue: 268000, orders: 21 },
-      { month: 'Oct', revenue: 312000, orders: 24 },
-      { month: 'Nov', revenue: 389000, orders: 30 },
-      { month: 'Dec', revenue: 445000, orders: 35 },
-      { month: 'Jan', revenue: 298000, orders: 23 }
-    ];
-
-    const months = ['Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan'];
-    const currentMonthLabel = months[new Date().getMonth()];
-    const currentMonthIdx = baseChart.findIndex(c => c.month === currentMonthLabel);
-    if (currentMonthIdx !== -1) {
-      baseChart[currentMonthIdx].revenue += totalRevenue;
-      baseChart[currentMonthIdx].orders += totalOrdersCount;
+    // Populate last 12 months dynamically starting with current month back to 11 months ago
+    const monthsLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthlyReportMap = {};
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - i);
+      const year = d.getFullYear();
+      const month = d.getMonth() + 1;
+      const label = monthsLabels[d.getMonth()];
+      const key = `${year}-${month}`;
+      monthlyReportMap[key] = { month: label, revenue: 0, orders: 0 };
     }
+
+    // Populate the monthly values with real aggregated data
+    for (const item of monthlyReportAgg) {
+      const key = `${item._id.year}-${item._id.month}`;
+      if (monthlyReportMap[key]) {
+        monthlyReportMap[key].revenue = item.revenue;
+        monthlyReportMap[key].orders = item.orders;
+      }
+    }
+
+    const monthlyReport = Object.values(monthlyReportMap);
 
     return res.status(200).json({
       success: true,
@@ -127,7 +151,7 @@ export const getReports = async (req, res) => {
         lowStockCount
       },
       categoryBreakdown,
-      monthlyReport: baseChart
+      monthlyReport
     });
   } catch (error) {
     console.error('Fetch reports error:', error);

@@ -9,12 +9,15 @@ const COLUMNS = {
 
 export default function SiteFooter() {
   const [settings, setSettings] = useState(null);
+  const [email, setEmail] = useState("");
+  const [subscribing, setSubscribing] = useState(false);
+  const [message, setMessage] = useState(null);
 
   useEffect(() => {
     let active = true;
     const fetchSettings = async () => {
       try {
-        const data = await api.settings.get();
+        const data = await api.settings.getPublic();
         if (active) setSettings(data);
       } catch (err) {
         console.error("Error loading settings in SiteFooter:", err);
@@ -23,6 +26,21 @@ export default function SiteFooter() {
     fetchSettings();
     return () => { active = false; };
   }, []);
+
+  const handleSubscribe = async (e) => {
+    e.preventDefault();
+    if (!email) return;
+    try {
+      setSubscribing(true);
+      const res = await api.newsletter.subscribe(email);
+      setMessage(res.message || "Thank you for subscribing!");
+      setEmail("");
+    } catch (err) {
+      setMessage(err.message || "Failed to subscribe.");
+    } finally {
+      setSubscribing(false);
+    }
+  };
 
   return (
     <footer className="bg-[#F5EFE7] font-sans text-[#1C1916]">
@@ -68,21 +86,28 @@ export default function SiteFooter() {
           </p>
           <form
             className="flex max-w-[260px] items-center border-b border-[#1C1916]/25 transition-colors duration-200 focus-within:border-[#1C1916]/60"
-            onSubmit={(event) => event.preventDefault()}
+            onSubmit={handleSubscribe}
           >
             <input
               type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter your email"
+              required
               className="min-w-0 flex-1 bg-transparent py-2 text-[13px] font-light text-[#1C1916] outline-none placeholder:text-[#8A857E]"
             />
             <button
               type="submit"
+              disabled={subscribing}
               aria-label="Subscribe"
-              className="px-1.5 text-[#1C1916] transition-colors duration-200 hover:text-[#B58A5B]"
+              className="px-1.5 text-[#1C1916] transition-colors duration-200 hover:text-[#B58A5B] disabled:opacity-50"
             >
               <ArrowRight size={15} strokeWidth={1.5} />
             </button>
           </form>
+          {message && (
+            <p className="mt-2 text-[11px] text-[#B58A5B] font-medium">{message}</p>
+          )}
         </div>
       </div>
       <div className="mx-auto max-w-[1200px] px-6 sm:px-10 lg:px-16 w-full py-6 border-t border-[#E1D8CD]">

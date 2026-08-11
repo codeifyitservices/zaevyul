@@ -9,16 +9,18 @@ import {
   X,
   LogOut,
 } from "lucide-react";
-import { api } from "../../lib/api";
+import { api, getCategorySlug } from "../../lib/api";
 import { useCart } from "../../context/CartContext";
 import { useCustomerAuth } from "../../context/CustomerAuthContext";
+import CurrencySelector from "../../components/CurrencySelector";
+import { useCurrency } from "../../context/CurrencyContext";
 
 const NAV_LINKS = [
   { label: "New Arrivals", href: "/collections" },
   { label: "Men", href: "/collections" },
   { label: "Women", href: "/collections" },
   { label: "Tailoring", href: "/collections" },
-  { label: "About", href: "/" },
+  { label: "About", href: "/about" },
   { label: "Shop", href: "/collections" },
 ];
 
@@ -28,6 +30,132 @@ export default function Navbar() {
   const { setIsOpen: setCartOpen, totals, isBadgeAnimated } = useCart();
   const { user, isAuthenticated, logout } = useCustomerAuth();
   const navigate = useNavigate();
+  const { formatPrice } = useCurrency();
+
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loadingData, setLoadingData] = useState(false);
+
+  // Load products and categories when search is opened
+  const openSearchPanel = async () => {
+    setSearchOpen(true);
+    if (products.length === 0 || categories.length === 0) {
+      setLoadingData(true);
+      try {
+        const prodData = await api.products.list();
+        const catData = await api.categories.list();
+        setProducts(prodData || []);
+        setCategories(catData || []);
+      } catch (err) {
+        console.error("Error fetching search data:", err);
+      } finally {
+        setLoadingData(false);
+      }
+    }
+  };
+
+  // Close search panel on ESC key
+  useEffect(() => {
+    if (!searchOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        setSearchOpen(false);
+        setSearchQuery("");
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [searchOpen]);
+
+  // Price formatting helper matching the rest of the site
+  const getProductPrice = (p) => {
+    const priceVal = p.discountPrice || p.basePrice;
+    return formatPrice(priceVal);
+  };
+
+  // Levenshtein distance calculator for typo correction
+  const levenshteinDistance = (a, b) => {
+    const tmp = [];
+    for (let i = 0; i <= a.length; i++) {
+      tmp[i] = [i];
+    }
+    for (let j = 0; j <= b.length; j++) {
+      tmp[0][j] = j;
+    }
+    for (let i = 1; i <= a.length; i++) {
+      for (let j = 1; j <= b.length; j++) {
+        tmp[i][j] =
+          a[i - 1] === b[j - 1]
+            ? tmp[i - 1][j - 1]
+            : Math.min(
+                tmp[i - 1][j - 1] + 1,
+                tmp[i][j - 1] + 1,
+                tmp[i - 1][j] + 1,
+              );
+      }
+    }
+    return tmp[a.length][b.length];
+  };
+
+  const isWordFuzzyMatch = (queryWord, targetWord) => {
+    if (targetWord.includes(queryWord) || queryWord.includes(targetWord))
+      return true;
+
+    const distance = levenshteinDistance(queryWord, targetWord);
+    if (queryWord.length <= 3) {
+      return distance === 0;
+    }
+    if (queryWord.length <= 4) {
+      return distance <= 1; // e.g., "sawl" (4) vs "shawl" (5) is 1
+    }
+    if (queryWord.length <= 6) {
+      return distance <= 2; // e.g., "creme" (5) vs "cream" (5) is 2, "shael" (5) vs "shawl" (5) is 1, "blaket" (6) vs "blanket" (7) is 1
+    }
+    return distance <= 3; // e.g., "pashmena" (8) vs "pashmina" (8) is 1
+  };
+
+  const isTextFuzzyMatch = (targetText, queryTokens) => {
+    if (!targetText) return false;
+    const targetWords = targetText
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter(Boolean);
+
+    return queryTokens.every((qToken) => {
+      return targetWords.some((tWord) => isWordFuzzyMatch(qToken, tWord));
+    });
+  };
+
+  // Fuzzy-matching search logic with typo correction support
+  const getSearchResults = () => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return { products: [], categories: [] };
+
+    const queryTokens = q.split(/\s+/).filter(Boolean);
+
+    const matchedCategories = categories.filter((c) => {
+      const catText = `${c.name} ${c.description || ""}`;
+      return isTextFuzzyMatch(catText, queryTokens);
+    });
+
+    const matchedProducts = products.filter((p) => {
+      const catObj = categories.find((c) => c.id === p.category);
+      const catName = catObj ? catObj.name : "";
+      const tagsStr = (p.tags || []).join(" ");
+      const productText = `${p.name} ${p.description || ""} ${p.sku || ""} ${p.material || ""} ${p.color || ""} ${catName} ${tagsStr}`;
+
+      return isTextFuzzyMatch(productText, queryTokens);
+    });
+
+    return {
+      products: matchedProducts,
+      categories: matchedCategories,
+    };
+  };
+
+  const results = getSearchResults();
 
   useEffect(() => {
     let active = true;
@@ -72,6 +200,152 @@ export default function Navbar() {
   return (
     <>
       <nav className="fixed top-0 left-0 right-0 z-50 flex h-[68px] items-center justify-between border-b border-[#E7DED3] bg-[#FAF8F5]/92 px-5 backdrop-blur-xl sm:px-8 lg:px-14 xl:px-18">
+        {/* Search Overlay */}
+        {searchOpen && (
+          <div className="absolute inset-0 z-50 flex h-[68px] items-center bg-[#FAF8F5] px-5 sm:px-8 lg:px-14 xl:px-18 border-b border-[#E7DED3]">
+            <div className="relative flex w-full items-center gap-3">
+              <Search
+                size={18}
+                className="text-[#1C1916]/60"
+                strokeWidth={1.4}
+              />
+              <input
+                type="text"
+                autoFocus
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search products, collections, colors, materials..."
+                className="w-full bg-transparent font-sans text-[13px] text-[#1C1916] placeholder-[#1C1916]/40 focus:outline-none"
+              />
+              <button
+                onClick={() => {
+                  setSearchOpen(false);
+                  setSearchQuery("");
+                }}
+                className="p-1 text-[#1C1916]/60 hover:text-[#1C1916] cursor-pointer"
+              >
+                <X size={18} strokeWidth={1.4} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Search Results Dropdown */}
+        {searchOpen && (
+          <div className="absolute top-[67px] left-0 right-0 z-40 border-b border-[#E7DED3] bg-[#FAF8F5]/98 shadow-[0_20px_40px_rgba(28,25,22,0.08)] backdrop-blur-xl max-h-[75vh] overflow-y-auto">
+            <div className="mx-auto max-w-[1400px] px-5 py-8 sm:px-8 lg:px-14 xl:px-18 grid grid-cols-1 md:grid-cols-4 gap-8 text-left">
+              {/* Left Column: Categories */}
+              <div className="md:col-span-1 md:border-r border-[#E7DED3]/40 md:pr-6">
+                <h3 className="font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-[#1C1916]/45 mb-4">
+                  {searchQuery ? "Matching Categories" : "Explore Collections"}
+                </h3>
+                <div className="flex flex-col gap-2">
+                  {loadingData ? (
+                    <div className="text-[12px] text-[#8A857E] animate-pulse">
+                      Loading categories...
+                    </div>
+                  ) : (searchQuery ? results.categories : categories).length >
+                    0 ? (
+                    (searchQuery ? results.categories : categories)
+                      .slice(0, 6)
+                      .map((cat) => (
+                        <Link
+                          key={cat.id || cat.slug}
+                          to={`/collections/${cat.slug}`}
+                          onClick={() => {
+                            setSearchOpen(false);
+                            setSearchQuery("");
+                          }}
+                          className="text-[13px] font-medium text-[#1C1916] hover:text-[#B58A5B] transition-colors"
+                        >
+                          {cat.name}
+                        </Link>
+                      ))
+                  ) : (
+                    <div className="text-[12px] text-[#8A857E] italic">
+                      No categories found
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Right Columns: Products */}
+              <div className="md:col-span-3">
+                <h3 className="font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-[#1C1916]/45 mb-4">
+                  {searchQuery
+                    ? `Products (${results.products.length})`
+                    : "Featured Pieces"}
+                </h3>
+
+                {loadingData ? (
+                  <div className="text-[12px] text-[#8A857E] animate-pulse">
+                    Loading products...
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[400px] overflow-y-auto pr-2">
+                    {(searchQuery
+                      ? results.products
+                      : products.filter((p) => p.featured)
+                    )
+                      .slice(0, 8)
+                      .map((prod) => {
+                        const catSlug = getCategorySlug(prod.category);
+                        return (
+                          <Link
+                            key={prod.id}
+                            to={`/collection/${catSlug}/${prod.slug}`}
+                            onClick={() => {
+                              setSearchOpen(false);
+                              setSearchQuery("");
+                            }}
+                            className="flex items-center gap-3 p-2 hover:bg-[#F5EFE7]/40 rounded-[2px] transition-colors group"
+                          >
+                            <img
+                              src={
+                                prod.images?.[0]?.url ||
+                                "/storefront/prod-1.png"
+                              }
+                              alt={prod.name}
+                              className="w-12 h-16 object-cover bg-[#F5EFE7] rounded-[2px] border border-[#E7DED3]/40"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-serif text-[13.5px] text-[#1C1916] truncate group-hover:text-[#B58A5B] transition-colors">
+                                {prod.name}
+                              </h4>
+                              <p className="font-sans text-[10px] text-[#8A857E] uppercase tracking-wider mt-0.5 truncate">
+                                {prod.color} • {prod.material}
+                              </p>
+                            </div>
+                            <div className="text-right flex flex-col justify-center">
+                              <span className="font-sans text-[12px] font-semibold text-[#1C1916]">
+                                {getProductPrice(prod)}
+                              </span>
+                              {prod.discountPrice && (
+                                <span className="font-sans text-[9px] text-[#8A857E] line-through">
+                                  {formatPrice(prod.basePrice)}
+                                </span>
+                              )}
+                            </div>
+                          </Link>
+                        );
+                      })}
+
+                    {!(
+                      searchQuery
+                        ? results.products
+                        : products.filter((p) => p.featured)
+                    ).length && (
+                      <div className="col-span-2 py-8 text-center text-[13px] text-[#8A857E] italic">
+                        No products found matching "{searchQuery}"
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="hidden items-center lg:flex gap-6">
           {NAV_LINKS.map((link) => (
             <Link
@@ -100,8 +374,10 @@ export default function Navbar() {
         </a>
 
         <div className="flex items-center gap-3 text-[#1C1916]/70 sm:gap-5">
+          <CurrencySelector />
           <button
             aria-label="Search"
+            onClick={openSearchPanel}
             className="transition-colors hover:text-[#1C1916]"
           >
             <Search size={17} strokeWidth={1.4} />
@@ -171,6 +447,17 @@ export default function Navbar() {
         </div>
       </nav>
 
+      {/* Search Backdrop Overlay */}
+      {searchOpen && (
+        <div
+          className="fixed inset-0 top-[68px] z-30 bg-[#1C1916]/15 backdrop-blur-[2px]"
+          onClick={() => {
+            setSearchOpen(false);
+            setSearchQuery("");
+          }}
+        />
+      )}
+
       {/* Mobile Drawer */}
       <div
         className={`fixed inset-0 z-[200] flex flex-col bg-[#FAF8F5] transition-transform duration-500 ease-in-out ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
@@ -205,60 +492,67 @@ export default function Navbar() {
         </nav>
 
         {/* Mobile Drawer Footer */}
-        <div className="mt-auto border-t border-[#E8E1D9] p-6 sm:p-8 flex justify-around items-center bg-[#FAF8F5]">
-          {isAuthenticated ? (
-            <>
-              <Link
-                to="/my-account"
-                onClick={() => setMobileOpen(false)}
-                className="flex items-center gap-3 font-sans text-[11px] font-semibold uppercase tracking-[0.2em] text-[#1C1916]/70 hover:text-[#1C1916] cursor-pointer"
-              >
-                {user?.profileImage ? (
-                  <img
-                    src={user.profileImage}
-                    alt=""
-                    className="w-5 h-5 rounded-full object-cover"
-                  />
-                ) : (
+        <div className="mt-auto border-t border-[#E8E1D9] p-6 sm:p-8 flex flex-col gap-4 bg-[#FAF8F5]">
+          <div className="flex justify-around items-center w-full">
+            {isAuthenticated ? (
+              <>
+                <Link
+                  to="/my-account"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center gap-3 font-sans text-[11px] font-semibold uppercase tracking-[0.2em] text-[#1C1916]/70 hover:text-[#1C1916] cursor-pointer"
+                >
+                  {user?.profileImage ? (
+                    <img
+                      src={user.profileImage}
+                      alt=""
+                      className="w-5 h-5 rounded-full object-cover"
+                    />
+                  ) : (
+                    <User size={16} strokeWidth={1.4} />
+                  )}
+                  <span>{user?.name?.split(" ")[0] || "Account"}</span>
+                </Link>
+                <div className="h-4 w-px bg-[#E8E1D9]" />
+                <button
+                  onClick={() => {
+                    setMobileOpen(false);
+                    handleLogout();
+                  }}
+                  className="flex items-center gap-3 font-sans text-[11px] font-semibold uppercase tracking-[0.2em] text-[#1C1916]/70 hover:text-[#1C1916]"
+                >
+                  <LogOut size={16} strokeWidth={1.4} />
+                  <span>Sign Out</span>
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center gap-3 font-sans text-[11px] font-semibold uppercase tracking-[0.2em] text-[#1C1916]/70 hover:text-[#1C1916] cursor-pointer"
+                >
                   <User size={16} strokeWidth={1.4} />
-                )}
-                <span>{user?.name?.split(" ")[0] || "Account"}</span>
-              </Link>
-              <div className="h-4 w-px bg-[#E8E1D9]" />
-              <button
-                onClick={() => {
-                  setMobileOpen(false);
-                  handleLogout();
-                }}
-                className="flex items-center gap-3 font-sans text-[11px] font-semibold uppercase tracking-[0.2em] text-[#1C1916]/70 hover:text-[#1C1916]"
-              >
-                <LogOut size={16} strokeWidth={1.4} />
-                <span>Sign Out</span>
-              </button>
-            </>
-          ) : (
-            <>
-              <Link
-                to="/login"
-                onClick={() => setMobileOpen(false)}
-                className="flex items-center gap-3 font-sans text-[11px] font-semibold uppercase tracking-[0.2em] text-[#1C1916]/70 hover:text-[#1C1916] cursor-pointer"
-              >
-                <User size={16} strokeWidth={1.4} />
-                <span>Sign In</span>
-              </Link>
-              <div className="h-4 w-px bg-[#E8E1D9]" />
-              <button
-                onClick={() => {
-                  setMobileOpen(false);
-                  handleWishlistClick();
-                }}
-                className="flex items-center gap-3 font-sans text-[11px] font-semibold uppercase tracking-[0.2em] text-[#1C1916]/70 hover:text-[#1C1916]"
-              >
-                <Heart size={16} strokeWidth={1.4} />
-                <span>Wishlist</span>
-              </button>
-            </>
-          )}
+                  <span>Sign In</span>
+                </Link>
+                <div className="h-4 w-px bg-[#E8E1D9]" />
+                <button
+                  onClick={() => {
+                    setMobileOpen(false);
+                    handleWishlistClick();
+                  }}
+                  className="flex items-center gap-3 font-sans text-[11px] font-semibold uppercase tracking-[0.2em] text-[#1C1916]/70 hover:text-[#1C1916]"
+                >
+                  <Heart size={16} strokeWidth={1.4} />
+                  <span>Wishlist</span>
+                </button>
+              </>
+            )}
+          </div>
+          <div className="h-px w-full bg-[#E8E1D9]/60" />
+          <div className="flex items-center justify-center gap-2 font-sans text-[10px] font-semibold uppercase tracking-[0.16em] text-[#1C1916]/64">
+            <span>Currency</span>
+            <CurrencySelector />
+          </div>
         </div>
       </div>
     </>

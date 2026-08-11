@@ -4,9 +4,10 @@ import { useAuth } from '../../context/AuthContext';
 import { MOCK_ACTIVITY } from '../../lib/mockData';
 import PageHeader from '../../components/PageHeader';
 import { useToast } from '../../context/ToastContext';
+import { api } from '../../lib/api';
 
 export default function Profile() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const toast = useToast();
   const [profile, setProfile] = useState({ name: user?.name || '', email: user?.email || '' });
   const [passwords, setPasswords] = useState({ current: '', next: '', confirm: '' });
@@ -14,22 +15,45 @@ export default function Profile() {
   const [savingPw, setSavingPw] = useState(false);
   const [activeTab, setActiveTab] = useState('profile');
 
+  // AUD-007: Wire to real API instead of setTimeout mock
   const saveProfile = async () => {
+    if (!profile.name || !profile.email) {
+      toast('Name and email are required', 'error');
+      return;
+    }
     setSaving(true);
-    await new Promise(r => setTimeout(r, 600));
-    setSaving(false);
-    toast('Profile updated', 'success');
+    try {
+      await api.profile.update({ name: profile.name, email: profile.email });
+      if (refreshUser) await refreshUser();
+      toast('Profile updated', 'success');
+    } catch (err) {
+      toast(err.message || 'Failed to update profile', 'error');
+    } finally {
+      setSaving(false);
+    }
   };
 
+  // AUD-007 + AUD-027: Wire to real API, enforce password complexity
   const savePassword = async () => {
     if (!passwords.current) { toast('Current password is required', 'error'); return; }
     if (passwords.next.length < 8) { toast('Password must be at least 8 characters', 'error'); return; }
+    // AUD-027: Complexity check — require uppercase, lowercase, and number
+    const complexityRe = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/;
+    if (!complexityRe.test(passwords.next)) {
+      toast('Password must contain uppercase, lowercase, and a number', 'error');
+      return;
+    }
     if (passwords.next !== passwords.confirm) { toast('Passwords do not match', 'error'); return; }
     setSavingPw(true);
-    await new Promise(r => setTimeout(r, 700));
-    setSavingPw(false);
-    setPasswords({ current: '', next: '', confirm: '' });
-    toast('Password changed successfully', 'success');
+    try {
+      await api.profile.changePassword(passwords.current, passwords.next);
+      setPasswords({ current: '', next: '', confirm: '' });
+      toast('Password changed successfully', 'success');
+    } catch (err) {
+      toast(err.message || 'Failed to change password', 'error');
+    } finally {
+      setSavingPw(false);
+    }
   };
 
   return (
@@ -86,6 +110,9 @@ export default function Profile() {
                       <label className="field-label">New Password</label>
                       <input className="field-input" type="password" value={passwords.next}
                         onChange={e => setPasswords(p => ({ ...p, next: e.target.value }))} />
+                      <p style={{ fontSize: 11, color: 'var(--color-text-caption)', marginTop: 4 }}>
+                        Min 8 chars · uppercase · lowercase · number
+                      </p>
                     </div>
                     <div className="field-group">
                       <label className="field-label">Confirm Password</label>

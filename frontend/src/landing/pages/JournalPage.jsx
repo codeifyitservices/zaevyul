@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { Search, ChevronDown, ArrowRight } from "lucide-react";
 import Navbar from "../components/Navbar";
 import SiteFooter from "../components/SiteFooter";
@@ -238,8 +239,9 @@ export default function JournalPage() {
           <div>
             <div className="grid grid-cols-1 gap-x-8 gap-y-12 md:grid-cols-2 lg:grid-cols-3">
               {displayedBlogs.map((blog) => (
-                <article
+                <Link
                   key={blog._id || blog.id}
+                  to={`/journal/${blog.slug || blog._id || blog.id}`}
                   className="group flex flex-col overflow-hidden bg-white border border-[#E7DED3] rounded-[2px] hover:shadow-md transition-all duration-300"
                 >
                   {/* Card Image */}
@@ -284,7 +286,7 @@ export default function JournalPage() {
                       />
                     </div>
                   </div>
-                </article>
+                </Link>
               ))}
             </div>
 

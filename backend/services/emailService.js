@@ -57,10 +57,82 @@ export const sendOtpEmail = async (to, otp) => {
 
   // If SMTP is not configured, log to console for development
   if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    console.log(`[EmailService] SMTP not configured — OTP for ${to}: [REDACTED for security]`);
-    console.log('[EmailService] Configure SMTP_HOST, SMTP_USER, SMTP_PASS in .env to send real emails.');
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[EmailService] Dev OTP for ${to}: ${otp}`);
+    } else {
+      console.log(`[EmailService] SMTP not configured — OTP for ${to}: [REDACTED for security]`);
+    }
     return;
   }
 
   await getTransporter().sendMail(mailOptions);
+};
+
+/**
+ * Send Order Confirmation email to customer (AUD-023).
+ */
+export const sendOrderConfirmationEmail = async (order, to) => {
+  if (!to || !to.includes('@')) return;
+
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER || 'noreply@zaevyul.com';
+  const mailOptions = {
+    from: `"Zaevyul" <${from}>`,
+    to,
+    subject: `Order Confirmed - #${order.orderNumber}`,
+    html: `
+      <div style="font-family: Georgia, serif; max-width: 540px; margin: 0 auto; padding: 40px 24px; background: #FAF8F5; border: 1px solid #E6DED4;">
+        <h1 style="font-size: 26px; font-weight: 400; color: #1C1916; margin-bottom: 8px;">ZAEVYUL</h1>
+        <p style="font-family: sans-serif; font-size: 14px; color: #6B6560; margin-bottom: 24px;">Thank you for your order, ${order.customerName}!</p>
+        <div style="background: #fff; border: 1px solid #E6DED4; padding: 20px; margin-bottom: 20px;">
+          <h2 style="font-size: 16px; margin-top: 0;">Order #${order.orderNumber}</h2>
+          <p style="font-family: sans-serif; font-size: 13px; color: #1C1916;">Status: <strong>${order.status.toUpperCase()}</strong></p>
+          <p style="font-family: sans-serif; font-size: 13px; color: #1C1916;">Total: <strong>₹${order.total.toLocaleString('en-IN')}</strong></p>
+        </div>
+        <p style="font-family: sans-serif; font-size: 12px; color: #8A857E;">We are preparing your items with artisanal care in Kashmir.</p>
+      </div>
+    `,
+  };
+
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    console.log(`[EmailService] [Dev Order Confirmation] Order #${order.orderNumber} placed for ${to}`);
+    return;
+  }
+
+  try {
+    await getTransporter().sendMail(mailOptions);
+  } catch (err) {
+    console.error('[EmailService] sendOrderConfirmationEmail error:', err.message);
+  }
+};
+
+/**
+ * Send Order Status Update email to customer (AUD-023).
+ */
+export const sendOrderStatusEmail = async (order, to) => {
+  if (!to || !to.includes('@')) return;
+
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER || 'noreply@zaevyul.com';
+  const mailOptions = {
+    from: `"Zaevyul" <${from}>`,
+    to,
+    subject: `Order Update - #${order.orderNumber}`,
+    html: `
+      <div style="font-family: Georgia, serif; max-width: 540px; margin: 0 auto; padding: 40px 24px; background: #FAF8F5; border: 1px solid #E6DED4;">
+        <h1 style="font-size: 26px; font-weight: 400; color: #1C1916; margin-bottom: 8px;">ZAEVYUL</h1>
+        <p style="font-family: sans-serif; font-size: 14px; color: #6B6560;">Your order #${order.orderNumber} status has been updated to: <strong>${order.status.toUpperCase()}</strong></p>
+        ${order.trackingNumber ? `<p style="font-family: sans-serif; font-size: 13px; color: #1C1916; margin-top: 16px;">Tracking Number: <strong>${order.trackingNumber}</strong></p>` : ''}
+      </div>
+    `,
+  };
+
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    console.log(`[EmailService] [Dev Status Update] Order #${order.orderNumber} status updated to ${order.status}`);
+    return;
+  }
+
+  try {
+    await getTransporter().sendMail(mailOptions);
+  } catch (err) {
+    console.error('[EmailService] sendOrderStatusEmail error:', err.message);
+  }
 };

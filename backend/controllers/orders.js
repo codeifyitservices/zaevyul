@@ -1,20 +1,45 @@
 import Order from '../model/Order.js';
 import Customer from '../model/Customer.js';
+import { sendOrderStatusEmail } from '../services/emailService.js';
+import { escapeRegex } from './public.js';
 
+/**
+ * GET /api/admin/orders
+ * Supports regex escaping (AUD-021) and pagination (AUD-025).
+ */
 export const getOrders = async (req, res) => {
-  const { search, status } = req.query;
+  const { search, status, page = 1, limit = 0 } = req.query;
   try {
     const filter = {};
     if (status) filter.status = status;
     if (search) {
+      const safeSearch = escapeRegex(search);
       filter.$or = [
-        { orderNumber: { $regex: search, $options: 'i' } },
-        { customerName: { $regex: search, $options: 'i' } }
+        { orderNumber: { $regex: safeSearch, $options: 'i' } },
+        { customerName: { $regex: safeSearch, $options: 'i' } }
       ];
     }
 
-    const orders = await Order.find(filter).sort({ createdAt: -1 });
-    return res.status(200).json({ success: true, orders });
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = parseInt(limit, 10) || 0;
+
+    let query = Order.find(filter).sort({ createdAt: -1 });
+    if (limitNum > 0) {
+      query = query.skip((pageNum - 1) * limitNum).limit(limitNum);
+    }
+
+    const [orders, totalCount] = await Promise.all([
+      query,
+      Order.countDocuments(filter),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      orders,
+      totalCount,
+      page: pageNum,
+      totalPages: limitNum > 0 ? Math.ceil(totalCount / limitNum) : 1,
+    });
   } catch (error) {
     console.error('Fetch orders error:', error);
     return res.status(500).json({ success: false, message: 'Internal server error' });
@@ -37,10 +62,12 @@ export const getOrderById = async (req, res) => {
 export const updateOrder = async (req, res) => {
   const { status, trackingNumber, paymentStatus } = req.body;
   try {
-    const order = await Order.findById(req.params.id);
+    const order = await Order.findById(req.params.id).populate('customer');
     if (!order) {
       return res.status(404).json({ success: false, message: 'Order not found' });
     }
+
+    const statusChanged = status && status !== order.status;
 
     if (status) order.status = status;
     if (trackingNumber !== undefined) order.trackingNumber = trackingNumber;
@@ -48,7 +75,7 @@ export const updateOrder = async (req, res) => {
 
     await order.save();
 
-    // If order was delivered or cancelled, update customer spent statistics
+    // If order was delivered or cancelled, update customer spent statistics (AUD-014)
     if (status === 'delivered' || status === 'cancelled') {
       const customer = await Customer.findById(order.customer);
       if (customer) {
@@ -59,6 +86,13 @@ export const updateOrder = async (req, res) => {
         customer.lastOrder = customerOrders.length > 0 ? customerOrders[0].createdAt : null;
         await customer.save();
       }
+    }
+
+    // Dispatch status update email if status changed (AUD-023)
+    if (statusChanged && order.customer?.email) {
+      sendOrderStatusEmail(order, order.customer.email).catch((err) =>
+        console.error('Email dispatch error on updateOrder:', err)
+      );
     }
 
     return res.status(200).json({ success: true, order });

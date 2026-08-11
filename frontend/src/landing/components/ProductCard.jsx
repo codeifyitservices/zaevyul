@@ -5,6 +5,7 @@ import { getCategorySlug, getHoverImage } from "../../lib/api";
 import { useCart } from "../../context/CartContext";
 import { useFavorite } from "../../context/FavoritesContext";
 import { useCustomerAuth } from "../../context/CustomerAuthContext";
+import { useCurrency } from "../../context/CurrencyContext";
 
 const getProductWeave = (p) => p.weave || p.material || "Diamond";
 const getProductTime = (p) => p.time || "120 Hrs";
@@ -30,6 +31,11 @@ export default function ProductCard({
   const { isAuthenticated } = useCustomerAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { formatPrice } = useCurrency();
+
+  const getProductPrice = (prod) => {
+    return formatPrice(prod.discountPrice || prod.basePrice);
+  };
 
   const productId = p._id || p.id;
   const favorite = isFavorite(productId);

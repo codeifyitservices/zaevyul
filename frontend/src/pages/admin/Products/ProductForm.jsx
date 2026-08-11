@@ -234,12 +234,19 @@ export default function ProductForm() {
                 </div>
 
                 <div className="form-section">
-                  <p className="form-section-title">Inventory Alerts</p>
+                  <p className="form-section-title">Inventory & Alerts</p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    <div className="field-group">
-                      <label className="field-label">Low Stock Threshold</label>
-                      <input className="field-input" type="number" value={form.lowStockThreshold} placeholder="5"
-                        onChange={e => set('lowStockThreshold', e.target.value)} />
+                    <div className="form-row">
+                      <div className="field-group">
+                        <label className="field-label">Quantity *</label>
+                        <input className="field-input" type="number" value={form.quantity} placeholder="0"
+                          onChange={e => set('quantity', e.target.value)} />
+                      </div>
+                      <div className="field-group">
+                        <label className="field-label">Low Stock Threshold</label>
+                        <input className="field-input" type="number" value={form.lowStockThreshold} placeholder="5"
+                          onChange={e => set('lowStockThreshold', e.target.value)} />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -320,17 +327,10 @@ export default function ProductForm() {
                     </div>
                   </div>
                   {!form.hasVariants && (
-                    <div className="form-row">
-                      <div className="field-group">
-                        <label className="field-label">Size</label>
-                        <input className="field-input" value={form.size} placeholder="e.g. Large (200×70cm)"
-                          onChange={e => set('size', e.target.value)} />
-                      </div>
-                      <div className="field-group">
-                        <label className="field-label">Quantity</label>
-                        <input className="field-input" type="number" value={form.quantity} placeholder="0"
-                          onChange={e => set('quantity', e.target.value)} />
-                      </div>
+                    <div className="field-group">
+                      <label className="field-label">Size</label>
+                      <input className="field-input" value={form.size} placeholder="e.g. Large (200×70cm)"
+                        onChange={e => set('size', e.target.value)} />
                     </div>
                   )}
                 </div>

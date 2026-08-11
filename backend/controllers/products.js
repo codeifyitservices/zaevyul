@@ -1,4 +1,5 @@
 import Product from '../model/Product.js';
+import { escapeRegex } from './public.js';
 
 const compactFeaturedProductOrder = async () => {
   const featured = await Product.find({ featured: true }).sort({ featuredOrder: 1, createdAt: -1 });
@@ -7,24 +8,44 @@ const compactFeaturedProductOrder = async () => {
   )));
 };
 
+/**
+ * GET /api/admin/products
+ * Supports regex escaping (AUD-021) and pagination (AUD-025).
+ */
 export const getProducts = async (req, res) => {
-  const { search, category, status } = req.query;
+  const { search, category, status, page = 1, limit = 0 } = req.query;
   try {
     const filter = {};
     if (status) filter.status = status;
     if (category) filter.category = category;
     if (search) {
+      const safeSearch = escapeRegex(search);
       filter.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { sku: { $regex: search, $options: 'i' } }
+        { name: { $regex: safeSearch, $options: 'i' } },
+        { sku: { $regex: safeSearch, $options: 'i' } }
       ];
     }
 
-    const products = await Product.find(filter)
-      .populate('category', 'name slug')
-      .sort({ createdAt: -1 });
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = parseInt(limit, 10) || 0;
 
-    return res.status(200).json({ success: true, products });
+    let query = Product.find(filter).populate('category', 'name slug').sort({ createdAt: -1 });
+    if (limitNum > 0) {
+      query = query.skip((pageNum - 1) * limitNum).limit(limitNum);
+    }
+
+    const [products, totalCount] = await Promise.all([
+      query,
+      Product.countDocuments(filter),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      products,
+      totalCount,
+      page: pageNum,
+      totalPages: limitNum > 0 ? Math.ceil(totalCount / limitNum) : 1,
+    });
   } catch (error) {
     console.error('Fetch products error:', error);
     return res.status(500).json({ success: false, message: 'Internal server error' });
@@ -58,9 +79,62 @@ export const getProductById = async (req, res) => {
   }
 };
 
+const getProductFields = (body) => {
+  const {
+    name, slug, sku, category, basePrice, discountPrice, costPrice,
+    quantity, lowStockThreshold, status, tags, material, color, size,
+    description, shortDescription, images, seo
+  } = body;
+
+  const fields = {};
+  if (name !== undefined) fields.name = name;
+  if (slug !== undefined) fields.slug = slug;
+  if (sku !== undefined) fields.sku = sku;
+  if (category !== undefined) fields.category = category || null;
+  if (basePrice !== undefined) fields.basePrice = basePrice;
+  if (discountPrice !== undefined) fields.discountPrice = discountPrice;
+  if (costPrice !== undefined) fields.costPrice = costPrice;
+  if (quantity !== undefined) fields.quantity = quantity;
+  if (lowStockThreshold !== undefined) fields.lowStockThreshold = lowStockThreshold;
+  if (status !== undefined) fields.status = status;
+  if (tags !== undefined) fields.tags = tags;
+  if (material !== undefined) fields.material = material;
+  if (color !== undefined) fields.color = color;
+  if (size !== undefined) fields.size = size;
+  if (description !== undefined) fields.description = description;
+  if (shortDescription !== undefined) fields.shortDescription = shortDescription;
+  if (images !== undefined) fields.images = images;
+  if (seo !== undefined) fields.seo = seo;
+
+  return fields;
+};
+
+/**
+ * AUD-028: Validate product pricing sanity rules.
+ * Returns an error message string, or null if valid.
+ */
+const validatePriceSanity = ({ basePrice, discountPrice, costPrice }) => {
+  if (basePrice !== undefined && basePrice <= 0) return 'Base price must be greater than zero';
+  if (discountPrice !== undefined && basePrice !== undefined && discountPrice > basePrice) {
+    return 'Discount price cannot be greater than base price';
+  }
+  if (costPrice !== undefined && basePrice !== undefined && costPrice > basePrice) {
+    return 'Cost price cannot exceed base price';
+  }
+  return null;
+};
+
 export const createProduct = async (req, res) => {
   try {
-    const product = new Product(req.body);
+    const productFields = getProductFields(req.body);
+
+    // AUD-028: Sanity-check prices before saving
+    const priceError = validatePriceSanity(productFields);
+    if (priceError) {
+      return res.status(400).json({ success: false, message: priceError });
+    }
+
+    const product = new Product(productFields);
     await product.save();
     return res.status(201).json({ success: true, product });
   } catch (error) {
@@ -74,7 +148,15 @@ export const createProduct = async (req, res) => {
 
 export const updateProduct = async (req, res) => {
   try {
-    const product = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    const productFields = getProductFields(req.body);
+
+    // AUD-028: Sanity-check prices
+    const priceError = validatePriceSanity(productFields);
+    if (priceError) {
+      return res.status(400).json({ success: false, message: priceError });
+    }
+
+    const product = await Product.findByIdAndUpdate(req.params.id, productFields, { new: true, runValidators: true });
     if (!product) {
       return res.status(404).json({ success: false, message: 'Product not found' });
     }
@@ -114,7 +196,8 @@ export const duplicateProduct = async (req, res) => {
     delete copyData.updatedAt;
 
     copyData.name = `${original.name} (Copy)`;
-    copyData.sku = `${original.sku}-COPY`;
+    // AUD-016: Append timestamp suffix to avoid SKU collision on duplicate
+    copyData.sku = `${original.sku}-${Date.now()}`;
     copyData.slug = `${original.slug}-copy-${Date.now()}`;
     copyData.status = 'draft';
     copyData.featured = false;

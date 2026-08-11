@@ -36,7 +36,7 @@ export const sendOtpSms = async (phone, otp) => {
     await sendViaTwilio(phone, otp);
   } else {
     // 'console' provider — for local development without real SMS
-    consoleDev(phone);
+    consoleDev(phone, otp);
   }
 };
 
@@ -98,7 +98,10 @@ async function sendViaTwilio(phone, otp) {
 }
 
 // ─── Provider: Console (dev fallback) ─────────────────────────────────────────
-function consoleDev(phone) {
-  console.log(`[SmsService] SMS_PROVIDER=console — OTP sent to +91${phone}: [REDACTED for security]`);
-  console.log('[SmsService] Set SMS_PROVIDER=fast2sms and FAST2SMS_API_KEY in .env to send real SMS.');
+function consoleDev(phone, otp) {
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`[SmsService] Dev OTP for +91${phone}: ${otp}`);
+  } else {
+    console.log(`[SmsService] SMS_PROVIDER=console — OTP sent to +91${phone}: [REDACTED for security]`);
+  }
 }

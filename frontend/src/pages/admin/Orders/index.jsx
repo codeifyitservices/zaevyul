@@ -1,16 +1,36 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Trash2 } from 'lucide-react';
-import { MOCK_ORDERS, formatCurrency, formatDate, ORDER_STATUS } from '../../../lib/mockData';
+import { formatCurrency, formatDate, ORDER_STATUS } from '../../../lib/mockData';
 import PageHeader from '../../../components/PageHeader';
 import DataTable from '../../../components/DataTable';
 import StatusBadge from '../../../components/StatusBadge';
+import { useToast } from '../../../context/ToastContext';
+import { api } from '../../../lib/api';
 
 export default function Orders() {
-  const [orders, setOrders] = useState(MOCK_ORDERS);
+  const toast = useToast();
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [selected, setSelected] = useState([]);
+
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      const data = await api.orders.list();
+      setOrders(data || []);
+    } catch (err) {
+      toast('Failed to load orders', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrders();
+  }, []);
 
   const filtered = useMemo(() => orders.filter(o => {
     const q = search.toLowerCase();
@@ -20,16 +40,24 @@ export default function Orders() {
   }), [orders, search, statusFilter]);
 
   const handleBulkDelete = async () => {
-    await new Promise(r => setTimeout(r, 400));
-    setOrders(ps => ps.filter(o => !selected.includes(o.id)));
-    setSelected([]);
+    try {
+      await api.orders.bulkDelete(selected);
+      setOrders(ps => ps.filter(o => !selected.includes(o._id || o.id)));
+      toast(`${selected.length} orders deleted`, 'success');
+    } catch (err) {
+      toast('Failed to delete selected orders', 'error');
+    } finally {
+      setSelected([]);
+    }
   };
+
+  const activeRowKey = orders[0]?._id ? "_id" : "id";
 
   const COLUMNS = [
     {
       key: 'orderNumber', label: 'Order', sortable: true,
       render: (val, row) => (
-        <Link to={`/admin/orders/${row.id}`} style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-walnut)', textDecoration: 'none' }}>
+        <Link to={`/admin/orders/${row._id || row.id}`} style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-walnut)', textDecoration: 'none' }}>
           {val}
         </Link>
       )
@@ -37,7 +65,7 @@ export default function Orders() {
     { key: 'customerName', label: 'Customer', sortable: true, render: v => <span style={{ fontSize: 13 }}>{v}</span> },
     {
       key: 'items', label: 'Items',
-      render: v => <span style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>{v.length} item{v.length !== 1 ? 's' : ''}</span>
+      render: v => <span style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>{v ? v.length : 0} item{v?.length !== 1 ? 's' : ''}</span>
     },
     {
       key: 'total', label: 'Total', sortable: true,
@@ -51,9 +79,17 @@ export default function Orders() {
     },
     {
       key: 'id', label: '',
-      render: v => <Link to={`/admin/orders/${v}`} className="btn btn-ghost btn-sm">View</Link>
+      render: (val, row) => <Link to={`/admin/orders/${row._id || row.id}`} className="btn btn-ghost btn-sm">View</Link>
     },
   ];
+
+  if (loading) {
+    return (
+      <div className="page flex-center py-20">
+        <div className="spinner" />
+      </div>
+    );
+  }
 
   const pendingCount = orders.filter(o => o.status === 'pending').length;
 
@@ -103,6 +139,7 @@ export default function Orders() {
           selected={selected}
           onSelect={setSelected}
           pageSize={12}
+          rowKey={activeRowKey}
           emptyTitle="No orders found"
           emptyDesc="Try adjusting your filters"
         />

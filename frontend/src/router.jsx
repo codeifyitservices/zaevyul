@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './hooks/ProtectedRoute';
 import AdminShell from './layout/AdminShell';
 
@@ -24,7 +25,8 @@ import Profile from './pages/admin/Profile';
 
 export default function AdminRouter() {
   return (
-    <Routes>
+    <AuthProvider>
+      <Routes>
       {/* Public */}
       <Route path="login" element={<Login />} />
 
@@ -63,6 +65,7 @@ export default function AdminRouter() {
       </Route>
 
       <Route path="*" element={<Navigate to="dashboard" replace />} />
-    </Routes>
+      </Routes>
+    </AuthProvider>
   );
 }

@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import rateLimit from "express-rate-limit";
 import "./config/env.js";
 import "./config/db.js";
 
@@ -20,11 +21,32 @@ import profileRoutes from "./routes/profile.js";
 import customerAuthRoutes from "./routes/customerAuth.js";
 import customerFavoritesRoutes from "./routes/customerFavorites.js";
 import customerOrdersRoutes from "./routes/customerOrders.js";
+import publicRoutes from "./routes/public.js";
 
 const PORT = 5000;
 const app = express();
 
-// Middleware
+// ── AUD-022: Rate Limiting ────────────────────────────────────────────────────
+
+/** Strict limiter for OTP / auth endpoints (10 req / 15 min per IP) */
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Too many requests. Please try again later." },
+});
+
+/** Moderate limiter for customer & admin API (200 req / 15 min per IP) */
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Too many requests. Please try again later." },
+});
+
+// ── Middleware ────────────────────────────────────────────────────────────────
 app.use(
   cors({
     origin: [
@@ -38,26 +60,34 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 
-// Route registration
-app.use("/api/admin/auth", authRoutes);
-app.use("/api/admin/products", productRoutes);
-app.use("/api/admin/categories", categoryRoutes);
-app.use("/api/admin/blog-categories", blogCategoryRoutes);
-app.use("/api/admin/orders", orderRoutes);
-app.use("/api/admin/customers", customerRoutes);
-app.use("/api/admin/blogs", blogRoutes);
-app.use("/api/admin/coupons", couponRoutes);
-app.use("/api/admin/newsletter", newsletterRoutes);
-app.use("/api/admin/reports", reportsRoutes);
-app.use("/api/admin/settings", settingsRoutes);
-app.use("/api/admin/profile", profileRoutes);
+// ── Public endpoints — accessible without auth headers (AUD-002, AUD-012, AUD-013, AUD-018, AUD-019) ──
+app.use("/api/public", apiLimiter, publicRoutes);
 
-// Customer storefront routes — completely separate from admin routes
-app.use("/api/customer/auth", customerAuthRoutes);
-app.use("/api/customer/favorites", customerFavoritesRoutes);
-app.use("/api/customer/orders", customerOrdersRoutes);
+// ── Admin auth gets stricter rate limiting (AUD-022) ──────────────────────────
+app.use("/api/admin/auth", authLimiter, authRoutes);
 
-// Health check endpoint (fixed: parameters were swapped in original)
+// ── Customer auth uses the general API limiter here; OTP/login routes
+// define stricter route-level limiters in routes/customerAuth.js.
+app.use("/api/customer/auth", apiLimiter, customerAuthRoutes);
+
+// ── Route registration (general API limiter) ──────────────────────────────────
+app.use("/api/admin/products", apiLimiter, productRoutes);
+app.use("/api/admin/categories", apiLimiter, categoryRoutes);
+app.use("/api/admin/blog-categories", apiLimiter, blogCategoryRoutes);
+app.use("/api/admin/orders", apiLimiter, orderRoutes);
+app.use("/api/admin/customers", apiLimiter, customerRoutes);
+app.use("/api/admin/blogs", apiLimiter, blogRoutes);
+app.use("/api/admin/coupons", apiLimiter, couponRoutes);
+app.use("/api/admin/newsletter", apiLimiter, newsletterRoutes);
+app.use("/api/admin/reports", apiLimiter, reportsRoutes);
+app.use("/api/admin/settings", apiLimiter, settingsRoutes);
+app.use("/api/admin/profile", apiLimiter, profileRoutes);
+
+// ── Customer storefront routes ────────────────────────────────────────────────
+app.use("/api/customer/favorites", apiLimiter, customerFavoritesRoutes);
+app.use("/api/customer/orders", apiLimiter, customerOrdersRoutes);
+
+// ── Health check ──────────────────────────────────────────────────────────────
 app.get("/health", (req, res) => {
   res.status(200).json({
     success: true,

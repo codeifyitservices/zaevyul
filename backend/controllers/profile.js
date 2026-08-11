@@ -1,5 +1,8 @@
 import Admin from '../model/Admin.js';
 
+/** Minimum password complexity: 8+ chars, at least one uppercase, one lowercase, one digit (AUD-027) */
+const passwordComplexityRe = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+
 export const getProfile = (req, res) => {
   return res.status(200).json({ success: true, user: req.user });
 };
@@ -44,6 +47,14 @@ export const changePassword = async (req, res) => {
   try {
     if (!currentPassword || !newPassword) {
       return res.status(400).json({ success: false, message: 'Please provide current and new password' });
+    }
+
+    // AUD-027: Enforce password complexity before attempting DB update
+    if (!passwordComplexityRe.test(newPassword)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 8 characters and contain uppercase, lowercase, and a number',
+      });
     }
 
     const admin = await Admin.findById(req.user._id);

@@ -20,6 +20,7 @@ import ProductCard from "../components/ProductCard";
 
 import { api, getCategorySlug, getHoverImage } from "../../lib/api";
 import { useCart } from "../../context/CartContext";
+import { useCurrency } from "../../context/CurrencyContext";
 
 const FILTER_OPTIONS = {
   material: ["100% Pashmina", "Silk Pashmina Blend"],
@@ -31,11 +32,7 @@ const FILTER_OPTIONS = {
 
 const getProductImage = (p) =>
   p.img || (p.images && p.images[0]?.url) || "/storefront/prod-1.png";
-const getProductPrice = (p) => {
-  if (typeof p.price === "string") return p.price;
-  const priceVal = p.discountPrice || p.basePrice;
-  return priceVal ? `₹ ${priceVal.toLocaleString("en-IN")}` : "₹ 30,000";
-};
+// getProductPrice is now defined inside the component via useCurrency
 
 export default function CollectionsPage() {
   const { category } = useParams();
@@ -65,6 +62,9 @@ export default function CollectionsPage() {
   });
   const [sortBy, setSortBy] = useState("newest");
   const { addToCart } = useCart();
+  const { formatPrice } = useCurrency();
+
+  const getProductPrice = (prod) => formatPrice(prod.discountPrice || prod.basePrice);
 
   const handleFilterChange = (filterKey, value) => {
     setSelectedFilters((prev) => {

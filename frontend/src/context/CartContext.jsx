@@ -66,6 +66,8 @@ export function CartProvider({ children }) {
           quantity,
           category: product.category,
           stockQuantity: product.quantity || 99,
+          // AUD-010: carry the per-product threshold so low-stock UI is accurate
+          lowStockThreshold: product.lowStockThreshold ?? 5,
         };
         return [...prev, newItem];
       }

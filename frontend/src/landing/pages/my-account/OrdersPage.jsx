@@ -56,6 +56,18 @@ export default function OrdersPage() {
     }
   };
 
+  const handleCancelOrder = async (orderId) => {
+    if (!window.confirm("Are you sure you want to cancel this pending order?")) return;
+    try {
+      await customerApi.orders.cancel(orderId);
+      setOrders((prev) =>
+        prev.map((o) => ((o._id || o.id) === orderId ? { ...o, status: "cancelled" } : o))
+      );
+    } catch (err) {
+      alert(err.message || "Failed to cancel order.");
+    }
+  };
+
   if (loading) {
     return (
       <div className="bg-white border border-[#E6DED4]/40 rounded-[4px] p-6 sm:p-8 shadow-xs flex flex-col items-center justify-center py-20">
@@ -132,7 +144,7 @@ export default function OrdersPage() {
                     ₹{order.total.toLocaleString("en-IN")}
                   </span>
                 </div>
-                <div className="ml-auto">
+                <div className="ml-auto flex items-center gap-3">
                   <span
                     className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[11px] font-medium tracking-wide capitalize ${getStatusColor(
                       order.status
@@ -141,6 +153,14 @@ export default function OrdersPage() {
                     {getStatusIcon(order.status)}
                     {order.status}
                   </span>
+                  {order.status === "pending" && (
+                    <button
+                      onClick={() => handleCancelOrder(order._id || order.id)}
+                      className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-[2px] transition-colors"
+                    >
+                      Cancel Order
+                    </button>
+                  )}
                 </div>
               </div>
 

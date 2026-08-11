@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { X, Plus, Minus, Heart, ArrowRight } from "lucide-react";
 import { useCart } from "../../context/CartContext";
 import { api, getCategorySlug } from "../../lib/api";
+import { useCurrency } from "../../context/CurrencyContext";
 
 export default function CartDrawer() {
+  const navigate = useNavigate();
   const {
     cart,
     isOpen,
@@ -14,6 +16,7 @@ export default function CartDrawer() {
     totals,
     addToCart,
   } = useCart();
+  const { formatPrice } = useCurrency();
 
   const drawerRef = useRef(null);
   const [removingKeys, setRemovingKeys] = useState([]);
@@ -158,7 +161,7 @@ export default function CartDrawer() {
             ) : (
               <div>
                 <p className="font-sans text-[11.5px] font-normal text-[#6B6560] leading-relaxed mb-2.5">
-                  You're only <span className="font-semibold text-[#1C1916]">₹{totals.amountToFreeShipping.toLocaleString("en-IN")}</span> away from <span className="font-semibold text-[#1C1916]">Free Shipping</span>.
+                  You're only <span className="font-semibold text-[#1C1916]">{formatPrice(totals.amountToFreeShipping)}</span> away from <span className="font-semibold text-[#1C1916]">Free Shipping</span>.
                 </p>
                 <div className="h-1.5 w-full bg-[#E6DED4] rounded-full overflow-hidden">
                   <div
@@ -248,7 +251,7 @@ export default function CartDrawer() {
                             {item.name}
                           </Link>
                           <span className="font-sans text-[13.5px] font-normal text-[#1C1916] whitespace-nowrap">
-                            ₹{(item.price * item.quantity).toLocaleString("en-IN")}
+                            {formatPrice(item.price * item.quantity)}
                           </span>
                         </div>
 
@@ -351,7 +354,7 @@ export default function CartDrawer() {
                           {p.name}
                         </Link>
                         <span className="font-sans text-[12px] text-[#6B6560] mt-1 font-light">
-                          ₹{pPrice.toLocaleString("en-IN")}
+                          {formatPrice(pPrice)}
                         </span>
                       </div>
                       <button
@@ -376,21 +379,21 @@ export default function CartDrawer() {
             <div className="space-y-2.5 mb-6 text-[12.5px] font-sans text-[#6B6560]">
               <div className="flex justify-between">
                 <span>Subtotal</span>
-                <span className="text-[#1C1916] font-normal">₹{totals.subtotal.toLocaleString("en-IN")}</span>
+                <span className="text-[#1C1916] font-normal">{formatPrice(totals.subtotal)}</span>
               </div>
               <div className="flex justify-between">
                 <span>Shipping</span>
                 <span className="text-[#1C1916]">
-                  {totals.shipping === 0 ? "Free" : `₹${totals.shipping.toLocaleString("en-IN")}`}
+                  {totals.shipping === 0 ? "Free" : formatPrice(totals.shipping)}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span>Tax</span>
-                <span className="text-[#1C1916]">₹{totals.tax.toLocaleString("en-IN")}</span>
+                <span className="text-[#1C1916]">{formatPrice(totals.tax)}</span>
               </div>
               <div className="flex justify-between border-t border-[#ECE7E1] pt-3 text-[14.5px] font-normal text-[#1C1916]">
                 <span className="font-medium">Estimated Total</span>
-                <span className="font-medium">₹{totals.total.toLocaleString("en-IN")}</span>
+                <span className="font-medium">{formatPrice(totals.total)}</span>
               </div>
             </div>
 
@@ -398,7 +401,8 @@ export default function CartDrawer() {
             <div>
               <button
                 onClick={() => {
-                  alert("Proceeding to luxury checkout...");
+                  setIsOpen(false);
+                  navigate("/cart");
                 }}
                 className="w-full bg-[#1C1916] text-white py-4 font-sans text-[10px] font-semibold uppercase tracking-[0.25em] rounded-[1px] hover:bg-[#B58A5B] transition-colors duration-300 shadow-sm"
               >

@@ -570,7 +570,7 @@
   background: #081814;
   color: #68c0b0;
   border-color: #143028;
-}.admin-shell .modal-overlay, .login-page .modal-overlay {
+}.modal-overlay, .admin-shell .modal-overlay, .login-page .modal-overlay {
   position: fixed;
   inset: 0;
   background: rgba(46, 43, 41, 0.45);
@@ -579,35 +579,110 @@
   justify-content: center;
   z-index: 100;
   padding: 24px;
-}.admin-shell .modal, .login-page .modal {
+  overflow-y: auto;
+}.modal, .admin-shell .modal, .login-page .modal {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   width: 100%;
   max-width: 480px;
-  max-height: 90vh;
-  overflow-y: auto;
+  max-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   box-shadow: 0 32px 64px rgba(46, 43, 41, 0.12);
-}.admin-shell .modal-header, .login-page .modal-header {
+}.modal-header, .admin-shell .modal-header, .login-page .modal-header {
   padding: 24px 28px 20px;
   border-bottom: 1px solid var(--color-border);
   display: flex;
   align-items: center;
   justify-content: space-between;
-}.admin-shell .modal-title, .login-page .modal-title {
+  flex-shrink: 0;
+}.modal-title, .admin-shell .modal-title, .login-page .modal-title {
   font-family: var(--font-serif);
   font-size: 18px;
   font-weight: 400;
   color: var(--color-text-primary);
   letter-spacing: 0.01em;
-}.admin-shell .modal-body, .login-page .modal-body {
+}.modal-body, .admin-shell .modal-body, .login-page .modal-body {
   padding: 24px 28px;
-}.admin-shell .modal-footer, .login-page .modal-footer {
+  overflow-y: auto;
+}.modal-footer, .admin-shell .modal-footer, .login-page .modal-footer {
   padding: 18px 28px;
   border-top: 1px solid var(--color-border);
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+  flex-shrink: 0;
+}.coupon-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}.coupon-modal-form > .field-group,
+.coupon-modal-form > .form-row {
+  padding: 0 2px;
+}.coupon-modal-form > .form-row {
+  gap: 16px;
+}.coupon-modal-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 16px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}.coupon-code-preview {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 11px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: monospace;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--color-text-primary);
+  text-transform: uppercase;
+}.coupon-status-panel {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text-caption);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}.coupon-status-panel.active {
+  color: var(--color-cedar);
+  border-color: rgba(104, 86, 69, 0.28);
+}.coupon-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}.coupon-description-field {
+  grid-column: 1 / -1;
+}.coupon-field-with-icon {
+  position: relative;
+}.coupon-field-with-icon > svg {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-caption);
+  pointer-events: none;
+  z-index: 1;
+}.coupon-field-with-icon .field-input,
+.coupon-field-with-icon .field-select {
+  padding-left: 36px;
 }.admin-shell .drawer-overlay, .login-page .drawer-overlay {
   position: fixed;
   inset: 0;
@@ -961,6 +1036,37 @@
 
 @media (max-width: 640px) {.admin-shell .form-row, .login-page .form-row {
     grid-template-columns: 1fr;
+  }
+  .modal-overlay, .admin-shell .modal-overlay, .login-page .modal-overlay {
+    align-items: flex-start;
+    padding: 12px;
+  }
+  .modal, .admin-shell .modal, .login-page .modal {
+    max-height: calc(100vh - 24px);
+  }
+  .modal-header, .admin-shell .modal-header, .login-page .modal-header {
+    padding: 18px 18px 14px;
+  }
+  .modal-body, .admin-shell .modal-body, .login-page .modal-body {
+    padding: 18px;
+  }
+  .modal-footer, .admin-shell .modal-footer, .login-page .modal-footer {
+    padding: 14px 18px;
+  }
+  .coupon-modal-summary {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .coupon-status-panel {
+    justify-content: space-between;
+  }
+  .coupon-form-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .coupon-description-field {
+    grid-column: auto;
   }
 }.admin-shell .activity-item, .login-page .activity-item {
   display: flex;
