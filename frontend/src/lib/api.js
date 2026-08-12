@@ -1,7 +1,9 @@
 import * as mock from "./mockData";
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api/admin";
-const PUBLIC_BASE_URL = import.meta.env.VITE_PUBLIC_API_URL || "http://localhost:5000/api/public";
+const BASE_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:5000/api/admin";
+const PUBLIC_BASE_URL =
+  import.meta.env.VITE_PUBLIC_API_URL || "http://localhost:5000/api/public";
 const USE_MOCK = import.meta.env.VITE_USE_MOCK_API === "true" || false;
 
 // Helper for public (unauthenticated) storefront fetch calls (AUD-002)
@@ -22,7 +24,11 @@ const loadCollection = (key, defaultData) => {
   if (stored) {
     try {
       const parsed = JSON.parse(stored);
-      if (key === "products" && parsed.length > 0 && (!parsed[0].images || parsed[0].images.length === 0)) {
+      if (
+        key === "products" &&
+        parsed.length > 0 &&
+        (!parsed[0].images || parsed[0].images.length === 0)
+      ) {
         localStorage.removeItem(`zae_db_${key}`);
         stored = null;
       } else {
@@ -55,15 +61,16 @@ let db = {
     { id: "bcat-3", name: "Guide" },
     { id: "bcat-4", name: "Care" },
     { id: "bcat-5", name: "Sustainability" },
-    { id: "bcat-6", name: "Story" }
+    { id: "bcat-6", name: "Story" },
   ]),
 };
 
 const sleep = (ms = 400) => new Promise((r) => setTimeout(r, ms));
 
-const shouldUseMockFallback = (err) => (
-  USE_MOCK || err.message.includes("Failed to fetch") || err.message === "Mock mode enabled"
-);
+const shouldUseMockFallback = (err) =>
+  USE_MOCK ||
+  err.message.includes("Failed to fetch") ||
+  err.message === "Mock mode enabled";
 
 // Helper for fetch calls
 const request = async (url, options = {}) => {
@@ -93,11 +100,11 @@ export const getCategorySlug = (category) => {
   if (!category) return "shawls";
   if (typeof category === "object") return category.slug || "shawls";
   const staticMap = {
-    'cat-001': 'shawls',
-    'cat-002': 'stoles',
-    'cat-003': 'blankets',
-    'cat-004': 'scarves',
-    'cat-005': 'accessories'
+    "cat-001": "shawls",
+    "cat-002": "stoles",
+    "cat-003": "blankets",
+    "cat-004": "scarves",
+    "cat-005": "accessories",
   };
   return staticMap[category] || "shawls";
 };
@@ -108,7 +115,9 @@ export const getHoverImage = (product) => {
   }
   // Stable, unique fallback per product using charCode summation on id/name
   const idStr = String(product._id || product.id || product.name || "");
-  const charCodeSum = idStr.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const charCodeSum = idStr
+    .split("")
+    .reduce((acc, char) => acc + char.charCodeAt(0), 0);
   const fallbacks = [
     "/storefront/prod-2.png",
     "/storefront/cat-embroidered.png",
@@ -117,7 +126,7 @@ export const getHoverImage = (product) => {
     "/storefront/prod-1.png",
     "/storefront/prod-3.png",
     "/storefront/prod-stack.png",
-    "/storefront/cat-shawls.png"
+    "/storefront/cat-shawls.png",
   ];
   return fallbacks[charCodeSum % fallbacks.length];
 };
@@ -251,8 +260,20 @@ export const api = {
         return res.product;
       } catch (err) {
         await sleep(500);
+        const sizes = data.sizes || [];
+        let basePrice = data.basePrice;
+        let discountPrice = data.discountPrice;
+        let quantity = data.quantity;
+        if (sizes.length > 0) {
+          basePrice = sizes[0].price;
+          discountPrice = sizes[0].discountPrice;
+          quantity = sizes.reduce((sum, s) => sum + (Number(s.quantity) || 0), 0);
+        }
         const product = {
           ...data,
+          basePrice,
+          discountPrice,
+          quantity,
           id: `prd-${Date.now()}`,
           createdAt: new Date().toISOString(),
         };
@@ -270,8 +291,17 @@ export const api = {
         return res.product;
       } catch (err) {
         await sleep(400);
+        const sizes = data.sizes || [];
+        let basePrice = data.basePrice;
+        let discountPrice = data.discountPrice;
+        let quantity = data.quantity;
+        if (sizes.length > 0) {
+          basePrice = sizes[0].price;
+          discountPrice = sizes[0].discountPrice;
+          quantity = sizes.reduce((sum, s) => sum + (Number(s.quantity) || 0), 0);
+        }
         db.products = db.products.map((p) =>
-          p.id === id ? { ...p, ...data } : p,
+          p.id === id ? { ...p, ...data, basePrice, discountPrice, quantity } : p,
         );
         saveCollection("products", db.products);
         return db.products.find((p) => p.id === id);
@@ -314,27 +344,38 @@ export const api = {
     },
     toggleFeatured: async (id) => {
       try {
-        const res = await request(`/products/${id}/featured`, { method: "PATCH" });
+        const res = await request(`/products/${id}/featured`, {
+          method: "PATCH",
+        });
         return res.product;
       } catch (err) {
         await sleep(300);
         const product = db.products.find((p) => p.id === id || p._id === id);
         if (!product) throw new Error("Product not found");
-        if (!product.featured && db.products.filter((p) => p.featured).length >= 6) {
-          throw new Error("Maximum 6 products can be featured. Disable one first.");
+        if (
+          !product.featured &&
+          db.products.filter((p) => p.featured).length >= 6
+        ) {
+          throw new Error(
+            "Maximum 6 products can be featured. Disable one first.",
+          );
         }
         if (product.featured) {
           const removedOrder = product.featuredOrder;
           db.products = db.products.map((p) => {
-            if ((p.id === id || p._id === id)) return { ...p, featured: false, featuredOrder: null };
-            if (p.featured && p.featuredOrder > removedOrder) return { ...p, featuredOrder: p.featuredOrder - 1 };
+            if (p.id === id || p._id === id)
+              return { ...p, featured: false, featuredOrder: null };
+            if (p.featured && p.featuredOrder > removedOrder)
+              return { ...p, featuredOrder: p.featuredOrder - 1 };
             return p;
           });
         } else {
           const nextOrder = db.products.filter((p) => p.featured).length + 1;
-          db.products = db.products.map((p) => (
-            (p.id === id || p._id === id) ? { ...p, featured: true, featuredOrder: nextOrder } : p
-          ));
+          db.products = db.products.map((p) =>
+            p.id === id || p._id === id
+              ? { ...p, featured: true, featuredOrder: nextOrder }
+              : p,
+          );
         }
         saveCollection("products", db.products);
         return db.products.find((p) => p.id === id || p._id === id);
@@ -424,7 +465,9 @@ export const api = {
       }
     },
     toggleFeatured: async (id) => {
-      const res = await request(`/categories/${id}/featured`, { method: "PATCH" });
+      const res = await request(`/categories/${id}/featured`, {
+        method: "PATCH",
+      });
       return res.category;
     },
     featured: async () => {
@@ -432,7 +475,9 @@ export const api = {
         const res = await request("/categories/featured");
         return res.categories;
       } catch {
-        return db.categories.filter((c) => c.featured).sort((a, b) => a.featuredOrder - b.featuredOrder);
+        return db.categories
+          .filter((c) => c.featured)
+          .sort((a, b) => a.featuredOrder - b.featuredOrder);
       }
     },
   },
@@ -581,7 +626,9 @@ export const api = {
         return res.blog;
       } catch (err) {
         await sleep(200);
-        const blog = db.blogs.find((b) => b.slug === slug || b.id === slug || b._id === slug);
+        const blog = db.blogs.find(
+          (b) => b.slug === slug || b.id === slug || b._id === slug,
+        );
         if (!blog) throw new Error("Article not found");
         return blog;
       }
@@ -656,7 +703,7 @@ export const api = {
       }
     },
   },
-  
+
   // Blog Categories
   blogCategories: {
     list: async () => {
@@ -714,7 +761,7 @@ export const api = {
         // update associated blogs categories
         if (oldCategory && data.name && data.name !== oldCategory.name) {
           db.blogs = db.blogs.map((b) =>
-            b.category === oldCategory.name ? { ...b, category: data.name } : b
+            b.category === oldCategory.name ? { ...b, category: data.name } : b,
           );
           saveCollection("blogs", db.blogs);
         }
@@ -731,7 +778,7 @@ export const api = {
         saveCollection("blogCategories", db.blogCategories);
         if (category) {
           db.blogs = db.blogs.map((b) =>
-            b.category === category.name ? { ...b, category: "" } : b
+            b.category === category.name ? { ...b, category: "" } : b,
           );
           saveCollection("blogs", db.blogs);
         }
@@ -825,9 +872,10 @@ export const api = {
           (c) => c.code.toUpperCase() === code.toUpperCase() && c.active,
         );
         if (!coupon) throw new Error("Invalid or inactive coupon code");
-        let discountAmount = coupon.discountType === "percentage"
-          ? Math.round((cartSubtotal * coupon.discountValue) / 100)
-          : coupon.discountValue;
+        let discountAmount =
+          coupon.discountType === "percentage"
+            ? Math.round((cartSubtotal * coupon.discountValue) / 100)
+            : coupon.discountValue;
         return {
           success: true,
           coupon: {
@@ -994,6 +1042,35 @@ export const api = {
         saveCollection("settings", [db.settings]);
         return db.settings;
       }
+    },
+  },
+
+  // Tax Rules
+  taxRules: {
+    list: async () => {
+      const res = await request("/tax-rules");
+      return res.taxRules;
+    },
+    get: async (id) => {
+      const res = await request(`/tax-rules/${id}`);
+      return res.taxRule;
+    },
+    create: async (data) => {
+      const res = await request("/tax-rules", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+      return res.taxRule;
+    },
+    update: async (id, data) => {
+      const res = await request(`/tax-rules/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      });
+      return res.taxRule;
+    },
+    delete: async (id) => {
+      await request(`/tax-rules/${id}`, { method: "DELETE" });
     },
   },
 

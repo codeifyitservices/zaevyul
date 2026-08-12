@@ -4,7 +4,8 @@ const OrderItemSchema = new mongoose.Schema({
   product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
   name: { type: String, required: true },
   qty: { type: Number, required: true, default: 1 },
-  price: { type: Number, required: true }
+  price: { type: Number, required: true },
+  size: { type: String, default: '' }
 }, { _id: false });
 
 const OrderSchema = new mongoose.Schema({
@@ -14,9 +15,15 @@ const OrderSchema = new mongoose.Schema({
   status: { type: String, enum: ['pending', 'processing', 'packed', 'shipped', 'delivered', 'cancelled', 'refunded'], default: 'pending' },
   items: [OrderItemSchema],
   subtotal: { type: Number, required: true },
+  taxAmount: { type: Number, default: 0 },
+  taxRate: { type: Number, default: 0 },
+  taxName: { type: String, default: '' },
+  taxType: { type: String, default: '' },
+  taxJurisdiction: { type: String, default: '' },
   shipping: { type: Number, default: 0 },
   discount: { type: Number, default: 0 },
   total: { type: Number, required: true },
+  currency: { type: String, default: 'INR' },
   paymentMethod: { type: String, default: 'Credit Card' },
   paymentStatus: { type: String, enum: ['pending', 'paid', 'refunded', 'failed'], default: 'pending' },
   trackingNumber: { type: String, default: null },

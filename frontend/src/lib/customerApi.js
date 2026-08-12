@@ -176,6 +176,13 @@ export const customerApi = {
         body: JSON.stringify(orderData),
       }),
 
+    /** Calculate dynamic tax for checkout/cart preview */
+    calculateTax: (data) =>
+      request('/orders/calculate-tax', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+
     /** Cancel pending order */
     cancel: (orderId) =>
       request(`/orders/${orderId}/cancel`, {

@@ -40,6 +40,7 @@ export default function ProductDetailPage() {
   const [error, setError] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [adding, setAdding] = useState(false);
+  const [selectedSize, setSelectedSize] = useState("");
   const { addToCart } = useCart();
   const { formatPrice } = useCurrency();
   const toast = useToast();
@@ -47,6 +48,10 @@ export default function ProductDetailPage() {
 
   const getProductPrice = (p) => {
     if (!p) return "";
+    if (p.sizes && p.sizes.length > 0) {
+      const activeSizeObj = p.sizes.find(s => s.size === selectedSize) || p.sizes[0];
+      return formatPrice(activeSizeObj.discountPrice || activeSizeObj.price);
+    }
     return formatPrice(p.discountPrice || p.basePrice);
   };
   const [activeImageIdx, setActiveImageIdx] = useState(0);
@@ -64,7 +69,15 @@ export default function ProductDetailPage() {
         const data = await api.products.getBySlug(productSlug);
         setProduct(data);
         setActiveImageIdx(0);
-        setQuantity(data && data.quantity === 0 ? 0 : 1);
+        
+        let initialSize = "";
+        let initialStock = data ? data.quantity : 0;
+        if (data && data.sizes && data.sizes.length > 0) {
+          initialSize = data.sizes[0].size;
+          initialStock = data.sizes[0].quantity;
+        }
+        setSelectedSize(initialSize);
+        setQuantity(initialStock === 0 ? 0 : 1);
         setError(null);
       } catch (err) {
         console.error("Error fetching product:", err);
@@ -84,18 +97,23 @@ export default function ProductDetailPage() {
     setAccordions((prev) => ({ ...prev, [section]: !prev[section] }));
   };
 
-  const handleIncrement = () => setQuantity((q) => (product && q < product.quantity ? q + 1 : q));
-  const handleDecrement = () => setQuantity((q) => (product && product.quantity === 0 ? 0 : q > 1 ? q - 1 : 1));
+  const activeSizeObj = product && product.sizes && product.sizes.length > 0
+    ? product.sizes.find(s => s.size === selectedSize) || product.sizes[0]
+    : null;
+  const stock = activeSizeObj ? activeSizeObj.quantity : (product ? product.quantity : 0);
+
+  const handleIncrement = () => setQuantity((q) => (product && q < stock ? q + 1 : q));
+  const handleDecrement = () => setQuantity((q) => (product && stock === 0 ? 0 : q > 1 ? q - 1 : 1));
 
   const handleAddToBag = () => {
     if (!product) return;
-    if (product.quantity <= 0) {
-      toast("This product is currently out of stock", "error");
+    if (stock <= 0) {
+      toast("This product size is currently out of stock", "error");
       return;
     }
     setAdding(true);
     setTimeout(() => {
-      addToCart(product, quantity);
+      addToCart(product, quantity, selectedSize);
       setAdding(false);
     }, 600);
   };
@@ -295,11 +313,38 @@ export default function ProductDetailPage() {
               {/* Size Selector */}
               <div className="mb-8">
                 <span className="block font-sans text-[10px] font-semibold tracking-[0.16em] uppercase text-[#1C1916] mb-3">
-                  SIZE: {product.size || "70 X 200 CM"}
+                  SIZE: {selectedSize || product.size || "70 X 200 CM"}
                 </span>
-                <button className="border border-[#1C1916] text-[#1C1916] font-sans text-[11px] font-semibold uppercase tracking-[0.1em] px-5 py-2.5 bg-transparent hover:bg-[#1C1916]/5 transition-colors">
-                  {product.size || "70 x 200 cm"}
-                </button>
+                {product.sizes && product.sizes.length > 0 ? (
+                  <div className="flex flex-wrap gap-2.5">
+                    {product.sizes.map((s) => {
+                      const isSelected = s.size === selectedSize;
+                      const isOutOfStock = s.quantity <= 0;
+                      return (
+                        <button
+                          key={s.size}
+                          onClick={() => {
+                            setSelectedSize(s.size);
+                            setQuantity(isOutOfStock ? 0 : 1);
+                          }}
+                          className={`border font-sans text-[10px] font-semibold uppercase tracking-[0.1em] px-4 py-2.5 transition-all ${
+                            isSelected
+                              ? "border-[#1C1916] bg-[#1C1916] text-white"
+                              : isOutOfStock
+                              ? "border-[#E7DED3] text-[#8A857E]/40 cursor-not-allowed line-through bg-[#FAF8F5]/50"
+                              : "border-[#ECE7E1] text-[#1C1916] bg-transparent hover:border-[#1C1916]"
+                          }`}
+                        >
+                          {s.size} {isOutOfStock && "(Sold Out)"}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <button className="border border-[#1C1916] text-[#1C1916] font-sans text-[11px] font-semibold uppercase tracking-[0.1em] px-5 py-2.5 bg-transparent hover:bg-[#1C1916]/5 transition-colors">
+                    {product.size || "70 x 200 cm"}
+                  </button>
+                )}
               </div>
 
               {/* Quantity counter */}
@@ -330,7 +375,7 @@ export default function ProductDetailPage() {
               <div className="flex flex-col gap-4 mb-10">
                 <button
                   onClick={handleAddToBag}
-                  disabled={adding || (product && product.quantity <= 0)}
+                  disabled={adding || stock <= 0}
                   className="w-full bg-[#1C1916] hover:bg-[#B58A5B] text-white py-4 font-sans text-[10px] font-semibold uppercase tracking-[0.2em] rounded-[1px] transition-colors duration-300 flex items-center justify-center gap-2 disabled:bg-[#8A857E] disabled:cursor-not-allowed"
                 >
                   {adding ? (
@@ -338,7 +383,7 @@ export default function ProductDetailPage() {
                       <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                       <span>ADDING...</span>
                     </>
-                  ) : product && product.quantity <= 0 ? (
+                  ) : stock <= 0 ? (
                     "OUT OF STOCK"
                   ) : (
                     "ADD TO BAG"

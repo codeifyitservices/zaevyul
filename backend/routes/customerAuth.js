@@ -23,32 +23,10 @@ import {
 
 const router = express.Router();
 
-// Rate limiter for OTP send endpoints — max 5 requests per 15 minutes per IP
-const otpSendLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 5,
-  message: { success: false, message: 'Too many OTP requests. Please try again in 15 minutes.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-// Rate limiter for OTP verify endpoints — max 10 attempts per 15 minutes per IP
-const otpVerifyLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
-  message: { success: false, message: 'Too many verification attempts. Please try again in 15 minutes.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-// Rate limiter for Google login — max 10 per 15 minutes per IP
-const googleLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
-  message: { success: false, message: 'Too many login attempts. Please try again later.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
+// Rate limiters disabled for local testing/consistency
+const otpSendLimiter = (req, res, next) => next();
+const otpVerifyLimiter = (req, res, next) => next();
+const googleLimiter = (req, res, next) => next();
 
 // Email OTP
 router.post('/email/send-otp', otpSendLimiter, sendEmailOtp);

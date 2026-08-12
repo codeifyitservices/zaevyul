@@ -83,7 +83,7 @@ const getProductFields = (body) => {
   const {
     name, slug, sku, category, basePrice, discountPrice, costPrice,
     quantity, lowStockThreshold, status, tags, material, color, size,
-    description, shortDescription, images, seo
+    description, shortDescription, images, seo, sizes
   } = body;
 
   const fields = {};
@@ -91,10 +91,7 @@ const getProductFields = (body) => {
   if (slug !== undefined) fields.slug = slug;
   if (sku !== undefined) fields.sku = sku;
   if (category !== undefined) fields.category = category || null;
-  if (basePrice !== undefined) fields.basePrice = basePrice;
-  if (discountPrice !== undefined) fields.discountPrice = discountPrice;
   if (costPrice !== undefined) fields.costPrice = costPrice;
-  if (quantity !== undefined) fields.quantity = quantity;
   if (lowStockThreshold !== undefined) fields.lowStockThreshold = lowStockThreshold;
   if (status !== undefined) fields.status = status;
   if (tags !== undefined) fields.tags = tags;
@@ -105,6 +102,25 @@ const getProductFields = (body) => {
   if (shortDescription !== undefined) fields.shortDescription = shortDescription;
   if (images !== undefined) fields.images = images;
   if (seo !== undefined) fields.seo = seo;
+
+  // Sizes variant processing
+  if (sizes !== undefined) {
+    fields.sizes = Array.isArray(sizes) ? sizes : [];
+    // Automatically calculate root prices and stock based on sizes
+    if (fields.sizes.length > 0) {
+      fields.basePrice = fields.sizes[0].price;
+      fields.discountPrice = fields.sizes[0].discountPrice;
+      fields.quantity = fields.sizes.reduce((sum, s) => sum + (Number(s.quantity) || 0), 0);
+    } else {
+      if (basePrice !== undefined) fields.basePrice = basePrice;
+      if (discountPrice !== undefined) fields.discountPrice = discountPrice;
+      if (quantity !== undefined) fields.quantity = quantity;
+    }
+  } else {
+    if (basePrice !== undefined) fields.basePrice = basePrice;
+    if (discountPrice !== undefined) fields.discountPrice = discountPrice;
+    if (quantity !== undefined) fields.quantity = quantity;
+  }
 
   return fields;
 };
@@ -129,7 +145,15 @@ export const createProduct = async (req, res) => {
     const productFields = getProductFields(req.body);
 
     // AUD-028: Sanity-check prices before saving
-    const priceError = validatePriceSanity(productFields);
+    let priceError = null;
+    if (productFields.sizes && productFields.sizes.length > 0) {
+      for (const s of productFields.sizes) {
+        priceError = validatePriceSanity({ basePrice: s.price, discountPrice: s.discountPrice });
+        if (priceError) break;
+      }
+    } else {
+      priceError = validatePriceSanity(productFields);
+    }
     if (priceError) {
       return res.status(400).json({ success: false, message: priceError });
     }
@@ -151,7 +175,15 @@ export const updateProduct = async (req, res) => {
     const productFields = getProductFields(req.body);
 
     // AUD-028: Sanity-check prices
-    const priceError = validatePriceSanity(productFields);
+    let priceError = null;
+    if (productFields.sizes && productFields.sizes.length > 0) {
+      for (const s of productFields.sizes) {
+        priceError = validatePriceSanity({ basePrice: s.price, discountPrice: s.discountPrice });
+        if (priceError) break;
+      }
+    } else {
+      priceError = validatePriceSanity(productFields);
+    }
     if (priceError) {
       return res.status(400).json({ success: false, message: priceError });
     }

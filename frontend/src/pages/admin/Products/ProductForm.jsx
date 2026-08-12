@@ -18,6 +18,7 @@ const BLANK = {
   hoverImage: null,
   gallery: [],
   seo: { title: '', description: '', url: '' },
+  sizes: [],
 };
 
 export default function ProductForm() {
@@ -71,12 +72,31 @@ export default function ProductForm() {
     if (!form.name) { toast('Product name is required', 'error'); return; }
     setSaving(true);
 
+    const sizes = (form.sizes || []).map(s => ({
+      size: s.size,
+      price: Number(s.price) || 0,
+      discountPrice: s.discountPrice ? Number(s.discountPrice) : null,
+      quantity: Number(s.quantity) || 0
+    }));
+
+    // Calculate dynamic basePrice, discountPrice, and quantity for backward-compatibility
+    let basePrice = Number(form.basePrice) || 0;
+    let discountPrice = form.discountPrice ? Number(form.discountPrice) : null;
+    let quantity = Number(form.quantity) || 0;
+
+    if (sizes.length > 0) {
+      basePrice = sizes[0].price;
+      discountPrice = sizes[0].discountPrice;
+      quantity = sizes.reduce((sum, s) => sum + s.quantity, 0);
+    }
+
     const productData = {
       ...form,
       status,
-      basePrice: Number(form.basePrice) || 0,
-      discountPrice: form.discountPrice ? Number(form.discountPrice) : null,
-      quantity: Number(form.quantity) || 0,
+      sizes,
+      basePrice,
+      discountPrice,
+      quantity,
       images: [
         ...(form.mainImage ? [form.mainImage] : []),
         ...(form.hoverImage ? [form.hoverImage] : []),
@@ -216,37 +236,12 @@ export default function ProductForm() {
             <div className="card">
               <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div className="form-section">
-                  <p className="form-section-title">Pricing</p>
+                  <p className="form-section-title">Inventory Alerts</p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    <div className="form-row">
-                      <div className="field-group">
-                        <label className="field-label">Base Price (₹) *</label>
-                        <input className="field-input" type="number" value={form.basePrice} placeholder="0"
-                          onChange={e => set('basePrice', e.target.value)} />
-                      </div>
-                      <div className="field-group">
-                        <label className="field-label">Sale Price (₹)</label>
-                        <input className="field-input" type="number" value={form.discountPrice} placeholder="Leave blank if no sale"
-                          onChange={e => set('discountPrice', e.target.value)} />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="form-section">
-                  <p className="form-section-title">Inventory & Alerts</p>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    <div className="form-row">
-                      <div className="field-group">
-                        <label className="field-label">Quantity *</label>
-                        <input className="field-input" type="number" value={form.quantity} placeholder="0"
-                          onChange={e => set('quantity', e.target.value)} />
-                      </div>
-                      <div className="field-group">
-                        <label className="field-label">Low Stock Threshold</label>
-                        <input className="field-input" type="number" value={form.lowStockThreshold} placeholder="5"
-                          onChange={e => set('lowStockThreshold', e.target.value)} />
-                      </div>
+                    <div className="field-group">
+                      <label className="field-label">Low Stock Threshold</label>
+                      <input className="field-input" type="number" value={form.lowStockThreshold} placeholder="5"
+                        onChange={e => set('lowStockThreshold', e.target.value)} />
                     </div>
                   </div>
                 </div>
@@ -326,11 +321,121 @@ export default function ProductForm() {
                         onChange={e => set('material', e.target.value)} />
                     </div>
                   </div>
-                  {!form.hasVariants && (
-                    <div className="field-group">
-                      <label className="field-label">Size</label>
-                      <input className="field-input" value={form.size} placeholder="e.g. Large (200×70cm)"
-                        onChange={e => set('size', e.target.value)} />
+                </div>
+              </div>
+
+              {/* Dynamic Size Variants card */}
+              <div className="card">
+                <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <p className="form-section-title" style={{ marginBottom: 2 }}>Size Variants</p>
+                      <span style={{ fontSize: 11, color: 'var(--color-text-caption)' }}>
+                        Manage prices, sale prices, and stock quantities for each size.
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      style={{ padding: '6px 12px', fontSize: 11.5 }}
+                      onClick={() => {
+                        const updatedSizes = [...(form.sizes || []), { size: '', price: '', discountPrice: null, quantity: 0 }];
+                        set('sizes', updatedSizes);
+                      }}
+                    >
+                      + Add Size Variant
+                    </button>
+                  </div>
+
+                  {(!form.sizes || form.sizes.length === 0) ? (
+                    <div style={{ padding: '24px 0', textTransform: 'uppercase', textAlign: 'center', fontSize: 11, color: 'var(--color-text-caption)', border: '1px dashed var(--color-border)', borderRadius: 4 }}>
+                      No sizes configured. Click above to add one.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      {form.sizes.map((s, idx) => {
+                        const updateSizeVal = (key, val) => {
+                          const list = [...form.sizes];
+                          list[idx] = { ...list[idx], [key]: val };
+                          set('sizes', list);
+                        };
+                        const removeSizeVal = () => {
+                          const list = form.sizes.filter((_, i) => i !== idx);
+                          set('sizes', list);
+                        };
+
+                        return (
+                          <div
+                            key={idx}
+                            style={{
+                              display: 'grid',
+                              gridTemplateColumns: '1.2fr 1fr 1fr 0.8fr 40px',
+                              gap: 10,
+                              alignItems: 'end',
+                              padding: 12,
+                              background: 'var(--color-surface-2)',
+                              border: '1px solid var(--color-border)',
+                              borderRadius: 4
+                            }}
+                          >
+                            <div className="field-group">
+                              <label className="field-label" style={{ fontSize: 10 }}>Size *</label>
+                              <input
+                                className="field-input"
+                                value={s.size}
+                                placeholder="e.g. Standard (200x70cm)"
+                                onChange={e => updateSizeVal('size', e.target.value)}
+                              />
+                            </div>
+                            <div className="field-group">
+                              <label className="field-label" style={{ fontSize: 10 }}>Price (₹) *</label>
+                              <input
+                                className="field-input"
+                                type="number"
+                                value={s.price}
+                                placeholder="Base Price"
+                                onChange={e => updateSizeVal('price', e.target.value)}
+                              />
+                            </div>
+                            <div className="field-group">
+                              <label className="field-label" style={{ fontSize: 10 }}>Sale Price (₹)</label>
+                              <input
+                                className="field-input"
+                                type="number"
+                                value={s.discountPrice || ''}
+                                placeholder="Leave blank if none"
+                                onChange={e => updateSizeVal('discountPrice', e.target.value ? Number(e.target.value) : null)}
+                              />
+                            </div>
+                            <div className="field-group">
+                              <label className="field-label" style={{ fontSize: 10 }}>Stock Quantity *</label>
+                              <input
+                                className="field-input"
+                                type="number"
+                                value={s.quantity}
+                                placeholder="0"
+                                onChange={e => updateSizeVal('quantity', Number(e.target.value) || 0)}
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={removeSizeVal}
+                              style={{
+                                height: 34,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                border: 'none',
+                                background: 'transparent',
+                                color: 'var(--color-saffron)',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

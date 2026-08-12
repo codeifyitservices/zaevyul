@@ -13,6 +13,8 @@ const SettingsSchema = new mongoose.Schema(
     currency: { type: String, default: "INR" },
     currencySymbol: { type: String, default: "₹" },
     taxRate: { type: Number, default: 5 },
+    taxPricingMode: { type: String, enum: ['exclusive', 'inclusive'], default: 'exclusive' },
+    defaultJurisdictionCountryCode: { type: String, default: 'IN' },
     freeShippingAbove: { type: Number, default: 10000 },
     socialLinks: {
       instagram: { type: String, default: "https://instagram.com/zaevyul" },

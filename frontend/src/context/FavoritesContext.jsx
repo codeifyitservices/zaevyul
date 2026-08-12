@@ -2,28 +2,20 @@ import { createContext, useContext, useState, useEffect, useCallback } from 'rea
 import { useCustomerAuth } from './CustomerAuthContext';
 import { customerApi } from '../lib/customerApi';
 
-/**
- * FavoritesContext — database-backed favorites for authenticated customers.
- *
- * - Logged OUT: clicking favorite navigates to /login
- * - Logged IN:  API request → database updated → context updated
- * - After login: favorites are fetched from backend
- * - After logout: favorites state is cleared
- *
- * Does NOT use localStorage. Database is the source of truth.
- */
-
 const FavoritesContext = createContext(null);
 
 export const FavoritesProvider = ({ children }) => {
   const { user, isAuthenticated } = useCustomerAuth();
   const [favorites, setFavorites] = useState([]); // array of product ID strings
+  const [items, setItems] = useState([]); // array of populated product objects
   const [loading, setLoading] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
   // Fetch favorites from backend whenever auth state changes
   useEffect(() => {
     if (!isAuthenticated) {
       setFavorites([]);
+      setItems([]);
       return;
     }
 
@@ -34,6 +26,7 @@ export const FavoritesProvider = ({ children }) => {
         const res = await customerApi.favorites.getAll();
         if (!cancelled) {
           setFavorites(res.favoriteIds || []);
+          setItems(res.favorites || []);
         }
       } catch {
         // Silently fail — favorites are non-critical
@@ -55,16 +48,25 @@ export const FavoritesProvider = ({ children }) => {
    * Add a product to favorites.
    * @returns {boolean} true if successful, false if not authenticated
    */
-  const addFavorite = useCallback(async (productId) => {
+  const addFavorite = useCallback(async (productOrId) => {
     if (!isAuthenticated) return false;
-    const id = String(productId);
-    // Optimistic update
+    const id = typeof productOrId === 'object' ? String(productOrId._id || productOrId.id) : String(productOrId);
+    
+    // Optimistic update for favorites IDs
     setFavorites((prev) => (prev.includes(id) ? prev : [...prev, id]));
+    if (typeof productOrId === 'object') {
+      setItems((prev) => (prev.some(item => String(item._id || item.id) === id) ? prev : [...prev, productOrId]));
+    }
+
     try {
       await customerApi.favorites.add(id);
+      const res = await customerApi.favorites.getAll();
+      setFavorites(res.favoriteIds || []);
+      setItems(res.favorites || []);
     } catch {
       // Rollback on failure
       setFavorites((prev) => prev.filter((f) => f !== id));
+      setItems((prev) => prev.filter((item) => String(item._id || item.id) !== id));
     }
     return true;
   }, [isAuthenticated]);
@@ -78,45 +80,52 @@ export const FavoritesProvider = ({ children }) => {
     const id = String(productId);
     // Optimistic update
     setFavorites((prev) => prev.filter((f) => f !== id));
+    setItems((prev) => prev.filter((item) => String(item._id || item.id) !== id));
     try {
       await customerApi.favorites.remove(id);
     } catch {
       // Rollback on failure
-      setFavorites((prev) => [...prev, id]);
+      const res = await customerApi.favorites.getAll();
+      setFavorites(res.favoriteIds || []);
+      setItems(res.favorites || []);
     }
     return true;
   }, [isAuthenticated]);
 
   /**
    * Toggle a product's favorite status.
-   * @returns {boolean|'unauthenticated'} 
-   *   'unauthenticated' if not logged in (caller should redirect to /login)
-   *   true if toggled successfully
    */
-  const toggleFavorites = useCallback(async (productId) => {
+  const toggleFavorites = useCallback(async (productOrId) => {
     if (!isAuthenticated) return 'unauthenticated';
-    const id = String(productId);
+    const id = typeof productOrId === 'object' ? String(productOrId._id || productOrId.id) : String(productOrId);
     if (favorites.includes(id)) {
       await removeFavorites(id);
     } else {
-      await addFavorite(id);
+      await addFavorite(productOrId);
     }
     return true;
   }, [isAuthenticated, favorites, addFavorite, removeFavorites]);
 
   /** Clear favorites state (called on logout) */
-  const clearFavorite = useCallback(() => setFavorites([]), []);
+  const clearFavorite = useCallback(() => {
+    setFavorites([]);
+    setItems([]);
+  }, []);
 
   return (
     <FavoritesContext.Provider
       value={{
         favorites,
+        items,
         loading,
+        isOpen,
+        setIsOpen,
         isFavorite,
         addFavorite,
         removeFavorites,
         toggleFavorites,
         clearFavorite,
+        isAuthenticated,
       }}
     >
       {children}

@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { api, getCategorySlug } from "../../lib/api";
 import { useCart } from "../../context/CartContext";
+import { useFavorite } from "../../context/FavoritesContext";
 import { useCustomerAuth } from "../../context/CustomerAuthContext";
 import CurrencySelector from "../../components/CurrencySelector";
 import { useCurrency } from "../../context/CurrencyContext";
@@ -30,6 +31,7 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [settings, setSettings] = useState(null);
   const { setIsOpen: setCartOpen, totals, isBadgeAnimated } = useCart();
+  const { setIsOpen: setWishlistOpen, items: wishlistItems } = useFavorite();
   const { user, isAuthenticated, logout } = useCustomerAuth();
   const navigate = useNavigate();
   const { formatPrice } = useCurrency();
@@ -191,9 +193,9 @@ export default function Navbar() {
 
   const handleWishlistClick = () => {
     if (isAuthenticated) {
-      navigate("/my-account");
+      setWishlistOpen(true);
     } else {
-      navigate("/login", { state: { from: "/my-account" } });
+      navigate("/login", { state: { from: "/" } });
     }
   };
 
@@ -426,16 +428,21 @@ export default function Navbar() {
             aria-label={
               isAuthenticated ? "Wishlist" : "Sign in to save favorites"
             }
-            className="hidden lg:block transition-colors hover:text-[#1C1916] relative"
+            className="hidden lg:block transition-colors hover:text-[#1C1916] relative cursor-pointer"
             onClick={handleWishlistClick}
           >
             <Heart
               size={17}
               strokeWidth={1.4}
-              className={
-                isAuthenticated ? "text-[#1C1916]/70" : "text-[#1C1916]/70"
-              }
+              className="text-[#1C1916]/70"
             />
+            {isAuthenticated && wishlistItems.length > 0 && (
+              <span
+                className="absolute -right-1.5 -top-1 flex h-[13px] w-[13px] items-center justify-center rounded-full bg-[#B58A5B] text-[8px] font-bold leading-none text-white transition-all duration-300 animate-fade-in"
+              >
+                {wishlistItems.length}
+              </span>
+            )}
           </button>
 
           <Link

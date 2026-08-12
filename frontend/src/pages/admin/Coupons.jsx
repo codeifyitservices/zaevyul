@@ -29,7 +29,7 @@ const BLANK = {
   value: "",
   description: "",
   expiry: "",
-  usageLimit: "",
+  usageLimit: 1,
   minOrderValue: "",
   active: true,
 };
@@ -475,7 +475,7 @@ export default function Coupons() {
           onSubmit={handleSave}
         >
           {/* ── Ticket-style summary: code, live discount preview, active toggle ── */}
-          <div className="coupon-modal-summary coupon-ticket">
+          <div className="coupon-ticket">
             <div className="coupon-preview-main">
               <span className="coupon-preview-label">Coupon Code</span>
               <div className="coupon-code-row">
@@ -527,7 +527,7 @@ export default function Coupons() {
             <div className="field-group">
               <label className="field-label">Code *</label>
               <div className="coupon-field-with-icon">
-                <Hash size={15} />
+                <Hash size={14} />
                 <input
                   className="field-input"
                   value={form.code}
@@ -535,7 +535,7 @@ export default function Coupons() {
                   style={{
                     textTransform: "uppercase",
                     fontFamily: "monospace",
-                    letterSpacing: "0.08em",
+                    letterSpacing: "0.06em",
                   }}
                   onChange={(e) =>
                     setForm((f) => ({
@@ -551,7 +551,7 @@ export default function Coupons() {
               <div className="field-group">
                 <label className="field-label">Type</label>
                 <div className="coupon-field-with-icon">
-                  <BadgePercent size={15} />
+                  <BadgePercent size={14} />
                   <select
                     className="field-select"
                     value={form.type}
@@ -568,9 +568,9 @@ export default function Coupons() {
                 <label className="field-label">Value *</label>
                 <div className="coupon-field-with-icon">
                   {form.type === "percentage" ? (
-                    <BadgePercent size={15} />
+                    <BadgePercent size={14} />
                   ) : (
-                    <IndianRupee size={15} />
+                    <IndianRupee size={14} />
                   )}
                   <input
                     className="field-input"
@@ -588,11 +588,11 @@ export default function Coupons() {
             <div className="field-group">
               <label className="field-label">Description</label>
               <div className="coupon-field-with-icon">
-                <FileText size={15} />
+                <FileText size={14} />
                 <input
                   className="field-input"
                   value={form.description}
-                  placeholder="Internal note or display label"
+                  placeholder="Internal note (not shown to customers)"
                   onChange={(e) =>
                     setForm((f) => ({ ...f, description: e.target.value }))
                   }
@@ -614,12 +614,13 @@ export default function Coupons() {
               <div className="field-group">
                 <label className="field-label">Usage Limit</label>
                 <div className="coupon-field-with-icon">
-                  <Users size={15} />
+                  <Users size={14} />
                   <input
                     className="field-input"
                     type="number"
                     value={form.usageLimit}
                     placeholder="Unlimited"
+                    min={1}
                     onChange={(e) =>
                       setForm((f) => ({ ...f, usageLimit: e.target.value }))
                     }
@@ -632,12 +633,13 @@ export default function Coupons() {
               <div className="field-group">
                 <label className="field-label">Min. Order Value</label>
                 <div className="coupon-field-with-icon">
-                  <IndianRupee size={15} />
+                  <IndianRupee size={14} />
                   <input
                     className="field-input"
                     type="number"
                     value={form.minOrderValue}
                     placeholder="0"
+                    min={0}
                     onChange={(e) =>
                       setForm((f) => ({ ...f, minOrderValue: e.target.value }))
                     }
@@ -652,7 +654,7 @@ export default function Coupons() {
             <div className="field-group">
               <label className="field-label">Expiry Date</label>
               <div className="coupon-field-with-icon">
-                <CalendarDays size={15} />
+                <CalendarDays size={14} />
                 <input
                   className="field-input"
                   type="date"

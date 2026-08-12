@@ -28,7 +28,13 @@ const ProductSchema = new mongoose.Schema({
     title: { type: String, default: '' },
     description: { type: String, default: '' },
     url: { type: String, default: '' }
-  }
+  },
+  sizes: [{
+    size: { type: String, required: true },
+    price: { type: Number, required: true },
+    discountPrice: { type: Number, default: null },
+    quantity: { type: Number, default: 0 }
+  }]
 }, { timestamps: true });
 
 // Index for low-stock queries

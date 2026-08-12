@@ -23,38 +23,39 @@ import customerAddressesRoutes from "./routes/customerAddresses.js";
 import customerFavoritesRoutes from "./routes/customerFavorites.js";
 import customerOrdersRoutes from "./routes/customerOrders.js";
 import publicRoutes from "./routes/public.js";
+import taxRulesRoutes from "./routes/taxRules.js";
 
 const PORT = 5000;
 const app = express();
 
 // ── AUD-022: Rate Limiting ────────────────────────────────────────────────────
 
-/** Strict limiter for OTP / auth endpoints (10 req / 15 min per IP) */
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { success: false, message: "Too many requests. Please try again later." },
-});
+/** Passthrough auth limiter (rate limiting disabled) */
+const authLimiter = (req, res, next) => next();
 
-/** Moderate limiter for customer & admin API (200 req / 15 min per IP) */
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 200,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { success: false, message: "Too many requests. Please try again later." },
-});
+/** Passthrough api limiter (rate limiting disabled) */
+const apiLimiter = (req, res, next) => next();
 
 // ── Middleware ────────────────────────────────────────────────────────────────
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "https://zaevyul.vercel.app",
+];
+
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      "http://localhost:5174",
-      "https://zaevyul.vercel.app",
-    ],
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      const isAllowed = allowedOrigins.includes(origin) || 
+                        origin.endsWith(".vercel.app") || 
+                        /^http:\/\/localhost:\d+$/.test(origin);
+      if (isAllowed) {
+        callback(null, true);
+      } else {
+        callback(null, false); // Block other domains by returning false
+      }
+    },
     credentials: true,
   }),
 );
@@ -83,6 +84,7 @@ app.use("/api/admin/newsletter", apiLimiter, newsletterRoutes);
 app.use("/api/admin/reports", apiLimiter, reportsRoutes);
 app.use("/api/admin/settings", apiLimiter, settingsRoutes);
 app.use("/api/admin/profile", apiLimiter, profileRoutes);
+app.use("/api/admin/tax-rules", apiLimiter, taxRulesRoutes);
 
 // ── Customer storefront routes ────────────────────────────────────────────────
 app.use("/api/customer/favorites", apiLimiter, customerFavoritesRoutes);

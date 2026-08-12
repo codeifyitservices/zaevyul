@@ -96,6 +96,14 @@ export default function ProductCard({
             }`}
           />
         </button>
+
+        {p.quantity <= 0 && (
+          <div className="absolute inset-0 bg-[#1C1916]/40 backdrop-blur-[1px] flex items-center justify-center z-10">
+            <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.25em] text-white bg-[#1C1916]/80 px-4.5 py-2.5 rounded-[1px] shadow-sm">
+              Sold Out
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Details container */}
@@ -109,13 +117,18 @@ export default function ProductCard({
               </h3>
               {showAddButton && (
                 <button
+                  disabled={p.quantity <= 0}
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     addToCart(p, 1);
                   }}
-                  aria-label={`Add ${p.name} to bag`}
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#1C1916]/20 text-[#1C1916] transition-colors duration-200 hover:border-[#1C1916] hover:bg-[#1C1916] hover:text-white sm:h-8 sm:w-8"
+                  aria-label={p.quantity <= 0 ? `${p.name} is out of stock` : `Add ${p.name} to bag`}
+                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#1C1916]/20 text-[#1C1916] transition-colors duration-200 sm:h-8 sm:w-8 ${
+                    p.quantity <= 0
+                      ? "opacity-35 cursor-not-allowed"
+                      : "hover:border-[#1C1916] hover:bg-[#1C1916] hover:text-white cursor-pointer"
+                  }`}
                 >
                   <Plus size={13} strokeWidth={1.5} />
                 </button>
@@ -162,15 +175,20 @@ export default function ProductCard({
                 {getProductPrice(p)}
               </span>
             </div>
-            {showAddButton && (
+             {showAddButton && (
               <button
+                disabled={p.quantity <= 0}
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   addToCart(p, 1);
                 }}
-                aria-label={`Add ${p.name} to bag`}
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#1C1916]/20 text-[#1C1916] transition-colors duration-200 hover:border-[#1C1916] hover:bg-[#1C1916] hover:text-white sm:h-8 sm:w-8 mt-0.5"
+                aria-label={p.quantity <= 0 ? `${p.name} is out of stock` : `Add ${p.name} to bag`}
+                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#1C1916]/20 text-[#1C1916] transition-colors duration-200 sm:h-8 sm:w-8 mt-0.5 ${
+                  p.quantity <= 0
+                    ? "opacity-35 cursor-not-allowed"
+                    : "hover:border-[#1C1916] hover:bg-[#1C1916] hover:text-white cursor-pointer"
+                }`}
               >
                 <Plus size={13} strokeWidth={1.5} />
               </button>

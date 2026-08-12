@@ -26,65 +26,7 @@ export default function FeaturedProducts() {
     fetchFeatured();
   }, []);
 
-  const displayProducts =
-    products.length > 0
-      ? products
-      : [
-          {
-            id: 1,
-            name: "Ivory Sozni Shawl",
-            price: "₹ 48,000",
-            img: "/storefront/prod-1.png",
-            weave: "Diamond",
-            time: "120 Hrs",
-            material: "Pashmina",
-          },
-          {
-            id: 11,
-            name: "Midnight Garden Shawl",
-            price: "₹ 42,000",
-            img: "/storefront/prod-2.png",
-            weave: "Twill",
-            time: "240 Hrs",
-            material: "Pashmina",
-          },
-          {
-            id: 3,
-            name: "Sand Pashmina Stole",
-            price: "₹ 18,000",
-            img: "/storefront/prod-3.png",
-            weave: "Plain",
-            time: "45 Hrs",
-            material: "Pashmina",
-          },
-          {
-            id: 4,
-            name: "Rose Kani Shawl",
-            price: "₹ 55,000",
-            img: "/storefront/prod-1.png",
-            weave: "Kani",
-            time: "300 Hrs",
-            material: "Pashmina",
-          },
-          {
-            id: 5,
-            name: "Charcoal Tilla Stole",
-            price: "₹ 22,000",
-            img: "/storefront/prod-2.png",
-            weave: "Tilla",
-            time: "60 Hrs",
-            material: "Pashmina",
-          },
-          {
-            id: 6,
-            name: "Blush Embroidered Shawl",
-            price: "₹ 39,000",
-            img: "/storefront/prod-3.png",
-            weave: "Diamond",
-            time: "150 Hrs",
-            material: "Pashmina",
-          },
-        ];
+  const displayProducts = products.length > 0 ? products : [];
 
   // Keep the arrow buttons vertically centered on the image itself,
   // not the full card (image + title + price + meta rows below it).
@@ -153,15 +95,15 @@ export default function FeaturedProducts() {
             ref={scrollerRef}
             className="relative z-0 flex overflow-x-auto pb-4 gap-6 scroll-smooth snap-x snap-mandatory scrollbar-none lg:gap-8 xl:gap-9"
           >
-             {displayProducts.map((p, i) => (
-               <ProductCard
-                 key={p._id || p.id}
-                 p={p}
-                 imageRef={i === 0 ? firstImageRef : undefined}
-                 showMeta={true}
-                 className="w-[78%] min-w-[240px] sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-24px)] xl:w-[calc(33.333%-28px)] shrink-0 snap-start"
-               />
-             ))}
+            {displayProducts.map((p, i) => (
+              <ProductCard
+                key={p._id || p.id}
+                p={p}
+                imageRef={i === 0 ? firstImageRef : undefined}
+                showMeta={true}
+                className="w-[78%] min-w-[240px] sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-24px)] xl:w-[calc(33.333%-28px)] shrink-0 snap-start"
+              />
+            ))}
           </div>
 
           <button

@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { X, Plus, Minus, Heart, ArrowRight } from "lucide-react";
 import { useCart } from "../../context/CartContext";
+import { useFavorite } from "../../context/FavoritesContext";
+import { useToast } from "../../context/ToastContext";
+import { useCustomerAuth } from "../../context/CustomerAuthContext";
 import { api, getCategorySlug } from "../../lib/api";
 import { useCurrency } from "../../context/CurrencyContext";
 
@@ -16,12 +19,52 @@ export default function CartDrawer() {
     totals,
     addToCart,
   } = useCart();
+  const { addFavorite } = useFavorite();
+  const { isAuthenticated } = useCustomerAuth();
   const { formatPrice } = useCurrency();
+  const toast = useToast();
 
   const drawerRef = useRef(null);
+  const scrollContainerRef = useRef(null);
   const [removingKeys, setRemovingKeys] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
   const [recLoading, setRecLoading] = useState(false);
+  const [confirmModalItem, setConfirmModalItem] = useState(null);
+
+  const handleMoveToWishlist = async (item) => {
+    if (!isAuthenticated) {
+      toast("Please log in to save favorites", "info");
+      return;
+    }
+    const success = await addFavorite({
+      _id: item.id,
+      name: item.name,
+      slug: item.slug,
+      basePrice: item.price,
+      img: item.image,
+      category: item.category,
+      color: item.color,
+      size: item.size
+    });
+    if (success) {
+      removeItem(item.key);
+      toast(`"${item.name}" moved to Favorites`, "success");
+    }
+  };
+
+  const executeRemove = (key) => {
+    setRemovingKeys((prev) => [...prev, key]);
+    setConfirmModalItem(null);
+    setTimeout(() => {
+      removeItem(key);
+      setRemovingKeys((prev) => prev.filter((k) => k !== key));
+    }, 300);
+  };
+
+  const executeMoveToWishlist = async (item) => {
+    setConfirmModalItem(null);
+    await handleMoveToWishlist(item);
+  };
 
   // Lock body scroll when drawer is open
   useEffect(() => {
@@ -50,7 +93,7 @@ export default function CartDrawer() {
   useEffect(() => {
     if (!isOpen) return;
     const focusable = drawerRef.current?.querySelectorAll(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
     );
     if (!focusable || focusable.length === 0) return;
     const first = focusable[0];
@@ -85,7 +128,9 @@ export default function CartDrawer() {
         const prodList = await api.products.list();
         // Filter out items already in the cart and take max 4
         const inCartIds = cart.map((item) => item.id);
-        const filtered = prodList.filter((p) => !inCartIds.includes(p._id || p.id));
+        const filtered = prodList.filter(
+          (p) => !inCartIds.includes(p._id || p.id),
+        );
         setRecommendations(filtered.slice(0, 4));
       } catch (err) {
         console.error("Failed to fetch cart recommendations:", err);
@@ -117,7 +162,9 @@ export default function CartDrawer() {
   };
 
   return (
-    <div className={`fixed inset-0 z-50 flex justify-end transition-[visibility] duration-[350ms] ${isOpen ? "visible pointer-events-auto" : "invisible pointer-events-none"}`}>
+    <div
+      className={`fixed inset-0 z-50 flex justify-end transition-[visibility] duration-[350ms] ${isOpen ? "visible pointer-events-auto" : "invisible pointer-events-none"}`}
+    >
       {/* Backdrop Overlay */}
       <div
         className={`fixed inset-0 bg-[#1C1916]/30 backdrop-blur-[3px] transition-opacity duration-[350ms] ease-in-out ${
@@ -156,12 +203,20 @@ export default function CartDrawer() {
           <div className="border-b border-[#ECE7E1] bg-[#F5EFE7]/50 px-6 py-4.5 sm:px-8">
             {totals.isFreeShipping ? (
               <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.12em] text-[#2E7D32]">
-                Your order qualifies for Free Shipping! 🎉
+                You've unlocked Free Shipping! 🎉
               </p>
             ) : (
               <div>
                 <p className="font-sans text-[11.5px] font-normal text-[#6B6560] leading-relaxed mb-2.5">
-                  You're only <span className="font-semibold text-[#1C1916]">{formatPrice(totals.amountToFreeShipping)}</span> away from <span className="font-semibold text-[#1C1916]">Free Shipping</span>.
+                  You're only{" "}
+                  <span className="font-semibold text-[#1C1916]">
+                    {formatPrice(totals.amountToFreeShipping)}
+                  </span>{" "}
+                  away from{" "}
+                  <span className="font-semibold text-[#1C1916]">
+                    Free Shipping
+                  </span>
+                  .
                 </p>
                 <div className="h-1.5 w-full bg-[#E6DED4] rounded-full overflow-hidden">
                   <div
@@ -169,7 +224,7 @@ export default function CartDrawer() {
                     style={{
                       width: `${Math.min(
                         100,
-                        (totals.subtotal / totals.freeShippingThreshold) * 100
+                        (totals.subtotal / totals.freeShippingThreshold) * 100,
                       )}%`,
                     }}
                   />
@@ -180,7 +235,10 @@ export default function CartDrawer() {
         )}
 
         {/* Cart Content Area (Scrollable) */}
-        <div className="flex-1 overflow-y-auto px-6 py-8 sm:px-8 space-y-8">
+        <div
+          ref={scrollContainerRef}
+          className="flex-1 overflow-y-auto px-6 py-8 sm:px-8 space-y-8"
+        >
           {cart.length === 0 ? (
             /* Empty Cart State */
             <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -204,7 +262,8 @@ export default function CartDrawer() {
                 Your cart is empty
               </h3>
               <p className="font-sans text-[13px] text-[#8A857E] font-light mb-8 max-w-[280px] leading-relaxed">
-                Add beautiful, handwoven Pashmina pieces to start your luxury collection.
+                Add beautiful, handwoven Pashmina pieces to start your luxury
+                collection.
               </p>
               <button
                 onClick={() => setIsOpen(false)}
@@ -216,106 +275,132 @@ export default function CartDrawer() {
           ) : (
             /* Cart Items List */
             <div className="divide-y divide-[#ECE7E1] -my-4">
-              {cart.map((item) => {
-                const isRemoving = removingKeys.includes(item.key);
-                return (
-                  <div
-                    key={item.key}
-                    className={`flex gap-4.5 py-6 transition-all duration-300 ease-in-out ${
-                      isRemoving ? "opacity-0 translate-x-8 max-h-0 py-0 overflow-hidden" : ""
-                    }`}
-                  >
-                    {/* Product Image */}
-                    <Link
-                      to={`/collection/${getCategorySlug(item.category)}/${item.slug || (item.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}`}
-                      onClick={() => setIsOpen(false)}
-                      className="relative aspect-[4/5] w-[84px] shrink-0 overflow-hidden rounded-[2px] bg-[#EFE9E1]"
+              {[...cart]
+                .sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0))
+                .map((item) => {
+                  const isRemoving = removingKeys.includes(item.key);
+                  return (
+                    <div
+                      key={item.key}
+                      className={`flex gap-4.5 py-6 transition-all duration-300 ease-in-out ${
+                        isRemoving
+                          ? "opacity-0 translate-x-8 max-h-0 py-0 overflow-hidden"
+                          : ""
+                      }`}
                     >
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="absolute inset-0 w-full h-full object-cover"
-                      />
-                    </Link>
+                      {/* Product Image */}
+                      <Link
+                        to={`/collection/${getCategorySlug(item.category)}/${
+                          item.slug ||
+                          (item.name || "")
+                            .toLowerCase()
+                            .replace(/[^a-z0-9]+/g, "-")
+                            .replace(/(^-|-$)/g, "")
+                        }`}
+                        onClick={() => setIsOpen(false)}
+                        className="relative aspect-[4/5] w-[84px] shrink-0 overflow-hidden rounded-[2px] bg-[#EFE9E1]"
+                      >
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="absolute inset-0 w-full h-full object-cover"
+                        />
+                      </Link>
 
-                    {/* Item Details */}
-                    <div className="flex flex-1 flex-col justify-between">
-                      <div>
-                        {/* Name and Price */}
-                        <div className="flex items-start justify-between gap-3">
-                          <Link
-                            to={`/collection/${getCategorySlug(item.category)}/${item.slug || (item.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}`}
-                            onClick={() => setIsOpen(false)}
-                            className="font-serif text-[14.5px] font-normal leading-snug text-[#1C1916] hover:text-[#B58A5B] transition-colors"
-                          >
-                            {item.name}
-                          </Link>
-                          <span className="font-sans text-[13.5px] font-normal text-[#1C1916] whitespace-nowrap">
-                            {formatPrice(item.price * item.quantity)}
-                          </span>
-                        </div>
+                      {/* Item Details */}
+                      <div className="flex flex-1 flex-col justify-between">
+                        <div>
+                          {/* Name and Price */}
+                          <div className="flex items-start justify-between gap-3">
+                            <Link
+                              to={`/collection/${getCategorySlug(item.category)}/${
+                                item.slug ||
+                                (item.name || "")
+                                  .toLowerCase()
+                                  .replace(/[^a-z0-9]+/g, "-")
+                                  .replace(/(^-|-$)/g, "")
+                              }`}
+                              onClick={() => setIsOpen(false)}
+                              className="font-serif text-[14.5px] font-normal leading-snug text-[#1C1916] hover:text-[#B58A5B] transition-colors"
+                            >
+                              {item.name}
+                            </Link>
+                            <span className="font-sans text-[13.5px] font-normal text-[#1C1916] whitespace-nowrap">
+                              {formatPrice(item.price * item.quantity)}
+                            </span>
+                          </div>
 
-                        {/* Variants */}
-                        <div className="mt-2.5 flex flex-wrap gap-x-3.5 gap-y-1 font-sans text-[11px] text-[#8A857E]">
-                          {item.color && (
-                            <span className="uppercase tracking-wider">
-                              Color: {item.color}
+                          {/* Variants */}
+                          <div className="mt-2.5 flex flex-wrap gap-x-3.5 gap-y-1 font-sans text-[11px] text-[#8A857E]">
+                            {item.color && (
+                              <span className="uppercase tracking-wider">
+                                Color: {item.color}
+                              </span>
+                            )}
+                            {item.size && (
+                              <span className="uppercase tracking-wider">
+                                Size: {item.size}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Low stock indicator */}
+                          {item.stockQuantity <= 5 && (
+                            <span className="inline-block mt-2 font-sans text-[9.5px] font-semibold uppercase tracking-wider text-[#C94C4C]">
+                              Only {item.stockQuantity} left
                             </span>
                           )}
-                          {item.size && (
-                            <span className="uppercase tracking-wider">
-                              Size: {item.size}
+                        </div>
+
+                        {/* Quantity & Actions Row */}
+                        <div className="mt-4 flex items-center justify-between">
+                          {/* Quantity controls */}
+                          <div className="flex items-center border border-[#ECE7E1] bg-white">
+                            <button
+                              onClick={() =>
+                                updateQuantity(item.key, item.quantity - 1)
+                              }
+                              disabled={item.quantity <= 1}
+                              aria-label="Decrease quantity"
+                              className="p-1.5 text-[#8A857E] hover:text-[#1C1916] disabled:opacity-30 transition-colors"
+                            >
+                              <Minus size={11} />
+                            </button>
+                            <span className="px-3.5 font-sans text-[12px] text-[#1C1916] select-none">
+                              {item.quantity}
                             </span>
-                          )}
-                        </div>
+                            <button
+                              onClick={() =>
+                                updateQuantity(item.key, item.quantity + 1)
+                              }
+                              disabled={item.quantity >= item.stockQuantity}
+                              aria-label="Increase quantity"
+                              className="p-1.5 text-[#8A857E] hover:text-[#1C1916] disabled:opacity-30 transition-colors"
+                            >
+                              <Plus size={11} />
+                            </button>
+                          </div>
 
-                        {/* Low stock indicator */}
-                        {item.stockQuantity <= 5 && (
-                          <span className="inline-block mt-2 font-sans text-[9.5px] font-semibold uppercase tracking-wider text-[#C94C4C]">
-                            Only {item.stockQuantity} left
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Quantity & Actions Row */}
-                      <div className="mt-4 flex items-center justify-between">
-                        {/* Quantity controls */}
-                        <div className="flex items-center border border-[#ECE7E1] bg-white">
-                          <button
-                            onClick={() => updateQuantity(item.key, item.quantity - 1)}
-                            disabled={item.quantity <= 1}
-                            aria-label="Decrease quantity"
-                            className="p-1.5 text-[#8A857E] hover:text-[#1C1916] disabled:opacity-30 transition-colors"
-                          >
-                            <Minus size={11} />
-                          </button>
-                          <span className="px-3.5 font-sans text-[12px] text-[#1C1916] select-none">
-                            {item.quantity}
-                          </span>
-                          <button
-                            onClick={() => updateQuantity(item.key, item.quantity + 1)}
-                            disabled={item.quantity >= item.stockQuantity}
-                            aria-label="Increase quantity"
-                            className="p-1.5 text-[#8A857E] hover:text-[#1C1916] disabled:opacity-30 transition-colors"
-                          >
-                            <Plus size={11} />
-                          </button>
-                        </div>
-
-                        {/* Actions buttons */}
-                        <div className="flex items-center gap-4 text-[10.5px] font-semibold tracking-wider uppercase">
-                          <button
-                            onClick={() => handleRemoveClick(item.key)}
-                            className="text-[#8A857E] hover:text-[#C94C4C] transition-colors border-b border-transparent hover:border-[#C94C4C]/40 pb-0.5"
-                          >
-                            Remove
-                          </button>
+                          {/* Actions buttons */}
+                          <div className="flex items-center gap-4 text-[10.5px] font-semibold tracking-wider uppercase">
+                            <button
+                              onClick={() => handleMoveToWishlist(item)}
+                              className="text-[#8A857E] hover:text-[#B58A5B] transition-colors border-b border-transparent hover:border-[#B58A5B]/40 pb-0.5 cursor-pointer"
+                            >
+                              Move to Wishlist
+                            </button>
+                            <button
+                              onClick={() => setConfirmModalItem(item)}
+                              className="text-[#8A857E] hover:text-[#C94C4C] transition-colors border-b border-transparent hover:border-[#C94C4C]/40 pb-0.5 cursor-pointer"
+                            >
+                              Remove
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
             </div>
           )}
 
@@ -327,13 +412,24 @@ export default function CartDrawer() {
               </h4>
               <div className="flex flex-col gap-5">
                 {recommendations.map((p) => {
-                  const pImg = p.img || (p.images && p.images[0]?.url) || "/storefront/prod-1.png";
+                  const pImg =
+                    p.img ||
+                    (p.images && p.images[0]?.url) ||
+                    "/storefront/prod-1.png";
                   const pPrice = p.discountPrice || p.basePrice || 30000;
                   const catSlug = getCategorySlug(p.category);
-                  const prodSlug = p.slug || (p.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+                  const prodSlug =
+                    p.slug ||
+                    (p.name || "")
+                      .toLowerCase()
+                      .replace(/[^a-z0-9]+/g, "-")
+                      .replace(/(^-|-$)/g, "");
                   const detailPath = `/collection/${catSlug}/${prodSlug}`;
                   return (
-                    <div key={p.id || p._id} className="flex gap-4 items-center">
+                    <div
+                      key={p.id || p._id}
+                      className="flex gap-4 items-center"
+                    >
                       <Link
                         to={detailPath}
                         onClick={() => setIsOpen(false)}
@@ -358,9 +454,20 @@ export default function CartDrawer() {
                         </span>
                       </div>
                       <button
-                        onClick={() => addToCart(p, 1)}
-                        className="flex h-7 w-7 items-center justify-center rounded-full border border-[#1C1916]/10 text-[#1C1916]/70 hover:bg-[#1C1916] hover:border-[#1C1916] hover:text-white transition-all duration-200"
-                        aria-label={`Add ${p.name} to cart`}
+                        disabled={p.quantity <= 0}
+                        onClick={() => {
+                          addToCart(p, 1);
+                          scrollContainerRef.current?.scrollTo({
+                            top: 0,
+                            behavior: "smooth",
+                          });
+                        }}
+                        className={`flex h-7 w-7 items-center justify-center rounded-full border border-[#1C1916]/10 text-[#1C1916]/70 transition-all duration-200 ${
+                          p.quantity <= 0
+                            ? "opacity-35 cursor-not-allowed"
+                            : "hover:bg-[#1C1916] hover:border-[#1C1916] hover:text-white cursor-pointer"
+                        }`}
+                        aria-label={p.quantity <= 0 ? `${p.name} is out of stock` : `Add ${p.name} to cart`}
                       >
                         <Plus size={11} strokeWidth={1.5} />
                       </button>
@@ -379,17 +486,23 @@ export default function CartDrawer() {
             <div className="space-y-2.5 mb-6 text-[12.5px] font-sans text-[#6B6560]">
               <div className="flex justify-between">
                 <span>Subtotal</span>
-                <span className="text-[#1C1916] font-normal">{formatPrice(totals.subtotal)}</span>
+                <span className="text-[#1C1916] font-normal">
+                  {formatPrice(totals.subtotal)}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span>Shipping</span>
                 <span className="text-[#1C1916]">
-                  {totals.shipping === 0 ? "Free" : formatPrice(totals.shipping)}
+                  {totals.shipping === 0
+                    ? "Free"
+                    : formatPrice(totals.shipping)}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span>Tax</span>
-                <span className="text-[#1C1916]">{formatPrice(totals.tax)}</span>
+                <span className="text-[#1C1916]">
+                  {formatPrice(totals.tax)}
+                </span>
               </div>
               <div className="flex justify-between border-t border-[#ECE7E1] pt-3 text-[14.5px] font-normal text-[#1C1916]">
                 <span className="font-medium">Estimated Total</span>
@@ -412,6 +525,51 @@ export default function CartDrawer() {
           </footer>
         )}
       </div>
+
+      {/* Remove Confirmation Modal */}
+      {confirmModalItem && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(28, 25, 22, 0.45)', backdropFilter: 'blur(4px)'
+        }}>
+          <div className="bg-[#FAF8F5] border border-[#ECE7E1] p-6 sm:p-8 max-w-[400px] w-full mx-4 rounded-[4px] shadow-2xl relative text-left">
+            <button
+              onClick={() => setConfirmModalItem(null)}
+              className="absolute top-4 right-4 text-[#1C1916]/50 hover:text-[#1C1916] transition-colors p-1 cursor-pointer"
+            >
+              <X size={16} />
+            </button>
+            
+            <h3 className="font-serif text-[18px] text-[#1C1916] mb-3">
+              Remove Item?
+            </h3>
+            <p className="font-sans text-[13px] text-[#6B6560] font-light leading-relaxed mb-6">
+              Would you like to move <strong>{confirmModalItem.name}</strong> to your Wishlist, or remove it from the cart completely?
+            </p>
+
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => executeMoveToWishlist(confirmModalItem)}
+                className="w-full bg-[#1C1916] text-white py-3 font-sans text-[10px] font-semibold uppercase tracking-wider hover:bg-[#B58A5B] transition-colors duration-300 rounded-[1px] cursor-pointer"
+              >
+                Move to Wishlist
+              </button>
+              <button
+                onClick={() => executeRemove(confirmModalItem.key)}
+                className="w-full border border-[#C94C4C] text-[#C94C4C] hover:bg-[#C94C4C] hover:text-white py-3 font-sans text-[10px] font-semibold uppercase tracking-wider transition-colors duration-300 rounded-[1px] cursor-pointer"
+              >
+                Remove from Cart
+              </button>
+              <button
+                onClick={() => setConfirmModalItem(null)}
+                className="w-full border border-[#ECE7E1] text-[#6B6560] hover:text-[#1C1916] py-3 font-sans text-[10px] font-semibold uppercase tracking-wider transition-colors duration-300 rounded-[1px] cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

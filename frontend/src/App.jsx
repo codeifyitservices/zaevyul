@@ -16,6 +16,9 @@ import JournalPage from "./landing/pages/JournalPage";
 import JournalDetailPage from "./landing/pages/JournalDetailPage";
 import CustomerLoginPage from "./landing/pages/CustomerLoginPage";
 import OurStoryPage from "./landing/pages/OurStory";
+import ScrollToTop from "./landing/components/ScrollToTop";
+import CartDrawer from "./landing/components/CartDrawer";
+import WishlistDrawer from "./landing/components/WishlistDrawer";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
@@ -30,6 +33,9 @@ export default function App() {
               <CustomerAuthProvider>
                 <FavoritesProvider>
                   <CartProvider>
+                    <ScrollToTop />
+                    <CartDrawer />
+                    <WishlistDrawer />
                     <Routes>
                       {/* Storefront routes */}
                       <Route path="/" element={<LandingPage />} />
@@ -48,7 +54,10 @@ export default function App() {
                       <Route path="/cart" element={<CartPage />} />
                       <Route path="/my-account/*" element={<MyAccountPage />} />
                       <Route path="/journal" element={<JournalPage />} />
-                      <Route path="/journal/:slug" element={<JournalDetailPage />} />
+                      <Route
+                        path="/journal/:slug"
+                        element={<JournalDetailPage />}
+                      />
                       <Route path="/about" element={<OurStoryPage />} />
 
                       {/* Customer auth */}

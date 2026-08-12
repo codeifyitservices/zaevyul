@@ -23,6 +23,7 @@ import {
 import Navbar from "../components/Navbar";
 import SiteFooter from "../components/SiteFooter";
 import { useCart } from "../../context/CartContext";
+import { useFavorite } from "../../context/FavoritesContext";
 import { getCategorySlug, api } from "../../lib/api";
 import { useToast } from "../../context/ToastContext";
 import { useCustomerAuth } from "../../context/CustomerAuthContext";
@@ -34,8 +35,58 @@ export default function CartPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const toast = useToast();
-  const { cart, updateQuantity, removeItem, totals, clearCart } = useCart();
-  const { formatPrice } = useCurrency();
+  const {
+    cart,
+    updateQuantity,
+    removeItem,
+    totals,
+    clearCart,
+    selectedAddress,
+    setSelectedAddress,
+    appliedCoupon,
+    setAppliedCoupon,
+  } = useCart();
+  const { addFavorite } = useFavorite();
+  const { user, isAuthenticated } = useCustomerAuth();
+  const { formatPrice, currencyCode } = useCurrency();
+
+  const [confirmModalItem, setConfirmModalItem] = useState(null);
+  const [removingKeys, setRemovingKeys] = useState([]);
+
+  const handleMoveToWishlist = async (item) => {
+    if (!isAuthenticated) {
+      toast("Please log in to save favorites", "info");
+      return;
+    }
+    const success = await addFavorite({
+      _id: item.id,
+      name: item.name,
+      slug: item.slug,
+      basePrice: item.price,
+      img: item.image,
+      category: item.category,
+      color: item.color,
+      size: item.size
+    });
+    if (success) {
+      removeItem(item.key);
+      toast(`"${item.name}" moved to Favorites`, "success");
+    }
+  };
+
+  const executeRemove = (key) => {
+    setRemovingKeys((prev) => [...prev, key]);
+    setConfirmModalItem(null);
+    setTimeout(() => {
+      removeItem(key);
+      setRemovingKeys((prev) => prev.filter((k) => k !== key));
+    }, 300);
+  };
+
+  const executeMoveToWishlist = async (item) => {
+    setConfirmModalItem(null);
+    await handleMoveToWishlist(item);
+  };
 
   // State for gift note
   const [showGiftInput, setShowGiftInput] = useState(false);
@@ -46,8 +97,6 @@ export default function CartPage() {
 
   // Coupon code state
   const [couponInput, setCouponInput] = useState("");
-  const [appliedCoupon, setAppliedCoupon] = useState(null);
-  // appliedCoupon: { code, discountType, discountValue, discountAmount }
   const [couponError, setCouponError] = useState("");
   const [couponLoading, setCouponLoading] = useState(false);
 
@@ -78,19 +127,8 @@ export default function CartPage() {
     toast("Coupon removed", "success");
   };
 
-  // Backend already calculates discountAmount; fall back to local calc if missing
-  const couponDiscount = appliedCoupon
-    ? appliedCoupon.discountAmount ?? (
-        appliedCoupon.discountType === "percentage"
-          ? Math.round((totals.subtotal * appliedCoupon.discountValue) / 100)
-          : Math.min(appliedCoupon.discountValue, totals.subtotal)
-      )
-    : 0;
-
-  const finalTotal = Math.max(
-    0,
-    totals.subtotal + (totals.shipping > 0 ? totals.shipping : 0) - couponDiscount
-  );
+  const couponDiscount = totals.discount || 0;
+  const finalTotal = totals.total;
 
   // Coupon modal state
   const [showCouponModal, setShowCouponModal] = useState(false);
@@ -132,7 +170,7 @@ export default function CartPage() {
     }
   };
 
-  const { user, isAuthenticated } = useCustomerAuth();
+
 
   // State for checkout modal
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
@@ -149,24 +187,45 @@ export default function CartPage() {
   });
   const [selectedAddressId, setSelectedAddressId] = useState("");
 
+  // Autofetch and set user default address to trigger backend tax estimation on mount
+  useEffect(() => {
+    if (isAuthenticated && user?.addresses?.length) {
+      const defaultAddr =
+        user.addresses.find((a) => a.isDefault) || user.addresses[0];
+      setSelectedAddress(defaultAddr);
+      setSelectedAddressId(defaultAddr._id || "");
+    } else {
+      setSelectedAddress(null);
+      setSelectedAddressId("");
+    }
+  }, [isAuthenticated, user, setSelectedAddress]);
+
+  // Handle address change in checkout modal
+  const handleAddressChange = (addrId) => {
+    setSelectedAddressId(addrId);
+    if (user?.addresses) {
+      const addr = user.addresses.find((a) => a._id === addrId);
+      setSelectedAddress(addr);
+    }
+  };
+
   // Prefill when checkout modal opens
   useEffect(() => {
     if (showCheckoutModal && isAuthenticated && user) {
-      const defaultAddr =
-        user.addresses?.find((a) => a.isDefault) || user.addresses?.[0];
-      setSelectedAddressId(defaultAddr?._id || "");
+      const currentAddr = selectedAddress || user.addresses?.find((a) => a.isDefault) || user.addresses?.[0];
+      setSelectedAddressId(currentAddr?._id || "");
       setCheckoutForm({
         email: user.email || "",
         name: user.name || "",
-        address: defaultAddr?.addressLine || "",
-        city: defaultAddr?.city || "",
-        postalCode: defaultAddr?.postalCode || "",
+        address: currentAddr?.addressLine || "",
+        city: currentAddr?.city || "",
+        postalCode: currentAddr?.postalCode || "",
         cardNumber: "4111 2222 3333 4444",
         cardExpiry: "12/29",
         cardCvc: "123",
       });
     }
-  }, [showCheckoutModal, isAuthenticated, user]);
+  }, [showCheckoutModal, isAuthenticated, user, selectedAddress]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -212,12 +271,14 @@ export default function CartPage() {
           product: item.id,
           qty: item.quantity,
           price: item.price,
+          size: item.size || "",
         })),
         subtotal: totals.subtotal,
         shipping: totals.shipping || 0,
         discount: couponDiscount || 0,
         coupon: appliedCoupon?.code || "",
         total: finalTotal,
+        currency: currencyCode,
         paymentMethod: "Credit Card",
         shippingAddressId: selectedAddressId,
         notes: giftNote,
@@ -341,8 +402,14 @@ export default function CartPage() {
                         .replace(/(^-|-$)/g, "");
                     const detailPath = `/collection/${getCategorySlug(item.category)}/${productSlug}`;
 
+                    const isRemoving = removingKeys.includes(item.key);
+
                     return (
-                      <div key={item.key} className="flex gap-6 py-6 md:py-8">
+                      <div key={item.key} className={`flex gap-6 py-6 md:py-8 transition-all duration-300 ease-in-out ${
+                        isRemoving
+                          ? "opacity-0 translate-x-8 max-h-0 py-0 overflow-hidden"
+                          : ""
+                      }`}>
                         {/* Image */}
                         <Link
                           to={detailPath}
@@ -416,17 +483,23 @@ export default function CartPage() {
                               </button>
                             </div>
 
-                            {/* Trash Button */}
-                            <button
-                              onClick={() => {
-                                removeItem(item.key);
-                                toast("Item removed from cart", "info");
-                              }}
-                              className="p-2 text-[#8A857E] hover:text-[#C94C4C] hover:bg-[#C94C4C]/5 rounded-full cursor-pointer transition-colors duration-200"
-                              aria-label="Remove item"
-                            >
-                              <Trash2 size={16} strokeWidth={1.5} />
-                            </button>
+                            <div className="flex items-center gap-4">
+                              <button
+                                onClick={() => handleMoveToWishlist(item)}
+                                className="font-sans text-[11px] font-semibold text-[#8A857E] hover:text-[#B58A5B] transition-colors uppercase tracking-wider pb-0.5 border-b border-transparent hover:border-[#B58A5B]/40 cursor-pointer"
+                              >
+                                Move to Wishlist
+                              </button>
+
+                              {/* Trash Button */}
+                              <button
+                                onClick={() => setConfirmModalItem(item)}
+                                className="p-2 text-[#8A857E] hover:text-[#C94C4C] hover:bg-[#C94C4C]/5 rounded-full cursor-pointer transition-colors duration-200"
+                                aria-label="Remove item"
+                              >
+                                <Trash2 size={16} strokeWidth={1.5} />
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -500,7 +573,14 @@ export default function CartPage() {
                     Order Summary
                   </h2>
 
-                  <div className="space-y-4 font-sans text-[12.5px] font-light text-[#6B6560]">
+                  {totals.error && (
+                    <div className="mb-4 flex items-start gap-2 text-[#C94C4C] bg-[#C94C4C]/5 border border-[#C94C4C]/20 p-3 rounded-[3px] text-[11.5px] font-light leading-relaxed">
+                      <AlertCircle size={14} className="shrink-0 mt-0.5" />
+                      <span>{totals.error}</span>
+                    </div>
+                  )}
+
+                  <div className={`space-y-4 font-sans text-[12.5px] font-light text-[#6B6560] ${totals.loading ? 'opacity-50' : ''} transition-opacity duration-200`}>
                     <div className="flex justify-between">
                       <span>Subtotal</span>
                       <span className="text-[#1C1916] font-medium">
@@ -516,14 +596,14 @@ export default function CartPage() {
                             Free
                           </span>
                         ) : (
-                          "Calculated at checkout"
+                          formatPrice(totals.shipping)
                         )}
                       </span>
                     </div>
 
                     {totals.tax > 0 && (
                       <div className="flex justify-between">
-                        <span>Estimated Tax</span>
+                        <span>{totals.taxName || 'Estimated Tax'} {totals.taxRate ? `(${totals.taxRate}%)` : ''}</span>
                         <span className="text-[#1C1916]">
                           {formatPrice(totals.tax)}
                         </span>
@@ -534,7 +614,7 @@ export default function CartPage() {
                       <div className="flex justify-between text-[#2E7D32]">
                         <span className="flex items-center gap-1">
                           <Gift size={11} />
-                          Coupon ({appliedCoupon.code})
+                          Coupon ({appliedCoupon?.code})
                         </span>
                         <span className="font-semibold">−{formatPrice(couponDiscount)}</span>
                       </div>
@@ -547,7 +627,7 @@ export default function CartPage() {
                           {formatPrice(finalTotal)}
                         </span>
                         <p className="text-[10px] text-[#8A857E] mt-0.5 font-light">
-                          Taxes included
+                          {totals.taxName ? `${totals.taxName} included` : 'Taxes included'}
                         </p>
                       </div>
                     </div>
@@ -608,6 +688,7 @@ export default function CartPage() {
                   </div>
 
                   <button
+                    disabled={!!totals.error || totals.loading}
                     onClick={() => {
                       if (!isAuthenticated) {
                         toast(
@@ -620,9 +701,9 @@ export default function CartPage() {
                       setCheckoutStep(1);
                       setShowCheckoutModal(true);
                     }}
-                    className="w-full mt-6 bg-[#1C1916] text-white py-4 font-sans text-[10.5px] font-semibold uppercase tracking-[0.25em] rounded-[2px] hover:bg-[#B58A5B] transition-colors duration-300 shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+                    className="w-full mt-6 bg-[#1C1916] text-white py-4 font-sans text-[10.5px] font-semibold uppercase tracking-[0.25em] rounded-[2px] hover:bg-[#B58A5B] transition-colors duration-300 shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Checkout <ArrowRight size={13} />
+                    {totals.loading ? "Recalculating..." : <>Checkout <ArrowRight size={13} /></>}
                   </button>
 
                   {/* Benefit items */}
@@ -773,7 +854,7 @@ export default function CartPage() {
                                 type="radio"
                                 name="shippingAddress"
                                 checked={selectedAddressId === addr._id}
-                                onChange={() => setSelectedAddressId(addr._id)}
+                                onChange={() => handleAddressChange(addr._id)}
                                 className="mt-1"
                               />
                               <div className="min-w-0 text-[12.5px] text-[#3D3833] leading-relaxed">
@@ -879,6 +960,51 @@ export default function CartPage() {
           onClose={() => setShowCouponModal(false)}
           formatPrice={formatPrice}
         />
+      )}
+
+      {/* Remove Confirmation Modal */}
+      {confirmModalItem && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(28, 25, 22, 0.45)', backdropFilter: 'blur(4px)'
+        }}>
+          <div className="bg-[#FAF8F5] border border-[#E6DED4] p-6 sm:p-8 max-w-[400px] w-full mx-4 rounded-[4px] shadow-2xl relative text-left">
+            <button
+              onClick={() => setConfirmModalItem(null)}
+              className="absolute top-4 right-4 text-[#1C1916]/50 hover:text-[#1C1916] transition-colors p-1 cursor-pointer"
+            >
+              <X size={16} />
+            </button>
+            
+            <h3 className="font-serif text-[18px] text-[#1C1916] mb-3">
+              Remove Item?
+            </h3>
+            <p className="font-sans text-[13px] text-[#6B6560] font-light leading-relaxed mb-6">
+              Would you like to move <strong>{confirmModalItem.name}</strong> to your Wishlist, or remove it from the cart completely?
+            </p>
+
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => executeMoveToWishlist(confirmModalItem)}
+                className="w-full bg-[#1C1916] text-white py-3 font-sans text-[10px] font-semibold uppercase tracking-wider hover:bg-[#B58A5B] transition-colors duration-300 rounded-[1px] cursor-pointer"
+              >
+                Move to Wishlist
+              </button>
+              <button
+                onClick={() => executeRemove(confirmModalItem.key)}
+                className="w-full border border-[#C94C4C] text-[#C94C4C] hover:bg-[#C94C4C] hover:text-white py-3 font-sans text-[10px] font-semibold uppercase tracking-wider transition-colors duration-300 rounded-[1px] cursor-pointer"
+              >
+                Remove from Cart
+              </button>
+              <button
+                onClick={() => setConfirmModalItem(null)}
+                className="w-full border border-[#ECE7E1] text-[#6B6560] hover:text-[#1C1916] py-3 font-sans text-[10px] font-semibold uppercase tracking-wider transition-colors duration-300 rounded-[1px] cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
