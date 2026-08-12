@@ -4,7 +4,8 @@
  * Does NOT import from or touch the admin api.js.
  */
 
-const CUSTOMER_BASE_URL = import.meta.env.VITE_CUSTOMER_API_URL;
+const CUSTOMER_BASE_URL =
+  import.meta.env.VITE_CUSTOMER_API_URL || "http://localhost:5000/api/customer";
 
 /**
  * Low-level fetch wrapper for customer endpoints.
@@ -183,6 +184,8 @@ export const customerApi = {
         method: "POST",
         body: JSON.stringify(data),
       }),
+
+    getById: (id) => request(`/orders/${id}`, { method: "GET" }),
 
     /** Cancel pending order */
     cancel: (orderId) =>

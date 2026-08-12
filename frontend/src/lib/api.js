@@ -1,7 +1,9 @@
 import * as mock from "./mockData";
 
-const BASE_URL = import.meta.env.VITE_API_URL;
-const PUBLIC_BASE_URL = import.meta.env.VITE_PUBLIC_API_URL;
+const BASE_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:5000/api/admin";
+const PUBLIC_BASE_URL =
+  import.meta.env.VITE_PUBLIC_API_URL || "http://localhost:5000/api/public";
 const USE_MOCK = import.meta.env.VITE_USE_MOCK_API === "true" || false;
 
 // Helper for public (unauthenticated) storefront fetch calls (AUD-002)

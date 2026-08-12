@@ -76,7 +76,7 @@ export function CartProvider({ children }) {
   }, [cart]);
 
   // Centralized Cart Service logic
-  const addToCart = (product, quantity = 1, size = "", color = "") => {
+  const addToCart = (product, quantity = 1, size = "", color = "", openDrawer = true) => {
     const productId = product._id || product.id;
     
     // Determine selected size and color
@@ -161,10 +161,12 @@ export function CartProvider({ children }) {
       toast(`Added "${product.name}" to cart`, "success");
     }
 
-    // Trigger badge animation and open drawer
+    // Trigger badge animation
     setIsBadgeAnimated(true);
     setTimeout(() => setIsBadgeAnimated(false), 800);
-    setIsOpen(true);
+    if (openDrawer) {
+      setIsOpen(true);
+    }
   };
 
   const removeItem = (key) => {

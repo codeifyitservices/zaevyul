@@ -86,9 +86,9 @@ export default function FeaturedProducts() {
             onClick={() => scrollByCard(-1)}
             aria-label="Scroll previous"
             style={arrowTop !== null ? { top: arrowTop } : undefined}
-            className="hidden lg:flex absolute -left-5 xl:-left-6 -translate-y-1/2 z-10 h-10 w-10 items-center justify-center rounded-full border border-[#1C1916]/20 bg-[#FAF8F5] text-[#1C1916] shadow-sm transition-colors duration-200 hover:border-[#1C1916] hover:bg-[#1C1916] hover:text-white"
+            className="hidden lg:flex absolute -left-6 xl:-left-8 -translate-y-1/2 z-10 p-2 items-center justify-center bg-transparent text-[#1C1916] transition-transform duration-200 hover:scale-125 hover:text-[#B58A5B] cursor-pointer focus:outline-none"
           >
-            <ChevronLeft size={16} strokeWidth={1.5} />
+            <ChevronLeft size={24} strokeWidth={1.5} className="drop-shadow-[0_2px_6px_rgba(0,0,0,0.3)]" />
           </button>
 
           <div
@@ -110,9 +110,9 @@ export default function FeaturedProducts() {
             onClick={() => scrollByCard(1)}
             aria-label="Scroll next"
             style={arrowTop !== null ? { top: arrowTop } : undefined}
-            className="hidden lg:flex absolute -right-5 xl:-right-6 -translate-y-1/2 z-10 h-10 w-10 items-center justify-center rounded-full border border-[#1C1916]/20 bg-[#FAF8F5] text-[#1C1916] shadow-sm transition-colors duration-200 hover:border-[#1C1916] hover:bg-[#1C1916] hover:text-white"
+            className="hidden lg:flex absolute -right-6 xl:-right-8 -translate-y-1/2 z-10 p-2 items-center justify-center bg-transparent text-[#1C1916] transition-transform duration-200 hover:scale-125 hover:text-[#B58A5B] cursor-pointer focus:outline-none"
           >
-            <ChevronRight size={16} strokeWidth={1.5} />
+            <ChevronRight size={24} strokeWidth={1.5} className="drop-shadow-[0_2px_6px_rgba(0,0,0,0.3)]" />
           </button>
         </div>
       </div>

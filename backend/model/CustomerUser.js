@@ -15,8 +15,8 @@ const CustomerUserSchema = new mongoose.Schema(
     emailVerified: { type: Boolean, default: false },
     phoneVerified: { type: Boolean, default: false },
 
-    // Favorites — array of Product ObjectIds
-    favorites: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
+    // Favorites — array of Product ObjectIds or string IDs
+    favorites: [{ type: mongoose.Schema.Types.Mixed }],
 
     // Addresses
     addresses: [

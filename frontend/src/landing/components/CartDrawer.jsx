@@ -19,7 +19,7 @@ export default function CartDrawer() {
     totals,
     addToCart,
   } = useCart();
-  const { addFavorite } = useFavorite();
+  const { addFavorite, setIsOpen: setWishlistOpen } = useFavorite();
   const { isAuthenticated } = useCustomerAuth();
   const { formatPrice } = useCurrency();
   const toast = useToast();
@@ -30,6 +30,13 @@ export default function CartDrawer() {
   const [recommendations, setRecommendations] = useState([]);
   const [recLoading, setRecLoading] = useState(false);
   const [confirmModalItem, setConfirmModalItem] = useState(null);
+
+  // Ensure only one drawer is open at a time — close wishlist drawer when cart opens
+  useEffect(() => {
+    if (isOpen) {
+      setWishlistOpen(false);
+    }
+  }, [isOpen, setWishlistOpen]);
 
   const handleMoveToWishlist = async (item) => {
     if (!isAuthenticated) {
@@ -78,15 +85,26 @@ export default function CartDrawer() {
     };
   }, [isOpen]);
 
-  // ESC key to close
+  // ESC key & click outside to close
   useEffect(() => {
+    if (!isOpen) return;
     const handleKeyDown = (e) => {
-      if (e.key === "Escape" && isOpen) {
+      if (e.key === "Escape") {
         setIsOpen(false);
       }
     };
+    const handleOutsideClick = (e) => {
+      if (drawerRef.current && !drawerRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("mousedown", handleOutsideClick);
+    };
   }, [isOpen, setIsOpen]);
 
   // Focus trapping

@@ -86,13 +86,15 @@ export default function ProductCard({
           onClick={handleToggleFavorite}
           aria-label={favorite ? "Remove from favorites" : "Add to favorites"}
           title={!isAuthenticated ? "Sign in to save favorites" : undefined}
-          className="absolute cursor-pointer top-3 right-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/80 backdrop-blur-[2px] text-[#1C1916] transition-all duration-200 hover:bg-white shadow-sm border border-[#1C1916]/5"
+          className="absolute cursor-pointer top-3 right-3 z-10 flex p-1 items-center justify-center bg-transparent transition-transform duration-200 hover:scale-110 group/fav focus:outline-none"
         >
           <Heart
-            size={15}
-            strokeWidth={1.5}
-            className={`transition-colors duration-200 ${
-              favorite ? "fill-[#B58A5B] text-[#B58A5B]" : "text-[#1C1916]"
+            size={18}
+            strokeWidth={1.75}
+            className={`transition-colors duration-200 drop-shadow-[0_2px_6px_rgba(0,0,0,0.65)] ${
+              favorite
+                ? "fill-[#C94C4C] text-[#C94C4C]"
+                : "text-white group-hover/fav:text-[#B58A5B]"
             }`}
           />
         </button>

@@ -19,6 +19,7 @@ import OurStoryPage from "./landing/pages/OurStory";
 import ScrollToTop from "./landing/components/ScrollToTop";
 import CartDrawer from "./landing/components/CartDrawer";
 import WishlistDrawer from "./landing/components/WishlistDrawer";
+import ContactPage from "./landing/pages/ContactPage";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
@@ -62,6 +63,7 @@ export default function App() {
 
                       {/* Customer auth */}
                       <Route path="/login" element={<CustomerLoginPage />} />
+                      <Route path="/contact" element={<ContactPage />} />
 
                       {/* Admin panel — separate auth context */}
                       <Route path="/admin/*" element={<AdminRouter />} />

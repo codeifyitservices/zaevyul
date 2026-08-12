@@ -30,6 +30,130 @@ const FILTER_OPTIONS = {
   price: ["Under ₹25,000", "₹25,000 - ₹50,000", "Over ₹50,000"],
 };
 
+const FALLBACK_CATEGORIES = [
+  { _id: "shawls", name: "Shawls", slug: "shawls" },
+  { _id: "stoles", name: "Stoles", slug: "stoles" },
+  { _id: "scarves", name: "Scarves", slug: "scarves" },
+  { _id: "throws", name: "Throws", slug: "throws" },
+];
+
+// One matcher per filter group. Each takes a product and the list of
+// currently *selected* values for that group and returns whether the
+// product satisfies that group (OR across values within the group, empty
+// selection = no restriction). These are reused both to filter the product
+// list and to work out which options in other groups are still reachable.
+const FILTER_MATCHERS = {
+  categories: (p, selected) => {
+    if (selected.length === 0) return true;
+    const pCat = p.category;
+    if (!pCat) return false;
+    const pCatId = typeof pCat === "string" ? pCat : pCat._id || pCat.id;
+    return selected.includes(String(pCatId));
+  },
+  material: (p, selected) => {
+    if (selected.length === 0) return true;
+    if (!p.material) return false;
+    const m = p.material.toLowerCase();
+    return selected.some((mat) => {
+      if (mat === "100% Pashmina")
+        return m.includes("100%") || m.includes("pure");
+      if (mat === "Silk Pashmina Blend")
+        return m.includes("silk") || m.includes("blend");
+      return m.includes(mat.toLowerCase());
+    });
+  },
+  color: (p, selected) => {
+    if (selected.length === 0) return true;
+    if (!p.color) return false;
+    const c = p.color.toLowerCase();
+    return selected.some((col) => {
+      if (col === "Ivory")
+        return (
+          c.includes("ivory") || c.includes("cream") || c.includes("white")
+        );
+      if (col === "Midnight Black")
+        return (
+          c.includes("black") ||
+          c.includes("midnight") ||
+          c.includes("dark") ||
+          c.includes("charcoal")
+        );
+      if (col === "Sand Beige")
+        return (
+          c.includes("beige") ||
+          c.includes("sand") ||
+          c.includes("saffron") ||
+          c.includes("amber") ||
+          c.includes("brown")
+        );
+      if (col === "Charcoal")
+        return (
+          c.includes("charcoal") ||
+          c.includes("grey") ||
+          c.includes("gray") ||
+          c.includes("stone") ||
+          c.includes("mist")
+        );
+      return c.includes(col.toLowerCase());
+    });
+  },
+  size: (p, selected) => {
+    if (selected.length === 0) return true;
+    if (!p.size) return false;
+    const s = p.size.toLowerCase();
+    return selected.some((sz) => {
+      if (sz === "Standard (200x70cm)")
+        return (
+          s.includes("standard") ||
+          s.includes("170") ||
+          s.includes("190") ||
+          s.includes("200")
+        );
+      if (sz === "Large (200x100cm)")
+        return s.includes("large") || s.includes("king") || s.includes("240");
+      return s.includes(sz.toLowerCase());
+    });
+  },
+  design: (p, selected) => {
+    if (selected.length === 0) return true;
+    const text = `${p.name} ${p.description || ""}`.toLowerCase();
+    return selected.some((ds) => {
+      if (ds === "Solid / Plain")
+        return (
+          text.includes("solid") ||
+          text.includes("plain") ||
+          text.includes("classic") ||
+          text.includes("undyed")
+        );
+      if (ds === "Sozni Embroidery")
+        return (
+          text.includes("embroidery") ||
+          text.includes("embroidered") ||
+          text.includes("sozni")
+        );
+      if (ds === "Kani Weave")
+        return (
+          text.includes("kani") ||
+          text.includes("weave") ||
+          text.includes("woven") ||
+          text.includes("loomed") ||
+          text.includes("heritage")
+        );
+      return text.includes(ds.toLowerCase());
+    });
+  },
+  price: (p, selected) => {
+    if (selected.length === 0) return true;
+    const price = p.discountPrice || p.basePrice || 0;
+    return selected.some((pr) => {
+      if (pr === "Under ₹25,000") return price < 25000;
+      if (pr === "₹25,000 - ₹50,000") return price >= 25000 && price <= 50000;
+      if (pr === "Over ₹50,000") return price > 50000;
+      return false;
+    });
+  },
+};
+
 const getProductImage = (p) =>
   p.img || (p.images && p.images[0]?.url) || "/storefront/prod-1.png";
 // getProductPrice is now defined inside the component via useCurrency
@@ -61,10 +185,12 @@ export default function CollectionsPage() {
     price: [],
   });
   const [sortBy, setSortBy] = useState("newest");
+  const [visibleCount, setVisibleCount] = useState(11);
   const { addToCart } = useCart();
   const { formatPrice } = useCurrency();
 
-  const getProductPrice = (prod) => formatPrice(prod.discountPrice || prod.basePrice);
+  const getProductPrice = (prod) =>
+    formatPrice(prod.discountPrice || prod.basePrice);
 
   const handleFilterChange = (filterKey, value) => {
     setSelectedFilters((prev) => {
@@ -105,6 +231,12 @@ export default function CollectionsPage() {
       document.body.style.overflow = "";
     };
   }, [mobileFilterOpen]);
+
+  // Whenever the category, active filters, or sort order change, the result
+  // set is effectively new — go back to showing the first page of it.
+  useEffect(() => {
+    setVisibleCount(11);
+  }, [category, selectedFilters, sortBy]);
   const activeCategoryObj = categories.find(
     (c) =>
       (c.slug || c.id || "").toLowerCase() === (category || "").toLowerCase(),
@@ -134,129 +266,51 @@ export default function CollectionsPage() {
       })
     : products;
 
-  const activeFilteredProducts = filteredProducts.filter((p) => {
-    // 1. Categories filter
-    if (selectedFilters.categories.length > 0) {
-      const pCat = p.category;
-      if (!pCat) return false;
-      const pCatId = typeof pCat === "string" ? pCat : pCat._id || pCat.id;
-      if (!selectedFilters.categories.includes(String(pCatId))) return false;
-    }
+  // A product must satisfy every filter group (AND across groups). Within a
+  // group, matching any one selected value is enough (OR within a group).
+  const activeFilteredProducts = filteredProducts.filter((p) =>
+    Object.keys(FILTER_MATCHERS).every((key) =>
+      FILTER_MATCHERS[key](p, selectedFilters[key]),
+    ),
+  );
 
-    // 2. Material filter
-    if (selectedFilters.material.length > 0) {
-      if (!p.material) return false;
-      const m = p.material.toLowerCase();
-      const match = selectedFilters.material.some((mat) => {
-        if (mat === "100% Pashmina")
-          return m.includes("100%") || m.includes("pure");
-        if (mat === "Silk Pashmina Blend")
-          return m.includes("silk") || m.includes("blend");
-        return m.includes(mat.toLowerCase());
-      });
-      if (!match) return false;
-    }
+  // For a given filter group, returns the subset of `options` that are
+  // still reachable — i.e. at least one product matches that option AND
+  // every *other* currently-selected filter group. Already-selected
+  // options are always kept so they can still be unchecked.
+  const getAvailableOptions = (key, options) => {
+    const pool = filteredProducts.filter((p) =>
+      Object.keys(FILTER_MATCHERS).every(
+        (k) => k === key || FILTER_MATCHERS[k](p, selectedFilters[k]),
+      ),
+    );
+    return options.filter(
+      (opt) =>
+        selectedFilters[key].includes(opt) ||
+        pool.some((p) => FILTER_MATCHERS[key](p, [opt])),
+    );
+  };
 
-    // 3. Color filter
-    if (selectedFilters.color.length > 0) {
-      if (!p.color) return false;
-      const c = p.color.toLowerCase();
-      const match = selectedFilters.color.some((col) => {
-        if (col === "Ivory")
-          return (
-            c.includes("ivory") || c.includes("cream") || c.includes("white")
-          );
-        if (col === "Midnight Black")
-          return (
-            c.includes("black") ||
-            c.includes("midnight") ||
-            c.includes("dark") ||
-            c.includes("charcoal")
-          );
-        if (col === "Sand Beige")
-          return (
-            c.includes("beige") ||
-            c.includes("sand") ||
-            c.includes("saffron") ||
-            c.includes("amber") ||
-            c.includes("brown")
-          );
-        if (col === "Charcoal")
-          return (
-            c.includes("charcoal") ||
-            c.includes("grey") ||
-            c.includes("gray") ||
-            c.includes("stone") ||
-            c.includes("mist")
-          );
-        return c.includes(col.toLowerCase());
-      });
-      if (!match) return false;
-    }
+  const categoryOptionList =
+    categories.length > 0 ? categories : FALLBACK_CATEGORIES;
+  const availableCategoryIds = new Set(
+    getAvailableOptions(
+      "categories",
+      categoryOptionList.map((c) => String(c.id || c._id)),
+    ),
+  );
+  const availableCategories = categoryOptionList.filter((c) =>
+    availableCategoryIds.has(String(c.id || c._id)),
+  );
 
-    // 4. Size filter
-    if (selectedFilters.size.length > 0) {
-      if (!p.size) return false;
-      const s = p.size.toLowerCase();
-      const match = selectedFilters.size.some((sz) => {
-        if (sz === "Standard (200x70cm)")
-          return (
-            s.includes("standard") ||
-            s.includes("170") ||
-            s.includes("190") ||
-            s.includes("200")
-          );
-        if (sz === "Large (200x100cm)")
-          return s.includes("large") || s.includes("king") || s.includes("240");
-        return s.includes(sz.toLowerCase());
-      });
-      if (!match) return false;
-    }
-
-    // 5. Design filter
-    if (selectedFilters.design.length > 0) {
-      const text = `${p.name} ${p.description || ""}`.toLowerCase();
-      const match = selectedFilters.design.some((ds) => {
-        if (ds === "Solid / Plain")
-          return (
-            text.includes("solid") ||
-            text.includes("plain") ||
-            text.includes("classic") ||
-            text.includes("undyed")
-          );
-        if (ds === "Sozni Embroidery")
-          return (
-            text.includes("embroidery") ||
-            text.includes("embroidered") ||
-            text.includes("sozni")
-          );
-        if (ds === "Kani Weave")
-          return (
-            text.includes("kani") ||
-            text.includes("weave") ||
-            text.includes("woven") ||
-            text.includes("loomed") ||
-            text.includes("heritage")
-          );
-        return text.includes(ds.toLowerCase());
-      });
-      if (!match) return false;
-    }
-
-    // 6. Price filter
-    if (selectedFilters.price.length > 0) {
-      const price = p.discountPrice || p.basePrice || 0;
-      const match = selectedFilters.price.some((pr) => {
-        if (pr === "Under ₹25,000") return price < 25000;
-        if (pr === "₹25,000 - ₹50,000") return price >= 25000 && price <= 50000;
-        if (pr === "Over ₹50,000") return price > 50000;
-        return false;
-      });
-      if (!match) return false;
-    }
-
-    return true;
-  });
+  const availableMaterial = getAvailableOptions(
+    "material",
+    FILTER_OPTIONS.material,
+  );
+  const availableColor = getAvailableOptions("color", FILTER_OPTIONS.color);
+  const availableSize = getAvailableOptions("size", FILTER_OPTIONS.size);
+  const availableDesign = getAvailableOptions("design", FILTER_OPTIONS.design);
+  const availablePrice = getAvailableOptions("price", FILTER_OPTIONS.price);
 
   const sortedProducts = [...activeFilteredProducts];
   if (sortBy === "price-asc") {
@@ -281,8 +335,11 @@ export default function CollectionsPage() {
 
   const filteredProductsCount = sortedProducts.length;
 
-  // Inject spotlight card at index 6 if there are enough products
-  const displayProducts = [...sortedProducts];
+  const hasMoreToShow = visibleCount < sortedProducts.length;
+  const visibleProducts = sortedProducts.slice(0, visibleCount);
+
+  // Inject spotlight card at index 6 if there are enough visible products
+  const displayProducts = [...visibleProducts];
   if (displayProducts.length >= 6) {
     displayProducts.splice(6, 0, { id: "spotlight", isSpotlight: true });
   } else {
@@ -513,19 +570,7 @@ export default function CollectionsPage() {
                     </button>
                     {openFilters.categories && (
                       <div className="mt-4 flex flex-col gap-3">
-                        {(categories.length > 0
-                          ? categories
-                          : [
-                              { _id: "shawls", name: "Shawls", slug: "shawls" },
-                              { _id: "stoles", name: "Stoles", slug: "stoles" },
-                              {
-                                _id: "scarves",
-                                name: "Scarves",
-                                slug: "scarves",
-                              },
-                              { _id: "throws", name: "Throws", slug: "throws" },
-                            ]
-                        ).map((opt) => {
+                        {availableCategories.map((opt) => {
                           const optId = String(opt.id || opt._id);
                           return (
                             <label
@@ -566,7 +611,7 @@ export default function CollectionsPage() {
                   </button>
                   {openFilters.material && (
                     <div className="mt-4 flex flex-col gap-3">
-                      {FILTER_OPTIONS.material.map((opt) => (
+                      {availableMaterial.map((opt) => (
                         <label
                           key={opt}
                           className="flex items-center gap-3 cursor-pointer text-[12px] text-[#6B6560] hover:text-[#1C1916]"
@@ -599,7 +644,7 @@ export default function CollectionsPage() {
                   </button>
                   {openFilters.color && (
                     <div className="mt-4 flex flex-col gap-3">
-                      {FILTER_OPTIONS.color.map((opt) => (
+                      {availableColor.map((opt) => (
                         <label
                           key={opt}
                           className="flex items-center gap-3 cursor-pointer text-[12px] text-[#6B6560] hover:text-[#1C1916]"
@@ -632,7 +677,7 @@ export default function CollectionsPage() {
                   </button>
                   {openFilters.size && (
                     <div className="mt-4 flex flex-col gap-3">
-                      {FILTER_OPTIONS.size.map((opt) => (
+                      {availableSize.map((opt) => (
                         <label
                           key={opt}
                           className="flex items-center gap-3 cursor-pointer text-[12px] text-[#6B6560] hover:text-[#1C1916]"
@@ -665,7 +710,7 @@ export default function CollectionsPage() {
                   </button>
                   {openFilters.design && (
                     <div className="mt-4 flex flex-col gap-3">
-                      {FILTER_OPTIONS.design.map((opt) => (
+                      {availableDesign.map((opt) => (
                         <label
                           key={opt}
                           className="flex items-center gap-3 cursor-pointer text-[12px] text-[#6B6560] hover:text-[#1C1916]"
@@ -698,7 +743,7 @@ export default function CollectionsPage() {
                   </button>
                   {openFilters.price && (
                     <div className="mt-4 flex flex-col gap-3">
-                      {FILTER_OPTIONS.price.map((opt) => (
+                      {availablePrice.map((opt) => (
                         <label
                           key={opt}
                           className="flex items-center gap-3 cursor-pointer text-[12px] text-[#6B6560] hover:text-[#1C1916]"
@@ -754,93 +799,83 @@ export default function CollectionsPage() {
                     {/* Accordions inside mobile drawer — skip categories when on a specific category page */}
                     {Object.keys(openFilters)
                       .filter((k) => !(k === "categories" && category))
-                      .map((filterKey) => (
-                        <div key={filterKey} className="py-4">
-                          <button
-                            onClick={() => toggleFilter(filterKey)}
-                            className="flex w-full items-center justify-between text-[10px] font-semibold tracking-[0.16em] uppercase text-[#1C1916]"
-                          >
-                            <span className="capitalize">{filterKey}</span>
-                            {openFilters[filterKey] ? (
-                              <ChevronUp size={12} />
-                            ) : (
-                              <ChevronDown size={12} />
-                            )}
-                          </button>
-                          {openFilters[filterKey] && (
-                            <div className="mt-3.5 flex flex-col gap-2.5 pl-1">
-                              {filterKey === "categories" &&
-                                (categories.length > 0
-                                  ? categories
-                                  : [
-                                      {
-                                        _id: "shawls",
-                                        name: "Shawls",
-                                        slug: "shawls",
-                                      },
-                                      {
-                                        _id: "stoles",
-                                        name: "Stoles",
-                                        slug: "stoles",
-                                      },
-                                      {
-                                        _id: "scarves",
-                                        name: "Scarves",
-                                        slug: "scarves",
-                                      },
-                                      {
-                                        _id: "throws",
-                                        name: "Throws",
-                                        slug: "throws",
-                                      },
-                                    ]
-                                ).map((opt) => {
-                                  const optId = String(opt.id || opt._id);
-                                  return (
+                      .map((filterKey) => {
+                        const optionsForKey =
+                          filterKey === "categories"
+                            ? availableCategories
+                            : filterKey === "material"
+                              ? availableMaterial
+                              : filterKey === "color"
+                                ? availableColor
+                                : filterKey === "size"
+                                  ? availableSize
+                                  : filterKey === "design"
+                                    ? availableDesign
+                                    : availablePrice;
+                        return (
+                          <div key={filterKey} className="py-4">
+                            <button
+                              onClick={() => toggleFilter(filterKey)}
+                              className="flex w-full items-center justify-between text-[10px] font-semibold tracking-[0.16em] uppercase text-[#1C1916]"
+                            >
+                              <span className="capitalize">{filterKey}</span>
+                              {openFilters[filterKey] ? (
+                                <ChevronUp size={12} />
+                              ) : (
+                                <ChevronDown size={12} />
+                              )}
+                            </button>
+                            {openFilters[filterKey] && (
+                              <div className="mt-3.5 flex flex-col gap-2.5 pl-1">
+                                {filterKey === "categories" &&
+                                  optionsForKey.map((opt) => {
+                                    const optId = String(opt.id || opt._id);
+                                    return (
+                                      <label
+                                        key={optId}
+                                        className="flex items-center gap-3 cursor-pointer text-[12px] text-[#6B6560]"
+                                      >
+                                        <input
+                                          type="checkbox"
+                                          checked={selectedFilters.categories.includes(
+                                            optId,
+                                          )}
+                                          onChange={() =>
+                                            handleFilterChange(
+                                              "categories",
+                                              optId,
+                                            )
+                                          }
+                                          className="rounded-[1px] border-[#E6DED4] text-[#B58A5B] w-3.5 h-3.5"
+                                        />
+                                        <span>{opt.name}</span>
+                                      </label>
+                                    );
+                                  })}
+                                {filterKey !== "categories" &&
+                                  optionsForKey.map((opt) => (
                                     <label
-                                      key={optId}
+                                      key={opt}
                                       className="flex items-center gap-3 cursor-pointer text-[12px] text-[#6B6560]"
                                     >
                                       <input
                                         type="checkbox"
-                                        checked={selectedFilters.categories.includes(
-                                          optId,
-                                        )}
+                                        checked={selectedFilters[
+                                          filterKey
+                                        ].includes(opt)}
                                         onChange={() =>
-                                          handleFilterChange(
-                                            "categories",
-                                            optId,
-                                          )
+                                          handleFilterChange(filterKey, opt)
                                         }
                                         className="rounded-[1px] border-[#E6DED4] text-[#B58A5B] w-3.5 h-3.5"
                                       />
-                                      <span>{opt.name}</span>
+                                      <span>{opt}</span>
                                     </label>
-                                  );
-                                })}
-                              {filterKey !== "categories" &&
-                                (FILTER_OPTIONS[filterKey] || []).map((opt) => (
-                                  <label
-                                    key={opt}
-                                    className="flex items-center gap-3 cursor-pointer text-[12px] text-[#6B6560]"
-                                  >
-                                    <input
-                                      type="checkbox"
-                                      checked={selectedFilters[
-                                        filterKey
-                                      ].includes(opt)}
-                                      onChange={() =>
-                                        handleFilterChange(filterKey, opt)
-                                      }
-                                      className="rounded-[1px] border-[#E6DED4] text-[#B58A5B] w-3.5 h-3.5"
-                                    />
-                                    <span>{opt}</span>
-                                  </label>
-                                ))}
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                                  ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                   </div>
                 </div>
 
@@ -949,12 +984,17 @@ export default function CollectionsPage() {
                     })}
                   </div>
 
-                  {/* 8. Load More button */}
-                  <div className="flex justify-center mt-16 sm:mt-20">
-                    <button className="border border-[#1C1916] text-[#1C1916] hover:bg-[#1C1916] hover:text-white transition-colors duration-300 px-10 py-3.5 text-[10px] font-semibold tracking-[0.25em] uppercase rounded-[1px]">
-                      LOAD MORE
-                    </button>
-                  </div>
+                  {/* 8. Load More button — hidden once every matching product is visible */}
+                  {hasMoreToShow && (
+                    <div className="flex justify-center mt-16 sm:mt-20">
+                      <button
+                        onClick={() => setVisibleCount(sortedProducts.length)}
+                        className="border border-[#1C1916] text-[#1C1916] hover:bg-[#1C1916] hover:text-white transition-colors duration-300 px-10 py-3.5 text-[10px] font-semibold tracking-[0.25em] uppercase rounded-[1px]"
+                      >
+                        LOAD MORE
+                      </button>
+                    </div>
+                  )}
                 </>
               )}
             </div>

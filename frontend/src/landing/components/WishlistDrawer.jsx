@@ -9,13 +9,20 @@ import { useToast } from "../../context/ToastContext";
 
 export default function WishlistDrawer() {
   const { items, isOpen, setIsOpen, removeFavorites } = useFavorite();
-  const { addToCart } = useCart();
+  const { addToCart, setIsOpen: setCartOpen } = useCart();
   const { formatPrice } = useCurrency();
   const toast = useToast();
 
   const drawerRef = useRef(null);
   const scrollContainerRef = useRef(null);
   const [removingIds, setRemovingIds] = useState([]);
+
+  // Ensure only one drawer is open at a time — close cart drawer when wishlist opens
+  useEffect(() => {
+    if (isOpen) {
+      setCartOpen(false);
+    }
+  }, [isOpen, setCartOpen]);
 
   // Lock body scroll when drawer is open
   useEffect(() => {
@@ -29,15 +36,26 @@ export default function WishlistDrawer() {
     };
   }, [isOpen]);
 
-  // ESC key to close
+  // ESC key & click outside to close
   useEffect(() => {
+    if (!isOpen) return;
     const handleKeyDown = (e) => {
-      if (e.key === "Escape" && isOpen) {
+      if (e.key === "Escape") {
         setIsOpen(false);
       }
     };
+    const handleOutsideClick = (e) => {
+      if (drawerRef.current && !drawerRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("mousedown", handleOutsideClick);
+    };
   }, [isOpen, setIsOpen]);
 
   // Focus trapping
@@ -100,8 +118,8 @@ export default function WishlistDrawer() {
       quantity: 1,
     };
 
-    // Add to cart
-    addToCart(cartItem);
+    // Add to cart with openDrawer = false so Cart Drawer stays closed
+    addToCart(cartItem, 1, "", "", false);
 
     // Remove from wishlist with dynamic slide out animation
     const idStr = String(id);
@@ -163,7 +181,8 @@ export default function WishlistDrawer() {
                 Your wishlist is empty
               </h3>
               <p className="font-sans text-[13px] text-[#8A857E] font-light mb-8 max-w-[280px] leading-relaxed">
-                Save pashmina pieces to your favorites to keep track of what you love.
+                Save pashmina pieces to your favorites to keep track of what you
+                love.
               </p>
               <button
                 onClick={() => setIsOpen(false)}
@@ -233,9 +252,10 @@ export default function WishlistDrawer() {
                         <button
                           disabled={item.quantity <= 0}
                           onClick={() => handleMoveToCart(item)}
-                          className="flex items-center gap-1.5 bg-[#1C1916] hover:bg-[#B58A5B] text-white px-3 py-2 text-[9.5px] font-semibold uppercase tracking-wider transition-colors rounded-[1px] disabled:bg-[#8A857E] disabled:cursor-not-allowed cursor-pointer"
+                          className="text-[#8A857E] text-[12px] hover:text-[#B58A5B] transition-colors border-b border-transparent hover:border-[#B58A5B]/40 pb-0.5 cursor-pointer flex items-center gap-2"
                         >
-                          <ShoppingBag size={11} /> {item.quantity <= 0 ? "Out of Stock" : "Move to Cart"}
+                          <ShoppingBag size={11} />{" "}
+                          {item.quantity <= 0 ? "Out of Stock" : "Move to Cart"}
                         </button>
 
                         <button

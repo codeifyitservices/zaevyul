@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import TaxRule from "../model/TaxRule.js";
 import Settings from "../model/Settings.js";
 import Product from "../model/Product.js";
@@ -55,7 +56,10 @@ export const calculateTax = async ({ items, shippingAddress }) => {
       throw new Error("Product identifier is required for each cart item.");
     }
 
-    const dbProduct = await Product.findById(productId);
+    const strId = String(productId);
+    const dbProduct = mongoose.Types.ObjectId.isValid(strId)
+      ? await Product.findById(strId)
+      : await Product.findOne({ id: strId });
     if (!dbProduct) {
       throw new Error(`Product not found: ${productId}`);
     }

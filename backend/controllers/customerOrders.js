@@ -22,66 +22,121 @@ export const getCustomerOrders = async (req, res) => {
     }
 
     const query = [];
-    if (email) query.push({ email: email.toLowerCase().trim() });
-    if (phone) query.push({ phone: phone.trim() });
+    if (email) {
+      query.push({ email: email.toLowerCase().trim() });
+    }
+    if (phone) {
+      query.push({ phone: phone.trim() });
+      const effEmail = `${phone.replace(/\D/g, "")}@zaevyul.customer`;
+      query.push({ email: effEmail });
+    }
 
-    // Find admin Customer document by email or phone
-    const customerObj = await Customer.findOne({ $or: query });
-    if (!customerObj) {
+    // Find all matching Customer documents
+    const customerObjs = await Customer.find({ $or: query }).select('_id');
+    if (!customerObjs || customerObjs.length === 0) {
       return res.status(200).json({ success: true, orders: [] });
     }
 
-    const orders = await Order.find({ customer: customerObj._id })
+    const customerIds = customerObjs.map(c => c._id);
+    const orders = await Order.find({ customer: { $in: customerIds } })
       .populate("items.product", "_id name slug images")
       .sort({ createdAt: -1 });
 
     return res.status(200).json({ success: true, orders });
   } catch (error) {
     console.error("[customerOrders] getCustomerOrders error:", error.message);
-    return res.status(500).json({ success: false, message: "Failed to fetch orders." });
+    return res
+      .status(500)
+      .json({ success: false, message: "Failed to fetch orders." });
   }
 };
 
+export const getCustomerOrderById = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id)
+      .populate("customer")
+      .populate("items.product", "_id name slug images basePrice discountPrice");
+    if (!order) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Order not found" });
+    }
+    return res.status(200).json({ success: true, order });
+  } catch (error) {
+    console.error("Fetch order detail error:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal server error" });
+  }
+};
 /**
  * POST /api/customer/orders
  * Creates a new order for the customer.
  * Fixes: AUD-001 (backend price recalculation), AUD-004 (atomic stock & rollback), AUD-020 (phone auth support), AUD-023 (email dispatch), AUD-024 (secure order numbers), AUD-014 (sync CustomerUser & Customer).
  */
 export const placeCustomerOrder = async (req, res) => {
-  const { items, couponCode, paymentMethod, shippingAddress, shippingAddressId, notes } = req.body;
+  const {
+    items,
+    couponCode,
+    paymentMethod,
+    shippingAddress,
+    shippingAddressId,
+    notes,
+  } = req.body;
 
   if (!items || items.length === 0) {
-    return res.status(400).json({ success: false, message: "Cart items are required." });
+    return res
+      .status(400)
+      .json({ success: false, message: "Cart items are required." });
   }
 
   let resolvedShippingAddress = shippingAddress;
   if (shippingAddressId) {
     const savedAddress = req.customerUser.addresses.id(shippingAddressId);
     if (!savedAddress) {
-      return res.status(404).json({ success: false, message: "Saved address not found." });
+      return res
+        .status(404)
+        .json({ success: false, message: "Saved address not found." });
     }
     resolvedShippingAddress = normalizeAddressForResponse(savedAddress);
   }
 
   if (!resolvedShippingAddress) {
-    return res.status(400).json({ success: false, message: "Shipping address is required." });
+    return res
+      .status(400)
+      .json({ success: false, message: "Shipping address is required." });
   }
 
   // Extract contact details — support both email and phone authenticated users (AUD-020)
   const email = req.customerUser?.email || req.body.email || null;
-  const phone = req.customerUser?.phone || req.body.phone || resolvedShippingAddress.phone || "";
-  const name = req.customerUser?.name || req.body.name || (email ? email.split("@")[0] : `Customer-${phone}`);
+  const phone =
+    req.customerUser?.phone ||
+    req.body.phone ||
+    resolvedShippingAddress.phone ||
+    "";
+  const name =
+    req.customerUser?.name ||
+    req.body.name ||
+    (email ? email.split("@")[0] : `Customer-${phone}`);
 
   if (!email && !phone) {
-    return res.status(400).json({ success: false, message: "Either email or phone number is required to place an order." });
+    return res.status(400).json({
+      success: false,
+      message: "Either email or phone number is required to place an order.",
+    });
   }
 
-  const effectiveEmail = email ? email.toLowerCase().trim() : `${phone.replace(/\D/g, "")}@zaevyul.customer`;
+  const effectiveEmail = email
+    ? email.toLowerCase().trim()
+    : `${phone.replace(/\D/g, "")}@zaevyul.customer`;
 
   try {
     // Synchronize Customer and CustomerUser models (AUD-014)
     let customerObj = await Customer.findOne({
-      $or: [{ email: effectiveEmail }, ...(phone ? [{ phone: phone.trim() }] : [])],
+      $or: [
+        { email: effectiveEmail },
+        ...(phone ? [{ phone: phone.trim() }] : []),
+      ],
     });
 
     if (!customerObj) {
@@ -119,25 +174,34 @@ export const placeCustomerOrder = async (req, res) => {
     const orderItems = [];
     for (const item of items) {
       const productId = item.product || item._id || item.id;
-      const prod = await Product.findById(productId);
+      const strId = String(productId);
+      const prod = mongoose.Types.ObjectId.isValid(strId)
+        ? await Product.findById(strId)
+        : await Product.findOne({ id: strId });
       if (!prod) {
-        return res.status(400).json({ success: false, message: `Product not found: ${item.name || productId}` });
+        return res.status(400).json({
+          success: false,
+          message: `Product not found: ${item.name || productId}`,
+        });
       }
 
       const qty = Math.max(1, parseInt(item.qty || item.quantity || 1, 10));
 
       let stock = prod.quantity;
-      let unitPrice = prod.discountPrice > 0 && prod.discountPrice < prod.basePrice
-        ? prod.discountPrice
-        : prod.basePrice;
+      let unitPrice =
+        prod.discountPrice > 0 && prod.discountPrice < prod.basePrice
+          ? prod.discountPrice
+          : prod.basePrice;
 
       if (item.size && prod.sizes && prod.sizes.length > 0) {
-        const matchedSize = prod.sizes.find(s => s.size === item.size);
+        const matchedSize = prod.sizes.find((s) => s.size === item.size);
         if (matchedSize) {
           stock = matchedSize.quantity;
-          unitPrice = matchedSize.discountPrice > 0 && matchedSize.discountPrice < matchedSize.price
-            ? matchedSize.discountPrice
-            : matchedSize.price;
+          unitPrice =
+            matchedSize.discountPrice > 0 &&
+            matchedSize.discountPrice < matchedSize.price
+              ? matchedSize.discountPrice
+              : matchedSize.price;
         }
       }
 
@@ -148,30 +212,47 @@ export const placeCustomerOrder = async (req, res) => {
         });
       }
 
+      const itemImg =
+        item.image ||
+        item.img ||
+        item.imageVal ||
+        (prod.images && prod.images[0]?.url) ||
+        "/storefront/prod-1.png";
+
       orderItems.push({
         product: prod._id,
         name: prod.name,
         qty: qty,
         price: unitPrice,
         size: item.size || "",
+        color: item.color || "",
+        image: itemImg,
+        img: itemImg,
       });
     }
 
     // Authoritative Coupon Validation (AUD-001, AUD-012)
     let calculatedDiscount = 0;
     if (couponCode) {
-      const coupon = await Coupon.findOne({ code: couponCode.toUpperCase().trim(), active: true });
+      const coupon = await Coupon.findOne({
+        code: couponCode.toUpperCase().trim(),
+        active: true,
+      });
       if (coupon) {
         const expiresAt = coupon.expiresAt || coupon.expiry;
-        const minOrderAmount = coupon.minOrderAmount ?? coupon.minOrderValue ?? 0;
+        const minOrderAmount =
+          coupon.minOrderAmount ?? coupon.minOrderValue ?? 0;
         const discountType = coupon.discountType || coupon.type;
         const discountValue = coupon.discountValue ?? coupon.value ?? 0;
         const maxDiscountAmount = coupon.maxDiscountAmount ?? null;
         const isNotExpired = !expiresAt || new Date(expiresAt) > new Date();
-        const meetsMinAmount = !minOrderAmount || calculatedSubtotal >= minOrderAmount;
+        const meetsMinAmount =
+          !minOrderAmount || calculatedSubtotal >= minOrderAmount;
         if (isNotExpired && meetsMinAmount) {
           if (discountType === "percentage") {
-            calculatedDiscount = Math.round((calculatedSubtotal * discountValue) / 100);
+            calculatedDiscount = Math.round(
+              (calculatedSubtotal * discountValue) / 100,
+            );
             if (maxDiscountAmount && calculatedDiscount > maxDiscountAmount) {
               calculatedDiscount = maxDiscountAmount;
             }
@@ -180,20 +261,36 @@ export const placeCustomerOrder = async (req, res) => {
           }
           calculatedDiscount = Math.min(calculatedDiscount, calculatedSubtotal);
           // Increment coupon usage count
-          await Coupon.findByIdAndUpdate(coupon._id, { $inc: { usedCount: 1 } });
+          await Coupon.findByIdAndUpdate(coupon._id, {
+            $inc: { usedCount: 1 },
+          });
         }
       }
     }
 
     // Authoritative Shipping Fee Calculation from Settings
     let storeSettings = await Settings.findOne();
-    const freeShippingThreshold = storeSettings?.freeShippingThreshold || storeSettings?.freeShippingAbove || 5000;
+    const freeShippingThreshold =
+      storeSettings?.freeShippingThreshold ||
+      storeSettings?.freeShippingAbove ||
+      5000;
     const standardShippingFee = storeSettings?.standardShippingFee || 250;
-    const calculatedShipping = calculatedSubtotal >= freeShippingThreshold ? 0 : standardShippingFee;
+    const calculatedShipping =
+      calculatedSubtotal >= freeShippingThreshold ? 0 : standardShippingFee;
 
-    const calculatedTotal = pricingMode === "inclusive"
-      ? Math.max(0, calculatedSubtotal + calculatedShipping - calculatedDiscount)
-      : Math.max(0, calculatedSubtotal + calculatedShipping - calculatedDiscount + calculatedTaxAmount);
+    const calculatedTotal =
+      pricingMode === "inclusive"
+        ? Math.max(
+            0,
+            calculatedSubtotal + calculatedShipping - calculatedDiscount,
+          )
+        : Math.max(
+            0,
+            calculatedSubtotal +
+              calculatedShipping -
+              calculatedDiscount +
+              calculatedTaxAmount,
+          );
 
     // Atomic Stock Decrement & Transaction Rollback handling (AUD-004)
     const decrementedItems = [];
@@ -202,15 +299,19 @@ export const placeCustomerOrder = async (req, res) => {
       const prod = await Product.findById(item.product);
       if (prod && prod.sizes && prod.sizes.length > 0 && item.size) {
         updatedProd = await Product.findOneAndUpdate(
-          { _id: item.product, "sizes.size": item.size, "sizes.quantity": { $gte: item.qty } },
+          {
+            _id: item.product,
+            "sizes.size": item.size,
+            "sizes.quantity": { $gte: item.qty },
+          },
           { $inc: { "sizes.$.quantity": -item.qty, quantity: -item.qty } },
-          { new: true }
+          { new: true },
         );
       } else {
         updatedProd = await Product.findOneAndUpdate(
           { _id: item.product, quantity: { $gte: item.qty } },
           { $inc: { quantity: -item.qty } },
-          { new: true }
+          { new: true },
         );
       }
 
@@ -221,10 +322,14 @@ export const placeCustomerOrder = async (req, res) => {
           if (rolled.size && rProd && rProd.sizes && rProd.sizes.length > 0) {
             await Product.updateOne(
               { _id: rolled.product, "sizes.size": rolled.size },
-              { $inc: { "sizes.$.quantity": rolled.qty, quantity: rolled.qty } }
+              {
+                $inc: { "sizes.$.quantity": rolled.qty, quantity: rolled.qty },
+              },
             );
           } else {
-            await Product.findByIdAndUpdate(rolled.product, { $inc: { quantity: rolled.qty } });
+            await Product.findByIdAndUpdate(rolled.product, {
+              $inc: { quantity: rolled.qty },
+            });
           }
         }
         return res.status(400).json({
@@ -257,17 +362,34 @@ export const placeCustomerOrder = async (req, res) => {
         paymentMethod: paymentMethod || "UPI",
         paymentStatus: "pending",
         shippingAddress: {
-          line1: resolvedShippingAddress.line1 || resolvedShippingAddress.addressLine1 || resolvedShippingAddress.addressLine || resolvedShippingAddress.address || "",
-          line2: resolvedShippingAddress.line2 || resolvedShippingAddress.addressLine2 || "",
+          line1:
+            resolvedShippingAddress.line1 ||
+            resolvedShippingAddress.addressLine1 ||
+            resolvedShippingAddress.addressLine ||
+            resolvedShippingAddress.address ||
+            "",
+          line2:
+            resolvedShippingAddress.line2 ||
+            resolvedShippingAddress.addressLine2 ||
+            "",
           city: resolvedShippingAddress.city || "",
           state: resolvedShippingAddress.state || "",
           stateCode: resolvedShippingAddress.stateCode || "",
           country: resolvedShippingAddress.country || "India",
           countryCode: resolvedShippingAddress.countryCode || "",
-          zip: resolvedShippingAddress.zip || resolvedShippingAddress.postalCode || "",
+          zip:
+            resolvedShippingAddress.zip ||
+            resolvedShippingAddress.postalCode ||
+            "",
           phone: resolvedShippingAddress.phone || phone || "",
-          phoneCountryCode: resolvedShippingAddress.phoneCountryCode || req.customerUser?.phoneCountryCode || "",
-          recipientName: resolvedShippingAddress.recipientName || resolvedShippingAddress.name || name,
+          phoneCountryCode:
+            resolvedShippingAddress.phoneCountryCode ||
+            req.customerUser?.phoneCountryCode ||
+            "",
+          recipientName:
+            resolvedShippingAddress.recipientName ||
+            resolvedShippingAddress.name ||
+            name,
           landmark: resolvedShippingAddress.landmark || "",
         },
         notes: notes || "",
@@ -279,27 +401,38 @@ export const placeCustomerOrder = async (req, res) => {
         if (rolled.size && rProd && rProd.sizes && rProd.sizes.length > 0) {
           await Product.updateOne(
             { _id: rolled.product, "sizes.size": rolled.size },
-            { $inc: { "sizes.$.quantity": rolled.qty, quantity: rolled.qty } }
+            { $inc: { "sizes.$.quantity": rolled.qty, quantity: rolled.qty } },
           );
         } else {
-          await Product.findByIdAndUpdate(rolled.product, { $inc: { quantity: rolled.qty } });
+          await Product.findByIdAndUpdate(rolled.product, {
+            $inc: { quantity: rolled.qty },
+          });
         }
       }
       throw orderError;
     }
 
     // Update customer statistics
-    const customerOrders = await Order.find({ customer: customerObj._id, status: "delivered" });
+    const customerOrders = await Order.find({
+      customer: customerObj._id,
+      status: "delivered",
+    });
     customerObj.orderCount = customerOrders.length;
-    customerObj.totalSpent = customerOrders.reduce((sum, o) => sum + o.total, 0);
-    customerObj.avgOrderValue = customerObj.orderCount > 0 ? Math.round(customerObj.totalSpent / customerObj.orderCount) : 0;
+    customerObj.totalSpent = customerOrders.reduce(
+      (sum, o) => sum + o.total,
+      0,
+    );
+    customerObj.avgOrderValue =
+      customerObj.orderCount > 0
+        ? Math.round(customerObj.totalSpent / customerObj.orderCount)
+        : 0;
     customerObj.lastOrder = newOrder.createdAt;
     await customerObj.save();
 
     // Dispatch order confirmation email asynchronously (AUD-023)
     if (email && !email.endsWith("@zaevyul.customer")) {
       sendOrderConfirmationEmail(newOrder, email).catch((err) =>
-        console.error("[customerOrders] Email dispatch error:", err)
+        console.error("[customerOrders] Email dispatch error:", err),
       );
     }
 
@@ -310,7 +443,9 @@ export const placeCustomerOrder = async (req, res) => {
     });
   } catch (error) {
     console.error("[customerOrders] placeCustomerOrder error:", error);
-    return res.status(500).json({ success: false, message: "Failed to place order." });
+    return res
+      .status(500)
+      .json({ success: false, message: "Failed to place order." });
   }
 };
 
@@ -323,7 +458,9 @@ export const cancelCustomerOrder = async (req, res) => {
   try {
     const order = await Order.findById(id);
     if (!order) {
-      return res.status(404).json({ success: false, message: "Order not found." });
+      return res
+        .status(404)
+        .json({ success: false, message: "Order not found." });
     }
 
     if (order.status !== "pending") {
@@ -342,10 +479,12 @@ export const cancelCustomerOrder = async (req, res) => {
       if (item.size && prod && prod.sizes && prod.sizes.length > 0) {
         await Product.updateOne(
           { _id: item.product, "sizes.size": item.size },
-          { $inc: { "sizes.$.quantity": item.qty, quantity: item.qty } }
+          { $inc: { "sizes.$.quantity": item.qty, quantity: item.qty } },
         );
       } else {
-        await Product.findByIdAndUpdate(item.product, { $inc: { quantity: item.qty } });
+        await Product.findByIdAndUpdate(item.product, {
+          $inc: { quantity: item.qty },
+        });
       }
     }
 
@@ -356,7 +495,9 @@ export const cancelCustomerOrder = async (req, res) => {
     });
   } catch (error) {
     console.error("[customerOrders] cancelCustomerOrder error:", error);
-    return res.status(500).json({ success: false, message: "Failed to cancel order." });
+    return res
+      .status(500)
+      .json({ success: false, message: "Failed to cancel order." });
   }
 };
 
@@ -368,7 +509,9 @@ export const calculateTaxForCart = async (req, res) => {
   const { items, shippingAddressId, shippingAddress, couponCode } = req.body;
 
   if (!items || items.length === 0) {
-    return res.status(400).json({ success: false, message: "Cart items are required." });
+    return res
+      .status(400)
+      .json({ success: false, message: "Cart items are required." });
   }
 
   let resolvedShippingAddress = shippingAddress;
@@ -392,18 +535,25 @@ export const calculateTaxForCart = async (req, res) => {
     // Authoritative Coupon Validation
     let calculatedDiscount = 0;
     if (couponCode) {
-      const coupon = await Coupon.findOne({ code: couponCode.toUpperCase().trim(), active: true });
+      const coupon = await Coupon.findOne({
+        code: couponCode.toUpperCase().trim(),
+        active: true,
+      });
       if (coupon) {
         const expiresAt = coupon.expiresAt || coupon.expiry;
-        const minOrderAmount = coupon.minOrderAmount ?? coupon.minOrderValue ?? 0;
+        const minOrderAmount =
+          coupon.minOrderAmount ?? coupon.minOrderValue ?? 0;
         const discountType = coupon.discountType || coupon.type;
         const discountValue = coupon.discountValue ?? coupon.value ?? 0;
         const maxDiscountAmount = coupon.maxDiscountAmount ?? null;
         const isNotExpired = !expiresAt || new Date(expiresAt) > new Date();
-        const meetsMinAmount = !minOrderAmount || calculatedSubtotal >= minOrderAmount;
+        const meetsMinAmount =
+          !minOrderAmount || calculatedSubtotal >= minOrderAmount;
         if (isNotExpired && meetsMinAmount) {
           if (discountType === "percentage") {
-            calculatedDiscount = Math.round((calculatedSubtotal * discountValue) / 100);
+            calculatedDiscount = Math.round(
+              (calculatedSubtotal * discountValue) / 100,
+            );
             if (maxDiscountAmount && calculatedDiscount > maxDiscountAmount) {
               calculatedDiscount = maxDiscountAmount;
             }
@@ -417,13 +567,27 @@ export const calculateTaxForCart = async (req, res) => {
 
     // Authoritative Shipping Fee Calculation from Settings
     let storeSettings = await Settings.findOne();
-    const freeShippingThreshold = storeSettings?.freeShippingThreshold || storeSettings?.freeShippingAbove || 5000;
+    const freeShippingThreshold =
+      storeSettings?.freeShippingThreshold ||
+      storeSettings?.freeShippingAbove ||
+      5000;
     const standardShippingFee = storeSettings?.standardShippingFee || 250;
-    const calculatedShipping = calculatedSubtotal >= freeShippingThreshold ? 0 : standardShippingFee;
+    const calculatedShipping =
+      calculatedSubtotal >= freeShippingThreshold ? 0 : standardShippingFee;
 
-    const calculatedTotal = pricingMode === "inclusive"
-      ? Math.max(0, calculatedSubtotal + calculatedShipping - calculatedDiscount)
-      : Math.max(0, calculatedSubtotal + calculatedShipping - calculatedDiscount + calculatedTaxAmount);
+    const calculatedTotal =
+      pricingMode === "inclusive"
+        ? Math.max(
+            0,
+            calculatedSubtotal + calculatedShipping - calculatedDiscount,
+          )
+        : Math.max(
+            0,
+            calculatedSubtotal +
+              calculatedShipping -
+              calculatedDiscount +
+              calculatedTaxAmount,
+          );
 
     return res.status(200).json({
       success: true,

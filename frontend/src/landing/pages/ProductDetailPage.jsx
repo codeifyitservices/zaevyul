@@ -215,10 +215,10 @@ export default function ProductDetailPage() {
                             product.images.length,
                         )
                       }
-                      className="absolute left-4 top-1/2 -translate-y-1/2 bg-[#FAF8F5]/80 hover:bg-[#FAF8F5] text-[#1C1916] p-2 rounded-full backdrop-blur-sm transition-colors border border-[#ECE7E1] z-10 flex items-center justify-center"
+                      className="absolute left-4 top-1/2 -translate-y-1/2 bg-transparent text-white p-2 transition-transform duration-200 hover:scale-125 z-10 flex items-center justify-center cursor-pointer focus:outline-none"
                       aria-label="Previous image"
                     >
-                      <ChevronLeft size={16} />
+                      <ChevronLeft size={24} strokeWidth={1.5} className="drop-shadow-[0_2px_6px_rgba(0,0,0,0.65)]" />
                     </button>
                     <button
                       onClick={() =>
@@ -226,10 +226,10 @@ export default function ProductDetailPage() {
                           (prev) => (prev + 1) % product.images.length,
                         )
                       }
-                      className="absolute right-4 top-1/2 -translate-y-1/2 bg-[#FAF8F5]/80 hover:bg-[#FAF8F5] text-[#1C1916] p-2 rounded-full backdrop-blur-sm transition-colors border border-[#ECE7E1] z-10 flex items-center justify-center"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 bg-transparent text-white p-2 transition-transform duration-200 hover:scale-125 z-10 flex items-center justify-center cursor-pointer focus:outline-none"
                       aria-label="Next image"
                     >
-                      <ChevronRight size={16} />
+                      <ChevronRight size={24} strokeWidth={1.5} className="drop-shadow-[0_2px_6px_rgba(0,0,0,0.65)]" />
                     </button>
 
                     {/* Dots Indicator */}

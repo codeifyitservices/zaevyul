@@ -12,6 +12,8 @@ import SavedPiecesPage from "./my-account/SavedPiecesPage";
 import AddressesPage from "./my-account/AddressPage";
 import AddressFormPage from "./my-account/AddressFormPage";
 import MarketingPreferencesPage from "./my-account/MarketingPrefrencePage";
+import OrderDetailPage from "./my-account/OrderDetailsPage";
+
 import { AVATARS } from "./my-account/AccountProfile";
 
 import { useCustomerAuth } from "../../context/CustomerAuthContext";
@@ -63,7 +65,10 @@ export default function MyAccountPage() {
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
-      navigate(`/login?redirect=${encodeURIComponent(window.location.pathname)}`, { replace: true });
+      navigate(
+        `/login?redirect=${encodeURIComponent(window.location.pathname)}`,
+        { replace: true },
+      );
     }
   }, [isAuthenticated, loading, navigate]);
 
@@ -122,13 +127,16 @@ export default function MyAccountPage() {
         email: user.email || "",
         phone: user.phone || "",
         phoneCountryCode: user.phoneCountryCode || "",
-        countryCode: parsePhoneNumberFromString(user.phone || "")?.country || "",
+        countryCode:
+          parsePhoneNumberFromString(user.phone || "")?.country || "",
         avatar: user.profileImage || "",
         tagline: "Timeless pieces. Thoughtful choices.",
       };
       setProfile(uProfile);
       setAddresses(user.addresses || []);
-      setMarketingPreferences(user.marketingPreferences || { emailUpdates: true });
+      setMarketingPreferences(
+        user.marketingPreferences || { emailUpdates: true },
+      );
       if (!isEditing) {
         setEditForm(uProfile);
       }
@@ -153,7 +161,9 @@ export default function MyAccountPage() {
         }
       };
       loadFavorites();
-      return () => { cancelled = true; };
+      return () => {
+        cancelled = true;
+      };
     }
   }, [isAuthenticated, user?.favoritesCount]);
 
@@ -194,7 +204,9 @@ export default function MyAccountPage() {
       await toggleFavorites(productId);
       toast(`Removed "${productName}" from saved pieces`, "info");
       // Local filter for instant response
-      setSavedPieces((prev) => prev.filter((item) => (item._id || item.id) !== productId));
+      setSavedPieces((prev) =>
+        prev.filter((item) => (item._id || item.id) !== productId),
+      );
     } catch (err) {
       toast("Failed to update favorites", "error");
     }
@@ -242,6 +254,13 @@ export default function MyAccountPage() {
     }
     if (/\/addresses\/[^/]+\/edit$/.test(location.pathname)) {
       return <AddressFormPage />;
+    }
+
+    const orderDetailMatch = location.pathname.match(
+      /^\/my-account\/orders\/([^/]+)$/,
+    );
+    if (orderDetailMatch) {
+      return <OrderDetailPage orderId={orderDetailMatch[1]} />;
     }
 
     switch (activeTab) {

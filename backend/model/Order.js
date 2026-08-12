@@ -1,11 +1,14 @@
 import mongoose from 'mongoose';
 
 const OrderItemSchema = new mongoose.Schema({
-  product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
+  product: { type: mongoose.Schema.Types.Mixed, ref: 'Product' },
   name: { type: String, required: true },
   qty: { type: Number, required: true, default: 1 },
   price: { type: Number, required: true },
-  size: { type: String, default: '' }
+  size: { type: String, default: '' },
+  color: { type: String, default: '' },
+  image: { type: String, default: '' },
+  img: { type: String, default: '' },
 }, { _id: false });
 
 const OrderSchema = new mongoose.Schema({

@@ -938,12 +938,26 @@ export default function CartPage() {
                   are preparing your luxury packaging. A confirmation email has
                   been sent.
                 </p>
-                <button
-                  onClick={() => setShowCheckoutModal(false)}
-                  className="bg-[#1C1916] hover:bg-[#B58A5B] text-white px-8 py-3.5 text-[10px] font-semibold tracking-[0.2em] uppercase rounded-[2px] transition-colors cursor-pointer"
-                >
-                  Return to Store
-                </button>
+                <div className="flex flex-wrap gap-3 justify-center">
+                  <button
+                    onClick={() => {
+                      setShowCheckoutModal(false);
+                      navigate("/my-account/orders");
+                    }}
+                    className="bg-[#1C1916] hover:bg-[#B58A5B] text-white px-7 py-3.5 text-[10px] font-semibold tracking-[0.2em] uppercase rounded-[2px] transition-colors cursor-pointer"
+                  >
+                    View My Orders
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowCheckoutModal(false);
+                      navigate("/collections");
+                    }}
+                    className="border border-[#1C1916] text-[#1C1916] hover:bg-[#1C1916] hover:text-white px-7 py-3.5 text-[10px] font-semibold tracking-[0.2em] uppercase rounded-[2px] transition-colors cursor-pointer"
+                  >
+                    Return to Store
+                  </button>
+                </div>
               </div>
             )}
           </div>
