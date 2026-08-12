@@ -4,8 +4,7 @@
  * Does NOT import from or touch the admin api.js.
  */
 
-const CUSTOMER_BASE_URL =
-  import.meta.env.VITE_CUSTOMER_API_URL || 'http://localhost:5000/api/customer';
+const CUSTOMER_BASE_URL = import.meta.env.VITE_CUSTOMER_API_URL;
 
 /**
  * Low-level fetch wrapper for customer endpoints.
@@ -14,21 +13,21 @@ const CUSTOMER_BASE_URL =
  */
 const request = async (path, options = {}) => {
   options.headers = {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
     ...options.headers,
   };
 
-  options.credentials = 'include';
+  options.credentials = "include";
 
   // Attach token from sessionStorage as Authorization header fallback
-  const token = sessionStorage.getItem('zae_customer_jwt');
+  const token = sessionStorage.getItem("zae_customer_jwt");
   if (token) {
-    options.headers['Authorization'] = `Bearer ${token}`;
+    options.headers["Authorization"] = `Bearer ${token}`;
   }
 
   const res = await fetch(`${CUSTOMER_BASE_URL}${path}`, options);
   const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Request failed');
+  if (!res.ok) throw new Error(data.message || "Request failed");
   return data;
 };
 
@@ -38,52 +37,52 @@ export const customerApi = {
   auth: {
     /** Send OTP to email */
     sendEmailOtp: (email) =>
-      request('/auth/email/send-otp', {
-        method: 'POST',
+      request("/auth/email/send-otp", {
+        method: "POST",
         body: JSON.stringify({ email }),
       }),
 
     /** Verify email OTP → returns { success, token, user } */
     verifyEmailOtp: async (email, otp) => {
-      const res = await request('/auth/email/verify-otp', {
-        method: 'POST',
+      const res = await request("/auth/email/verify-otp", {
+        method: "POST",
         body: JSON.stringify({ email, otp }),
       });
-      if (res.token) sessionStorage.setItem('zae_customer_jwt', res.token);
+      if (res.token) sessionStorage.setItem("zae_customer_jwt", res.token);
       return res;
     },
 
     /** Send OTP to phone */
     sendPhoneOtp: (phone, countryCode) =>
-      request('/auth/phone/send-otp', {
-        method: 'POST',
+      request("/auth/phone/send-otp", {
+        method: "POST",
         body: JSON.stringify({ phone, countryCode }),
       }),
 
     /** Verify phone OTP → returns { success, token, user } */
     verifyPhoneOtp: async (phone, otp, countryCode) => {
-      const res = await request('/auth/phone/verify-otp', {
-        method: 'POST',
+      const res = await request("/auth/phone/verify-otp", {
+        method: "POST",
         body: JSON.stringify({ phone, otp, countryCode }),
       });
-      if (res.token) sessionStorage.setItem('zae_customer_jwt', res.token);
+      if (res.token) sessionStorage.setItem("zae_customer_jwt", res.token);
       return res;
     },
 
     /** Google login with ID token from Google Identity Services */
     googleLogin: async (credential) => {
-      const res = await request('/auth/google', {
-        method: 'POST',
+      const res = await request("/auth/google", {
+        method: "POST",
         body: JSON.stringify({ credential }),
       });
-      if (res.token) sessionStorage.setItem('zae_customer_jwt', res.token);
+      if (res.token) sessionStorage.setItem("zae_customer_jwt", res.token);
       return res;
     },
 
     /** Get the currently authenticated customer */
     me: async () => {
       try {
-        const res = await request('/auth/me');
+        const res = await request("/auth/me");
         return res.user;
       } catch {
         return null;
@@ -93,51 +92,54 @@ export const customerApi = {
     /** Logout */
     logout: async () => {
       try {
-        await request('/auth/logout', { method: 'POST' });
-      } catch { /* ignore */ }
-      sessionStorage.removeItem('zae_customer_jwt');
+        await request("/auth/logout", { method: "POST" });
+      } catch {
+        /* ignore */
+      }
+      sessionStorage.removeItem("zae_customer_jwt");
     },
 
     /** Update customer name, email, or profileImage */
     updateProfile: (profileData) =>
-      request('/auth/profile', {
-        method: 'PUT',
+      request("/auth/profile", {
+        method: "PUT",
         body: JSON.stringify(profileData),
       }),
 
     /** Update customer marketing preference */
     updateMarketing: (emailUpdates) =>
-      request('/auth/marketing', {
-        method: 'PUT',
+      request("/auth/marketing", {
+        method: "PUT",
         body: JSON.stringify({ emailUpdates }),
       }),
 
     /** Legacy address aliases retained for existing callers */
     addAddress: (addressData) => customerApi.addresses.create(addressData),
     deleteAddress: (addressId) => customerApi.addresses.remove(addressId),
-    setDefaultAddress: (addressId) => customerApi.addresses.setDefault(addressId),
+    setDefaultAddress: (addressId) =>
+      customerApi.addresses.setDefault(addressId),
   },
 
   addresses: {
-    getAll: () => request('/addresses'),
+    getAll: () => request("/addresses"),
     getById: (addressId) => request(`/addresses/${addressId}`),
     create: (addressData) =>
-      request('/addresses', {
-        method: 'POST',
+      request("/addresses", {
+        method: "POST",
         body: JSON.stringify(addressData),
       }),
     update: (addressId, addressData) =>
       request(`/addresses/${addressId}`, {
-        method: 'PUT',
+        method: "PUT",
         body: JSON.stringify(addressData),
       }),
     remove: (addressId) =>
       request(`/addresses/${addressId}`, {
-        method: 'DELETE',
+        method: "DELETE",
       }),
     setDefault: (addressId) =>
       request(`/addresses/${addressId}/default`, {
-        method: 'PUT',
+        method: "PUT",
       }),
   },
 
@@ -152,41 +154,40 @@ export const customerApi = {
 
   favorites: {
     /** Get all favorites for the logged-in customer */
-    getAll: () => request('/favorites'),
+    getAll: () => request("/favorites"),
 
     /** Add a product to favorites */
-    add: (productId) =>
-      request(`/favorites/${productId}`, { method: 'POST' }),
+    add: (productId) => request(`/favorites/${productId}`, { method: "POST" }),
 
     /** Remove a product from favorites */
     remove: (productId) =>
-      request(`/favorites/${productId}`, { method: 'DELETE' }),
+      request(`/favorites/${productId}`, { method: "DELETE" }),
   },
 
   // ─── Orders ──────────────────────────────────────────────────────────────────
 
   orders: {
     /** Get order history for the logged-in customer */
-    getAll: () => request('/orders'),
+    getAll: () => request("/orders"),
 
     /** Place a new order */
     place: (orderData) =>
-      request('/orders', {
-        method: 'POST',
+      request("/orders", {
+        method: "POST",
         body: JSON.stringify(orderData),
       }),
 
     /** Calculate dynamic tax for checkout/cart preview */
     calculateTax: (data) =>
-      request('/orders/calculate-tax', {
-        method: 'POST',
+      request("/orders/calculate-tax", {
+        method: "POST",
         body: JSON.stringify(data),
       }),
 
     /** Cancel pending order */
     cancel: (orderId) =>
       request(`/orders/${orderId}/cancel`, {
-        method: 'POST',
+        method: "POST",
       }),
   },
 };

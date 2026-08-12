@@ -1,9 +1,7 @@
 import * as mock from "./mockData";
 
-const BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:5000/api/admin";
-const PUBLIC_BASE_URL =
-  import.meta.env.VITE_PUBLIC_API_URL || "http://localhost:5000/api/public";
+const BASE_URL = import.meta.env.VITE_API_URL;
+const PUBLIC_BASE_URL = import.meta.env.VITE_PUBLIC_API_URL;
 const USE_MOCK = import.meta.env.VITE_USE_MOCK_API === "true" || false;
 
 // Helper for public (unauthenticated) storefront fetch calls (AUD-002)
@@ -267,7 +265,10 @@ export const api = {
         if (sizes.length > 0) {
           basePrice = sizes[0].price;
           discountPrice = sizes[0].discountPrice;
-          quantity = sizes.reduce((sum, s) => sum + (Number(s.quantity) || 0), 0);
+          quantity = sizes.reduce(
+            (sum, s) => sum + (Number(s.quantity) || 0),
+            0,
+          );
         }
         const product = {
           ...data,
@@ -298,10 +299,15 @@ export const api = {
         if (sizes.length > 0) {
           basePrice = sizes[0].price;
           discountPrice = sizes[0].discountPrice;
-          quantity = sizes.reduce((sum, s) => sum + (Number(s.quantity) || 0), 0);
+          quantity = sizes.reduce(
+            (sum, s) => sum + (Number(s.quantity) || 0),
+            0,
+          );
         }
         db.products = db.products.map((p) =>
-          p.id === id ? { ...p, ...data, basePrice, discountPrice, quantity } : p,
+          p.id === id
+            ? { ...p, ...data, basePrice, discountPrice, quantity }
+            : p,
         );
         saveCollection("products", db.products);
         return db.products.find((p) => p.id === id);
