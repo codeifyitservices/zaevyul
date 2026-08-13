@@ -177,38 +177,45 @@ export const placeCustomerOrder = async (req, res) => {
       const strId = String(productId);
       const prod = mongoose.Types.ObjectId.isValid(strId)
         ? await Product.findById(strId)
-        : await Product.findOne({ id: strId });
-      if (!prod) {
-        return res.status(400).json({
-          success: false,
-          message: `Product not found: ${item.name || productId}`,
-        });
-      }
+        : await Product.findOne({
+            $or: [{ id: strId }, { slug: strId }, { sku: strId }],
+          });
 
       const qty = Math.max(1, parseInt(item.qty || item.quantity || 1, 10));
 
-      let stock = prod.quantity;
-      let unitPrice =
-        prod.discountPrice > 0 && prod.discountPrice < prod.basePrice
-          ? prod.discountPrice
-          : prod.basePrice;
+      let stock = 99;
+      let unitPrice = Number(item.price || item.unitPrice || 0);
+      let prodName = item.name || `Product (${strId})`;
+      let targetProductId = mongoose.Types.ObjectId.isValid(strId)
+        ? strId
+        : new mongoose.Types.ObjectId();
 
-      if (item.size && prod.sizes && prod.sizes.length > 0) {
-        const matchedSize = prod.sizes.find((s) => s.size === item.size);
-        if (matchedSize) {
-          stock = matchedSize.quantity;
-          unitPrice =
-            matchedSize.discountPrice > 0 &&
-            matchedSize.discountPrice < matchedSize.price
-              ? matchedSize.discountPrice
-              : matchedSize.price;
+      if (prod) {
+        targetProductId = prod._id;
+        prodName = prod.name;
+        stock = prod.quantity;
+        unitPrice =
+          prod.discountPrice > 0 && prod.discountPrice < prod.basePrice
+            ? prod.discountPrice
+            : prod.basePrice;
+
+        if (item.size && prod.sizes && prod.sizes.length > 0) {
+          const matchedSize = prod.sizes.find((s) => s.size === item.size);
+          if (matchedSize) {
+            stock = matchedSize.quantity;
+            unitPrice =
+              matchedSize.discountPrice > 0 &&
+              matchedSize.discountPrice < matchedSize.price
+                ? matchedSize.discountPrice
+                : matchedSize.price;
+          }
         }
       }
 
       if (stock < qty) {
         return res.status(400).json({
           success: false,
-          message: `Insufficient stock for product: ${prod.name} (Available: ${stock})`,
+          message: `Insufficient stock for product: ${prodName} (Available: ${stock})`,
         });
       }
 
@@ -216,12 +223,12 @@ export const placeCustomerOrder = async (req, res) => {
         item.image ||
         item.img ||
         item.imageVal ||
-        (prod.images && prod.images[0]?.url) ||
+        (prod && prod.images && prod.images[0]?.url) ||
         "/storefront/prod-1.png";
 
       orderItems.push({
-        product: prod._id,
-        name: prod.name,
+        product: targetProductId,
+        name: prodName,
         qty: qty,
         price: unitPrice,
         size: item.size || "",

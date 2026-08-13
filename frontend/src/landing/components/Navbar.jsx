@@ -8,6 +8,7 @@ import {
   User,
   X,
   LogOut,
+  Globe,
 } from "lucide-react";
 import { api, getCategorySlug } from "../../lib/api";
 import { useCart } from "../../context/CartContext";
@@ -383,8 +384,8 @@ export default function Navbar() {
           {displayStoreName}
         </a>
 
-        <div className="flex min-w-0 items-center gap-2 text-[#1C1916]/70 sm:gap-4 lg:gap-5">
-          <CurrencySelector className="hidden min-[420px]:inline-block" />
+        <div className="flex min-w-0 items-center gap-[18px] sm:gap-4 lg:gap-5 text-[#1C1916]/70">
+          <CurrencySelector className="hidden lg:inline-block" />
           <button
             aria-label="Search"
             onClick={openSearchPanel}
@@ -431,15 +432,9 @@ export default function Navbar() {
             className="hidden lg:block transition-colors hover:text-[#1C1916] relative cursor-pointer"
             onClick={handleWishlistClick}
           >
-            <Heart
-              size={17}
-              strokeWidth={1.4}
-              className="text-[#1C1916]/70"
-            />
+            <Heart size={17} strokeWidth={1.4} className="text-[#1C1916]/70" />
             {isAuthenticated && wishlistItems.length > 0 && (
-              <span
-                className="absolute -right-1.5 -top-1 flex h-[13px] w-[13px] items-center justify-center rounded-full bg-[#B58A5B] text-[8px] font-bold leading-none text-white transition-all duration-300 animate-fade-in"
-              >
+              <span className="absolute -right-1.5 -top-1 flex h-[13px] w-[13px] items-center justify-center rounded-full bg-[#B58A5B] text-[8px] font-bold leading-none text-white transition-all duration-300 animate-fade-in">
                 {wishlistItems.length}
               </span>
             )}
@@ -478,7 +473,10 @@ export default function Navbar() {
         className={`fixed inset-0 z-[200] flex flex-col bg-[#FAF8F5] transition-transform duration-500 ease-in-out ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div className="flex h-[68px] items-center justify-between border-b border-[#E8E1D9] px-6 sm:px-8">
-          <span className="max-w-[calc(100vw-96px)] truncate whitespace-nowrap font-serif text-[16px] uppercase tracking-[0.2em] text-[#1C1916] sm:text-[18px] sm:tracking-[0.28em]" title={storeName}>
+          <span
+            className="max-w-[calc(100vw-96px)] truncate whitespace-nowrap font-serif text-[16px] uppercase tracking-[0.2em] text-[#1C1916] sm:text-[18px] sm:tracking-[0.28em]"
+            title={storeName}
+          >
             {displayStoreName}
           </span>
           <button
@@ -564,9 +562,12 @@ export default function Navbar() {
             )}
           </div>
           <div className="h-px w-full bg-[#E8E1D9]/60" />
-          <div className="flex items-center justify-center gap-2 font-sans text-[10px] font-semibold uppercase tracking-[0.16em] text-[#1C1916]/64">
-            <span>Currency</span>
-            <CurrencySelector />
+          <div className="flex items-center justify-between gap-3 font-sans text-[11px] font-semibold uppercase tracking-[0.16em] text-[#1C1916]/80 py-1">
+            <div className="flex items-center gap-2 text-[#1C1916]">
+              <Globe size={16} strokeWidth={1.4} />
+              <span>Currency</span>
+            </div>
+            <CurrencySelector dropUp={true} />
           </div>
         </div>
       </div>

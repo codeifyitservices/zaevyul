@@ -3,7 +3,7 @@ import { useCurrency } from "../context/CurrencyContext";
 import { CURRENCIES } from "../config/currencies";
 import { ChevronDown } from "lucide-react";
 
-export default function CurrencySelector({ className = "" }) {
+export default function CurrencySelector({ className = "", dropUp = false }) {
   const { currencyCode, setCurrency } = useCurrency();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
@@ -28,7 +28,7 @@ export default function CurrencySelector({ className = "" }) {
   };
 
   return (
-    <div ref={containerRef} className={`relative inline-block ${className}`}>
+    <div ref={containerRef} className={`relative ${className || "inline-block"}`}>
       {/* Selector Trigger Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
@@ -44,7 +44,11 @@ export default function CurrencySelector({ className = "" }) {
           size={10.5}
           className={`transition-transform duration-350 ease-[cubic-bezier(0.16,1,0.3,1)] ${
             isOpen
-              ? "rotate-180 text-[#1C1916]"
+              ? dropUp
+                ? "rotate-0 text-[#1C1916]"
+                : "rotate-180 text-[#1C1916]"
+              : dropUp
+              ? "rotate-180 text-[#1C1916]/40 group-hover:text-[#1C1916]/80"
               : "text-[#1C1916]/40 group-hover:text-[#1C1916]/80"
           }`}
         />
@@ -53,9 +57,13 @@ export default function CurrencySelector({ className = "" }) {
       {/* Dropdown Options List */}
       <ul
         role="listbox"
-        className={`absolute right-0 mt-2 z-50 bg-[#FAF8F5]/98 backdrop-blur-md border border-[#E7DED3] shadow-lg rounded-[2px] py-1.5 min-w-[150px] transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] origin-top-right ${
+        className={`absolute right-0 z-50 bg-[#FAF8F5]/98 backdrop-blur-md border border-[#E7DED3] shadow-lg rounded-[2px] py-1.5 min-w-[150px] transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+          dropUp ? "bottom-full mb-2 origin-bottom-right" : "top-full mt-2 origin-top-right"
+        } ${
           isOpen
             ? "transform scale-100 opacity-100 translate-y-0 visible pointer-events-auto"
+            : dropUp
+            ? "transform scale-95 opacity-0 translate-y-1 invisible pointer-events-none"
             : "transform scale-95 opacity-0 -translate-y-1 invisible pointer-events-none"
         }`}
       >

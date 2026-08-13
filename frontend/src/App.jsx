@@ -11,6 +11,7 @@ import LandingPage from "./landing/pages/LandingPage";
 import CollectionsPage from "./landing/pages/CollectionsPage";
 import ProductDetailPage from "./landing/pages/ProductDetailPage";
 import CartPage from "./landing/pages/CartPage";
+import CheckoutPage from "./landing/pages/CheckoutPage";
 import MyAccountPage from "./landing/pages/MyAccountPage";
 import JournalPage from "./landing/pages/JournalPage";
 import JournalDetailPage from "./landing/pages/JournalDetailPage";
@@ -53,6 +54,7 @@ export default function App() {
                         element={<ProductDetailPage />}
                       />
                       <Route path="/cart" element={<CartPage />} />
+                      <Route path="/checkout" element={<CheckoutPage />} />
                       <Route path="/my-account/*" element={<MyAccountPage />} />
                       <Route path="/journal" element={<JournalPage />} />
                       <Route

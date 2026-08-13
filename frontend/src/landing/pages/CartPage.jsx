@@ -574,9 +574,24 @@ export default function CartPage() {
                   </h2>
 
                   {totals.error && (
-                    <div className="mb-4 flex items-start gap-2 text-[#C94C4C] bg-[#C94C4C]/5 border border-[#C94C4C]/20 p-3 rounded-[3px] text-[11.5px] font-light leading-relaxed">
-                      <AlertCircle size={14} className="shrink-0 mt-0.5" />
-                      <span>{totals.error}</span>
+                    <div className="mb-4 flex items-center justify-between gap-2 text-[#C94C4C] bg-[#C94C4C]/5 border border-[#C94C4C]/20 p-3 rounded-[3px] text-[11.5px] font-light leading-relaxed">
+                      <div className="flex items-center gap-2">
+                        <AlertCircle size={14} className="shrink-0" />
+                        <span>{totals.error}</span>
+                      </div>
+                      <button
+                        onClick={() => {
+                          const match = totals.error.match(/Product not found: (\S+)/);
+                          if (match && match[1]) {
+                            removeItem(match[1]);
+                          } else {
+                            clearCart();
+                          }
+                        }}
+                        className="shrink-0 text-[10.5px] font-medium underline hover:text-[#1C1916] transition-colors"
+                      >
+                        Clear item
+                      </button>
                     </div>
                   )}
 
@@ -688,18 +703,9 @@ export default function CartPage() {
                   </div>
 
                   <button
-                    disabled={!!totals.error || totals.loading}
+                    disabled={cart.length === 0 || totals.loading}
                     onClick={() => {
-                      if (!isAuthenticated) {
-                        toast(
-                          "Please log in to complete your purchase",
-                          "info",
-                        );
-                        navigate("/login?redirect=cart");
-                        return;
-                      }
-                      setCheckoutStep(1);
-                      setShowCheckoutModal(true);
+                      navigate("/checkout");
                     }}
                     className="w-full mt-6 bg-[#1C1916] text-white py-4 font-sans text-[10.5px] font-semibold uppercase tracking-[0.25em] rounded-[2px] hover:bg-[#B58A5B] transition-colors duration-300 shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >

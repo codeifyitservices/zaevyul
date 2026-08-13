@@ -267,9 +267,9 @@ export default function JournalDetailPage() {
             <div className="h-7 w-7 animate-spin rounded-full border-2 border-[#B58A5B] border-t-transparent" />
           </div>
         ) : (
-          <main className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-10 lg:gap-14 items-start">
-            {/* Left Sidebar */}
-            <aside className="space-y-6">
+          <main className="flex flex-col lg:grid lg:grid-cols-[280px_1fr] gap-10 lg:gap-14 items-start">
+            {/* Left Sidebar (Renders below article on mobile via order-2) */}
+            <aside className="order-2 lg:order-1 space-y-6 w-full">
               {/* Back button */}
               <Link
                 to="/journal"
@@ -332,8 +332,8 @@ export default function JournalDetailPage() {
               </Link>
             </aside>
 
-            {/* Right Main Article */}
-            <article className="max-w-[820px]">
+            {/* Right Main Article (Renders first on mobile via order-1) */}
+            <article className="order-1 lg:order-2 max-w-[820px] w-full">
               {/* Category tag */}
               <div className="mb-2">
                 <span className="inline-flex items-center gap-1 font-sans text-[10.5px] font-semibold uppercase tracking-[0.2em] text-[#B58A5B]">

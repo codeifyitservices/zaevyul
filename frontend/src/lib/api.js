@@ -1013,6 +1013,24 @@ export const api = {
     },
   },
 
+  // Location
+  location: {
+    get: async () => {
+      try {
+        const res = await publicRequest("/location");
+        return res.countryCode || "US";
+      } catch (err) {
+        console.warn("Failed to fetch location from backend, attempting fallback:", err);
+        const geoRes = await fetch("https://ipapi.co/json/").catch(() => null);
+        if (geoRes && geoRes.ok) {
+          const data = await geoRes.json();
+          if (data?.country_code) return data.country_code.toUpperCase();
+        }
+        return "US";
+      }
+    },
+  },
+
   // Settings
   settings: {
     getPublicLive: async () => {

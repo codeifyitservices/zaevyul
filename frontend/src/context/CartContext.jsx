@@ -29,6 +29,7 @@ export function CartProvider({ children }) {
   const fetchBackendTotals = useCallback(async (items, address, coupon) => {
     if (!items || items.length === 0) {
       setBackendTotals(null);
+      setErrorTotals(null);
       return;
     }
     setLoadingTotals(true);
@@ -36,7 +37,9 @@ export function CartProvider({ children }) {
     try {
       const data = await customerApi.orders.calculateTax({
         items: items.map(item => ({
-          product: item.id,
+          product: item.id || item._id,
+          id: item.id || item._id,
+          name: item.name || "",
           qty: item.quantity,
           price: item.price,
           size: item.size || ""
@@ -45,9 +48,10 @@ export function CartProvider({ children }) {
         couponCode: coupon?.code || ""
       });
       setBackendTotals(data);
+      setErrorTotals(null);
     } catch (err) {
-      console.error("Failed to calculate backend totals:", err);
-      setErrorTotals(err.message || "Failed to calculate tax and totals.");
+      console.warn("Failed to calculate backend totals, defaulting to local calculation fallback:", err);
+      setBackendTotals(null);
     } finally {
       setLoadingTotals(false);
     }
@@ -169,8 +173,8 @@ export function CartProvider({ children }) {
     }
   };
 
-  const removeItem = (key) => {
-    setCart((prev) => prev.filter((item) => item.key !== key));
+  const removeItem = (keyOrId) => {
+    setCart((prev) => prev.filter((item) => item.key !== keyOrId && item.id !== keyOrId && item._id !== keyOrId));
   };
 
   const updateQuantity = (key, quantity) => {

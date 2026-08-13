@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { CURRENCIES, DEFAULT_CURRENCY_CODE } from "../config/currencies";
 import { currencyService } from "../services/currencyService";
+import countryMapping from "../config/country-currency-mapping-expanded.json";
+import { api } from "../lib/api";
 
 const CurrencyContext = createContext(null);
 
@@ -73,10 +75,42 @@ export function CurrencyProvider({ children }) {
     return () => clearInterval(interval);
   }, [fetchRatesData]);
 
+  // Automatic location-based currency detection on initial visit
+  useEffect(() => {
+    const isManual = localStorage.getItem("zae_currency_is_manual") === "true";
+    if (isManual) {
+      // User has manually selected currency before; never override
+      return;
+    }
+
+    const detectLocation = async () => {
+      try {
+        const countryCode = await api.location.get();
+        if (countryCode) {
+          const upperCountry = countryCode.toUpperCase();
+          const targetCurrency =
+            countryMapping.countryToCurrency[upperCountry] ||
+            countryMapping.defaultCurrency ||
+            DEFAULT_CURRENCY_CODE;
+
+          if (CURRENCIES.some((c) => c.code === targetCurrency)) {
+            setCurrencyCodeState(targetCurrency);
+            localStorage.setItem("currency", targetCurrency);
+          }
+        }
+      } catch (err) {
+        console.warn("Location detection failed, defaulting to saved/fallback currency:", err);
+      }
+    };
+
+    detectLocation();
+  }, []);
+
   const setCurrency = useCallback((code) => {
     if (CURRENCIES.some((c) => c.code === code)) {
       setCurrencyCodeState(code);
       localStorage.setItem("currency", code);
+      localStorage.setItem("zae_currency_is_manual", "true");
     }
   }, []);
 

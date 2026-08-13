@@ -92,7 +92,10 @@ export const getPublicProductBySlug = async (req, res) => {
       product = await Product.findOne({ _id: identifier, ...visibleProductFilter }).populate("category", "name slug");
     }
     if (!product) {
-      product = await Product.findOne({ slug: identifier, ...visibleProductFilter }).populate("category", "name slug");
+      product = await Product.findOne({
+        $or: [{ slug: identifier }, { id: identifier }, { sku: identifier }],
+        ...visibleProductFilter,
+      }).populate("category", "name slug");
     }
 
     if (!product) {
@@ -337,5 +340,47 @@ export const getPublicSettings = async (req, res) => {
   } catch (error) {
     console.error("[public] getPublicSettings error:", error);
     return res.status(500).json({ success: false, message: "Failed to fetch settings." });
+  }
+};
+
+/**
+ * GET /api/public/location
+ * Detects client ISO 3166-1 alpha-2 country code using IP/Cloudflare headers.
+ */
+export const getPublicLocation = async (req, res) => {
+  try {
+    const cfCountry = req.headers["cf-ipcountry"];
+    if (cfCountry && cfCountry !== "XX" && cfCountry.length === 2) {
+      return res.status(200).json({ success: true, countryCode: cfCountry.toUpperCase() });
+    }
+
+    let ip = req.headers["x-forwarded-for"]?.split(",")[0].trim() || req.socket?.remoteAddress || req.ip || "";
+    if (ip.startsWith("::ffff:")) {
+      ip = ip.replace("::ffff:", "");
+    }
+
+    if (!ip || ip === "127.0.0.1" || ip === "::1" || ip.startsWith("192.168.") || ip.startsWith("10.")) {
+      const externalRes = await fetch("https://ipapi.co/json/").catch(() => null);
+      if (externalRes && externalRes.ok) {
+        const geoData = await externalRes.json();
+        if (geoData?.country_code) {
+          return res.status(200).json({ success: true, countryCode: geoData.country_code.toUpperCase() });
+        }
+      }
+      return res.status(200).json({ success: true, countryCode: "IN" });
+    }
+
+    const geoRes = await fetch(`https://ipapi.co/${ip}/json/`).catch(() => null);
+    if (geoRes && geoRes.ok) {
+      const geoData = await geoRes.json();
+      if (geoData?.country_code) {
+        return res.status(200).json({ success: true, countryCode: geoData.country_code.toUpperCase() });
+      }
+    }
+
+    return res.status(200).json({ success: true, countryCode: "US" });
+  } catch (error) {
+    console.error("[public] getPublicLocation error:", error);
+    return res.status(200).json({ success: true, countryCode: "US" });
   }
 };

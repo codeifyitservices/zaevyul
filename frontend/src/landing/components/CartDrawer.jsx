@@ -533,7 +533,7 @@ export default function CartDrawer() {
               <button
                 onClick={() => {
                   setIsOpen(false);
-                  navigate("/cart");
+                  navigate("/checkout");
                 }}
                 className="w-full bg-[#1C1916] text-white py-4 font-sans text-[10px] font-semibold uppercase tracking-[0.25em] rounded-[1px] hover:bg-[#B58A5B] transition-colors duration-300 shadow-sm"
               >
