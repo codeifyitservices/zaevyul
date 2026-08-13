@@ -323,7 +323,16 @@ export const getPublicSettings = async (req, res) => {
 
     const publicSettings = {
       storeName: settings.storeName || "Zaevyul",
-      storeEmail: settings.storeEmail || "concierge@zaevyul.com",
+      tagline: settings.tagline || "Timeless · Authentic · Handcrafted",
+      storeEmail: settings.email || "concierge@zaevyul.com",
+      phone: settings.phone || "+91 194 123 4567",
+      address: settings.address || "Residency Road, Srinagar, Jammu & Kashmir 190001",
+      socialLinks: settings.socialLinks || {
+        instagram: "https://instagram.com/zaevyul",
+        facebook: "",
+        twitter: "",
+        pinterest: "",
+      },
       freeShippingThreshold: settings.freeShippingThreshold || 5000,
       standardShippingFee: settings.standardShippingFee || 250,
       lowStockThreshold: settings.lowStockThreshold || 5,
