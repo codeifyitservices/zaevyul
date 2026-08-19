@@ -246,8 +246,7 @@ export default function OrdersPage() {
                 const id = order._id || order.id;
                 const itemCount = order.items?.length || 0;
                 const canCancel = order.status === "pending";
-                const canDownload =
-                  order.status === "delivered" || order.status === "shipped";
+                const canDownload = order.status !== "cancelled" && order.status !== "refunded";
 
                 return (
                   <tr
@@ -302,15 +301,16 @@ export default function OrdersPage() {
                           disabled={!canDownload}
                           title={
                             canDownload
-                              ? "Download invoice"
-                              : "Invoice available after shipping"
+                              ? "Download PDF Invoice"
+                              : "Invoice unavailable for cancelled orders"
                           }
-                          onClick={() =>
-                            customerApi.orders
-                              .downloadInvoice?.(id)
-                              .catch(() => {})
-                          }
-                          className="w-8 h-8 flex items-center justify-center rounded-full text-[#6B6560] hover:text-[#1C1916] hover:bg-[#F0EAE0] transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                          onClick={() => {
+                            if (canDownload) {
+                              const filename = `${order.invoice?.invoiceNumber || order.orderNumber}.pdf`;
+                              customerApi.orders.downloadInvoice?.(id, filename).catch(() => {});
+                            }
+                          }}
+                          className="w-8 h-8 flex items-center justify-center rounded-full text-[#6B6560] hover:text-[#B58A5B] hover:bg-[#F0EAE0] transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                         >
                           <Download size={14} strokeWidth={1.6} />
                         </button>

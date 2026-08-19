@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import fs from 'fs';
 
 /**
  * Email service — wraps Nodemailer.
@@ -75,10 +76,29 @@ export const sendOrderConfirmationEmail = async (order, to) => {
   if (!to || !to.includes('@')) return;
 
   const from = process.env.EMAIL_FROM || process.env.SMTP_USER || 'noreply@zaevyul.com';
+  // Check for generated invoice PDF attachment
+  const attachments = [];
+  try {
+    if (order.invoice?.invoiceNumber) {
+      const year = new Date(order.createdAt || Date.now()).getFullYear();
+      const pdfPath = `storage/invoices/${year}/${order.invoice.invoiceNumber}.pdf`;
+      if (fs.existsSync(pdfPath)) {
+        attachments.push({
+          filename: `${order.invoice.invoiceNumber}.pdf`,
+          path: pdfPath,
+          contentType: 'application/pdf',
+        });
+      }
+    }
+  } catch {
+    /* ignore attachment error */
+  }
+
   const mailOptions = {
     from: `"Zaevyul" <${from}>`,
     to,
     subject: `Order Confirmed - #${order.orderNumber}`,
+    attachments,
     html: `
       <div style="font-family: Georgia, serif; max-width: 540px; margin: 0 auto; padding: 40px 24px; background: #FAF8F5; border: 1px solid #E6DED4;">
         <h1 style="font-size: 26px; font-weight: 400; color: #1C1916; margin-bottom: 8px;">ZAEVYUL</h1>
@@ -87,6 +107,7 @@ export const sendOrderConfirmationEmail = async (order, to) => {
           <h2 style="font-size: 16px; margin-top: 0;">Order #${order.orderNumber}</h2>
           <p style="font-family: sans-serif; font-size: 13px; color: #1C1916;">Status: <strong>${order.status.toUpperCase()}</strong></p>
           <p style="font-family: sans-serif; font-size: 13px; color: #1C1916;">Total: <strong>₹${order.total.toLocaleString('en-IN')}</strong></p>
+          ${order.invoice?.invoiceNumber ? `<p style="font-family: sans-serif; font-size: 12px; color: #B58A5B; margin-top: 12px;">Invoice No: <strong>${order.invoice.invoiceNumber}</strong> (Attached)</p>` : ''}
         </div>
         <p style="font-family: sans-serif; font-size: 12px; color: #8A857E;">We are preparing your items with artisanal care in Kashmir.</p>
       </div>

@@ -1,32 +1,76 @@
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { MOCK_CUSTOMERS, MOCK_ORDERS, formatCurrency, formatDate } from '../../../lib/mockData';
+import { formatCurrency, formatDate } from '../../../lib/mockData';
 import PageHeader from '../../../components/PageHeader';
 import StatusBadge from '../../../components/StatusBadge';
+import { useToast } from '../../../context/ToastContext';
+import { api } from '../../../lib/api';
 
 export default function CustomerDetail() {
   const { id } = useParams();
-  const customer = MOCK_CUSTOMERS.find(c => c.id === id);
+  const toast = useToast();
+  const [customer, setCustomer] = useState(null);
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [cData, oList] = await Promise.all([
+          api.customers.get(id),
+          api.orders.list(),
+        ]);
+        setCustomer(cData);
+        // Filter orders for this customer by ID or customer ID
+        const customerOrders = (oList || []).filter(o => {
+          const custId = typeof o.customer === 'object' ? (o.customer?._id || o.customer?.id) : o.customer;
+          return String(custId) === String(id) || String(o.customerUser) === String(id) || o.customerEmail === cData?.email;
+        });
+        setOrders(customerOrders);
+      } catch (err) {
+        toast('Failed to load customer details', 'error');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [id, toast]);
+
+  if (loading) {
+    return (
+      <div className="page flex-center py-20">
+        <div className="spinner" />
+      </div>
+    );
+  }
+
   if (!customer) return (
     <div className="page">
-      <p style={{ color: 'var(--color-text-secondary)' }}>Customer not found. <Link to="/admin/customers" style={{ color: 'var(--color-walnut)' }}>Back</Link></p>
+      <p style={{ color: 'var(--color-text-secondary)' }}>Customer not found. <Link to="/admin/customers" style={{ color: 'var(--color-walnut)' }}>Back to Customers</Link></p>
     </div>
   );
 
-  const orders = MOCK_ORDERS.filter(o => o.customer === id);
+  const totalSpent = orders.reduce((sum, o) => sum + (o.total || 0), 0);
+  const orderCount = orders.length;
+  const avgOrderValue = orderCount > 0 ? totalSpent / orderCount : 0;
+  const lastOrderDate = orders[0]?.createdAt || customer.lastOrder;
 
   const STATS = [
-    { label: 'Total Spent', value: formatCurrency(customer.totalSpent) },
-    { label: 'Orders', value: customer.orderCount },
-    { label: 'Avg. Order Value', value: formatCurrency(customer.avgOrderValue) },
-    { label: 'Status', value: <StatusBadge status={customer.status} /> },
+    { label: 'Total Spent', value: formatCurrency(totalSpent) },
+    { label: 'Orders', value: orderCount },
+    { label: 'Avg. Order Value', value: formatCurrency(Math.round(avgOrderValue)) },
+    { label: 'Status', value: <StatusBadge status={customer.status || 'active'} /> },
   ];
+
+  const customerName = customer.name || 'Anonymous Customer';
 
   return (
     <div className="page page-enter">
       <PageHeader
-        crumbs={[{ label: 'Customers', to: '/admin/customers' }, { label: customer.name }]}
-        title={customer.name}
-        subtitle={customer.email}
+        crumbs={[{ label: 'Customers', to: '/admin/customers' }, { label: customerName }]}
+        title={customerName}
+        subtitle={customer.email || customer.phone}
       />
 
       {/* Stats row */}
@@ -50,13 +94,13 @@ export default function CustomerDetail() {
               <thead><tr><th>Order</th><th>Items</th><th>Total</th><th>Status</th><th>Date</th></tr></thead>
               <tbody>
                 {orders.map(o => (
-                  <tr key={o.id}>
+                  <tr key={o._id || o.id}>
                     <td>
-                      <Link to={`/admin/orders/${o.id}`} style={{ fontSize: 12, color: 'var(--color-walnut)', textDecoration: 'none', fontWeight: 500 }}>
+                      <Link to={`/admin/orders/${o._id || o.id}`} style={{ fontSize: 12, color: 'var(--color-walnut)', textDecoration: 'none', fontWeight: 500 }}>
                         {o.orderNumber}
                       </Link>
                     </td>
-                    <td style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>{o.items.length}</td>
+                    <td style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>{o.items ? o.items.length : 0}</td>
                     <td style={{ fontSize: 12, fontWeight: 500 }}>{formatCurrency(o.total)}</td>
                     <td><StatusBadge status={o.status} /></td>
                     <td style={{ fontSize: 11, color: 'var(--color-text-caption)' }}>{formatDate(o.createdAt)}</td>
@@ -73,11 +117,11 @@ export default function CustomerDetail() {
             <div className="card-header"><span className="card-title">Contact</span></div>
             <div className="card-body" style={{ fontSize: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
               {[
-                ['Email', customer.email],
+                ['Email', customer.email || '—'],
                 ['Phone', customer.phone || '—'],
-                ['City', `${customer.city}, ${customer.country}`],
-                ['Joined', formatDate(customer.joinedAt)],
-                ['Last order', formatDate(customer.lastOrder)],
+                ['City', customer.city ? `${customer.city}, ${customer.country || 'India'}` : (customer.addresses?.[0]?.city || '—')],
+                ['Joined', formatDate(customer.createdAt || customer.joinedAt)],
+                ['Last order', lastOrderDate ? formatDate(lastOrderDate) : '—'],
               ].map(([k, v]) => (
                 <div key={k} style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: 'var(--color-text-caption)' }}>{k}</span>

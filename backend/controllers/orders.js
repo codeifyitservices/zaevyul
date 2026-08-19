@@ -2,6 +2,7 @@ import Order from "../model/Order.js";
 import Customer from "../model/Customer.js";
 import { sendOrderStatusEmail } from "../services/emailService.js";
 import { escapeRegex } from "./public.js";
+import { generateInvoiceForOrder, getInvoicePDFPath } from "../services/invoiceService.js";
 
 /**
  * GET /api/admin/orders
@@ -83,6 +84,15 @@ export const updateOrder = async (req, res) => {
 
     await order.save();
 
+    // Auto-generate invoice if payment is marked paid or order is being processed/shipped/delivered
+    if (order.paymentStatus === "paid" || ["processing", "packed", "shipped", "delivered"].includes(order.status)) {
+      try {
+        await generateInvoiceForOrder(order._id);
+      } catch (invErr) {
+        console.error("[Admin Orders] Invoice generation error on updateOrder:", invErr.message);
+      }
+    }
+
     // If order was delivered or cancelled, update customer spent statistics (AUD-014)
     if (status === "delivered" || status === "cancelled") {
       const customer = await Customer.findById(order.customer);
@@ -113,7 +123,8 @@ export const updateOrder = async (req, res) => {
       );
     }
 
-    return res.status(200).json({ success: true, order });
+    const reloadedOrder = await Order.findById(order._id).populate("customer");
+    return res.status(200).json({ success: true, order: reloadedOrder });
   } catch (error) {
     console.error("Update order error:", error);
     return res
@@ -143,3 +154,64 @@ export const addOrderNote = async (req, res) => {
       .json({ success: false, message: "Internal server error" });
   }
 };
+
+/**
+ * GET /api/admin/orders/:id/invoice
+ * Secure PDF invoice download for admin users.
+ */
+export const downloadAdminInvoice = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const order = await Order.findById(id);
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found." });
+    }
+
+    const { filePath, invoiceNumber } = await getInvoicePDFPath(order._id);
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `inline; filename="${invoiceNumber}.pdf"`
+    );
+
+    return res.sendFile(filePath);
+  } catch (error) {
+    console.error("downloadAdminInvoice error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to download admin invoice.",
+    });
+  }
+};
+
+/**
+ * POST /api/admin/orders/:id/invoice/regenerate
+ * Allows admin to manually trigger/regenerate an invoice for an order.
+ */
+export const regenerateAdminInvoice = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const order = await Order.findById(id);
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found." });
+    }
+
+    const invoiceDoc = await generateInvoiceForOrder(order._id);
+    const updatedOrder = await Order.findById(order._id);
+
+    return res.status(200).json({
+      success: true,
+      message: "Invoice generated successfully.",
+      invoice: invoiceDoc,
+      order: updatedOrder,
+    });
+  } catch (error) {
+    console.error("regenerateAdminInvoice error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to regenerate invoice.",
+    });
+  }
+};
+

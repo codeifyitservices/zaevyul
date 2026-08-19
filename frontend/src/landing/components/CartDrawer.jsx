@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { X, Plus, Minus, Heart, ArrowRight } from "lucide-react";
+import { X, Plus, Minus, Heart, ArrowRight, Check } from "lucide-react";
 import { useCart } from "../../context/CartContext";
 import { useFavorite } from "../../context/FavoritesContext";
 import { useToast } from "../../context/ToastContext";
@@ -18,6 +18,11 @@ export default function CartDrawer() {
     removeItem,
     totals,
     addToCart,
+    isInCart,
+    savedItems,
+    saveForLater,
+    moveToCart,
+    removeSavedItem,
   } = useCart();
   const { addFavorite, setIsOpen: setWishlistOpen } = useFavorite();
   const { isAuthenticated } = useCustomerAuth();
@@ -218,7 +223,10 @@ export default function CartDrawer() {
 
         {/* Free Shipping Message & Progress Bar */}
         {cart.length > 0 && (
-          <div className="border-b border-[#ECE7E1] bg-[#F5EFE7]/50 px-6 py-4.5 sm:px-8">
+          <div className="border-b border-[#ECE7E1] bg-[#F5EFE7]/50 px-6 py-4 sm:px-8">
+            <p className="font-sans text-[11px] font-light text-[#6B6560] mb-2">
+              Welcome back — your items remain safely saved in your bag.
+            </p>
             {totals.isFreeShipping ? (
               <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.12em] text-[#2E7D32]">
                 You've unlocked Free Shipping! 🎉
@@ -371,7 +379,7 @@ export default function CartDrawer() {
                         </div>
 
                         {/* Quantity & Actions Row */}
-                        <div className="mt-4 flex items-center justify-between">
+                        <div className="mt-4 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5">
                           {/* Quantity controls */}
                           <div className="flex items-center border border-[#ECE7E1] bg-white">
                             <button
@@ -400,12 +408,18 @@ export default function CartDrawer() {
                           </div>
 
                           {/* Actions buttons */}
-                          <div className="flex items-center gap-4 text-[10.5px] font-semibold tracking-wider uppercase">
+                          <div className="flex items-center gap-3 text-[10px] font-semibold tracking-wider uppercase">
+                            <button
+                              onClick={() => saveForLater(item.key)}
+                              className="text-[#8A857E] hover:text-[#B58A5B] transition-colors border-b border-transparent hover:border-[#B58A5B]/40 pb-0.5 cursor-pointer"
+                            >
+                              Save for Later
+                            </button>
                             <button
                               onClick={() => handleMoveToWishlist(item)}
                               className="text-[#8A857E] hover:text-[#B58A5B] transition-colors border-b border-transparent hover:border-[#B58A5B]/40 pb-0.5 cursor-pointer"
                             >
-                              Move to Wishlist
+                              Wishlist
                             </button>
                             <button
                               onClick={() => setConfirmModalItem(item)}
@@ -419,6 +433,43 @@ export default function CartDrawer() {
                     </div>
                   );
                 })}
+            </div>
+          )}
+
+          {/* Saved For Later Section */}
+          {savedItems && savedItems.length > 0 && (
+            <div className="mt-8 pt-6 border-t border-[#ECE7E1]">
+              <h3 className="font-serif text-[14px] uppercase tracking-[0.18em] text-[#1C1916] mb-4">
+                Saved For Later ({savedItems.length})
+              </h3>
+              <div className="space-y-3">
+                {savedItems.map((sItem) => (
+                  <div key={sItem.key} className="flex items-center justify-between gap-3 p-3 bg-[#F0ECE8]/60 border border-[#E6DED4] rounded-[2px]">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <img src={sItem.image} alt={sItem.name} className="w-12 h-14 object-cover rounded-[2px] shrink-0" />
+                      <div className="min-w-0">
+                        <p className="font-serif text-[13px] text-[#1C1916] truncate">{sItem.name}</p>
+                        <span className="font-sans text-[11px] text-[#8A857E]">{formatPrice(sItem.price)}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={() => moveToCart(sItem.key)}
+                        className="text-[9.5px] font-semibold uppercase tracking-[0.12em] text-[#1C1916] bg-white border border-[#1C1916]/30 px-3 py-1.5 rounded-[1px] hover:bg-[#1C1916] hover:text-white transition-colors cursor-pointer"
+                      >
+                        Move to Bag
+                      </button>
+                      <button
+                        onClick={() => removeSavedItem(sItem.key)}
+                        className="text-[#8A857E] hover:text-[#C94C4C] p-1 cursor-pointer"
+                        aria-label="Remove saved item"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -443,6 +494,7 @@ export default function CartDrawer() {
                       .replace(/[^a-z0-9]+/g, "-")
                       .replace(/(^-|-$)/g, "");
                   const detailPath = `/collection/${catSlug}/${prodSlug}`;
+                  const inCart = isInCart(p.id || p._id);
                   return (
                     <div
                       key={p.id || p._id}
@@ -472,22 +524,27 @@ export default function CartDrawer() {
                         </span>
                       </div>
                       <button
-                        disabled={p.quantity <= 0}
+                        disabled={p.quantity <= 0 && !inCart}
                         onClick={() => {
-                          addToCart(p, 1);
+                          if (!inCart) {
+                            addToCart(p, 1);
+                          }
                           scrollContainerRef.current?.scrollTo({
                             top: 0,
                             behavior: "smooth",
                           });
                         }}
-                        className={`flex h-7 w-7 items-center justify-center rounded-full border border-[#1C1916]/10 text-[#1C1916]/70 transition-all duration-200 ${
-                          p.quantity <= 0
-                            ? "opacity-35 cursor-not-allowed"
-                            : "hover:bg-[#1C1916] hover:border-[#1C1916] hover:text-white cursor-pointer"
+                        className={`flex h-7 w-7 items-center justify-center rounded-full border transition-all duration-200 ${
+                          inCart
+                            ? "bg-[#1C1916] border-[#1C1916] text-white cursor-default"
+                            : p.quantity <= 0
+                            ? "border-[#1C1916]/10 text-[#1C1916]/70 opacity-35 cursor-not-allowed"
+                            : "border-[#1C1916]/10 text-[#1C1916]/70 hover:bg-[#1C1916] hover:border-[#1C1916] hover:text-white cursor-pointer"
                         }`}
-                        aria-label={p.quantity <= 0 ? `${p.name} is out of stock` : `Add ${p.name} to cart`}
+                        aria-label={inCart ? `${p.name} is in cart` : p.quantity <= 0 ? `${p.name} is out of stock` : `Add ${p.name} to cart`}
+                        title={inCart ? "In Cart" : undefined}
                       >
-                        <Plus size={11} strokeWidth={1.5} />
+                        {inCart ? <Check size={11} strokeWidth={2.2} /> : <Plus size={11} strokeWidth={1.5} />}
                       </button>
                     </div>
                   );

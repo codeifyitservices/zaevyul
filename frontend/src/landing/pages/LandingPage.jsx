@@ -8,6 +8,7 @@ import TrustBadges from "../components/TrustBadges";
 import SiteFooter from "../components/SiteFooter";
 
 export default function LandingPage() {
+
   return (
     <div className="bg-[#FAF8F5] text-[#1C1916] font-sans overflow-x-hidden">
       <Navbar />

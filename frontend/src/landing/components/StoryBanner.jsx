@@ -5,7 +5,7 @@ export default function StoryBanner() {
     <section className="relative h-[500px] overflow-hidden sm:h-[600px] lg:h-[660px]">
       <div className="absolute inset-0">
         <img
-          src="/storefront/story-bg.png"
+          src="https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124719/zaevyul/storefront/story-bg.jpg"
           alt="Himalayan mountain landscape"
           className="absolute inset-0 h-full w-full object-cover object-center"
         />

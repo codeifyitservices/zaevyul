@@ -43,21 +43,21 @@ const legacyImgs = [
   },
   {
     number: "02",
-    img: "/storefront/about-hand.png",
+    img: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124698/zaevyul/storefront/about-hand.png",
     title: "Crafted by Hand",
     description:
       "Skilled artisans weave each piece with care, keeping traditions alive.",
   },
   {
     number: "03",
-    img: "/storefront/about-urn.png",
+    img: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124704/zaevyul/storefront/about-urn.png",
     title: "Finest Pashmina",
     description:
       "From the finest fibres to intricate details, quality is our promise.",
   },
   {
     number: "04",
-    img: "/storefront/about-globe.png",
+    img: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124697/zaevyul/storefront/about-globe.png",
     title: "Loved Worldwide",
     description:
       "Our creations travel across the world, spreading timeless elegance.",
@@ -90,7 +90,7 @@ export default function OurStoryPage() {
             <div className="w-full aspect-[16/11] sm:aspect-[3/2] lg:aspect-[16/11] bg-[#F3EFE8] rounded-[2px] overflow-hidden">
               {/* Replace src with the Kashmir lake / houseboat illustration */}
               <img
-                src="/storefront/about-main.png"
+                src="https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124699/zaevyul/storefront/about-main.png"
                 alt="Illustration of a Kashmiri lake with a houseboat and mountains"
                 className="w-full h-full object-cover"
               />
@@ -108,7 +108,7 @@ export default function OurStoryPage() {
             <div className="w-full aspect-[4/3] sm:aspect-[3/2] lg:aspect-[4/3] bg-[#F3EFE8] rounded-[2px] overflow-hidden order-1 lg:order-1">
               {/* Replace src with the mountain river/house photograph */}
               <img
-                src="/storefront/about-2.png"
+                src="https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124695/zaevyul/storefront/about-2.png"
                 alt="Snow-capped Kashmiri mountains with a river and traditional house"
                 className="w-full h-full object-cover"
               />
@@ -215,7 +215,7 @@ export default function OurStoryPage() {
             <div className="w-full aspect-[4/3] sm:aspect-[3/2] lg:aspect-[4/3] bg-[#F3EFE8] rounded-[2px] overflow-hidden order-1">
               {/* Replace src with the folded embroidered shawl photograph */}
               <img
-                src="/storefront/about-3.png"
+                src="https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124696/zaevyul/storefront/about-3.png"
                 alt="Close-up of a folded ivory pashmina shawl with gold embroidery"
                 className="w-full h-full object-cover"
               />

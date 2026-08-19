@@ -15,7 +15,7 @@ const OrderSchema = new mongoose.Schema({
   orderNumber: { type: String, required: true, unique: true },
   customer: { type: mongoose.Schema.Types.ObjectId, ref: 'Customer', required: true },
   customerName: { type: String, required: true },
-  status: { type: String, enum: ['pending', 'processing', 'packed', 'shipped', 'delivered', 'cancelled', 'refunded'], default: 'pending' },
+  status: { type: String, enum: ['pending', 'processing', 'packed', 'shipped', 'delivered', 'cancelled', 'refunded', 'return_requested', 'returned'], default: 'pending' },
   items: [OrderItemSchema],
   subtotal: { type: Number, required: true },
   taxAmount: { type: Number, default: 0 },
@@ -30,6 +30,12 @@ const OrderSchema = new mongoose.Schema({
   paymentMethod: { type: String, default: 'Credit Card' },
   paymentStatus: { type: String, enum: ['pending', 'paid', 'refunded', 'failed'], default: 'pending' },
   trackingNumber: { type: String, default: null },
+  returnRequest: {
+    reason: { type: String, default: '' },
+    details: { type: String, default: '' },
+    requestedAt: { type: Date },
+    status: { type: String, enum: ['pending', 'approved', 'rejected', 'completed'], default: 'pending' }
+  },
   shippingAddress: {
     line1: { type: String, required: true },
     line2: { type: String, default: '' },
@@ -44,7 +50,14 @@ const OrderSchema = new mongoose.Schema({
     recipientName: { type: String, default: '' },
     landmark: { type: String, default: '' }
   },
-  notes: { type: String, default: '' }
+  notes: { type: String, default: '' },
+  invoice: {
+    invoiceNumber: { type: String, default: null },
+    invoiceId: { type: mongoose.Schema.Types.ObjectId, ref: 'Invoice', default: null },
+    generatedAt: { type: Date, default: null },
+    pdfUrl: { type: String, default: null },
+    status: { type: String, enum: ['none', 'generated', 'failed'], default: 'none' }
+  }
 }, { timestamps: true });
 
 // Indexes for reports & order-list queries

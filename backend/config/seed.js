@@ -18,8 +18,8 @@ const blogsData = [
     status: "published",
     category: "Heritage",
     readTime: "5 min read",
-    mainImage: { url: "/storefront/story-bg.png" },
-    featuredImage: "/storefront/story-bg.png",
+    mainImage: { url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124719/zaevyul/storefront/story-bg.jpg" },
+    featuredImage: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124719/zaevyul/storefront/story-bg.jpg",
     publishedAt: new Date("2025-05-10")
   },
   {
@@ -30,8 +30,8 @@ const blogsData = [
     status: "published",
     category: "Craft",
     readTime: "6 min read",
-    mainImage: { url: "/storefront/artisan.png" },
-    featuredImage: "/storefront/artisan.png",
+    mainImage: { url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124706/zaevyul/storefront/artisan.jpg" },
+    featuredImage: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124706/zaevyul/storefront/artisan.jpg",
     publishedAt: new Date("2025-05-05")
   },
   {
@@ -42,8 +42,8 @@ const blogsData = [
     status: "published",
     category: "Culture",
     readTime: "4 min read",
-    mainImage: { url: "/storefront/cat-shawls.png" },
-    featuredImage: "/storefront/cat-shawls.png",
+    mainImage: { url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124709/zaevyul/storefront/cat-shawls.jpg" },
+    featuredImage: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124709/zaevyul/storefront/cat-shawls.jpg",
     publishedAt: new Date("2025-04-28")
   },
   {
@@ -54,8 +54,8 @@ const blogsData = [
     status: "published",
     category: "Stories",
     readTime: "4 min read",
-    mainImage: { url: "/storefront/color-palette.png" },
-    featuredImage: "/storefront/color-palette.png",
+    mainImage: { url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124711/zaevyul/storefront/color-palette.png" },
+    featuredImage: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124711/zaevyul/storefront/color-palette.png",
     publishedAt: new Date("2025-04-20")
   },
   {
@@ -66,8 +66,8 @@ const blogsData = [
     status: "published",
     category: "Care",
     readTime: "3 min read",
-    mainImage: { url: "/storefront/prod-stack.png" },
-    featuredImage: "/storefront/prod-stack.png",
+    mainImage: { url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124718/zaevyul/storefront/prod-stack.jpg" },
+    featuredImage: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124718/zaevyul/storefront/prod-stack.jpg",
     publishedAt: new Date("2025-04-15")
   },
   {
@@ -78,8 +78,8 @@ const blogsData = [
     status: "published",
     category: "Heritage",
     readTime: "5 min read",
-    mainImage: { url: "/storefront/hero.png" },
-    featuredImage: "/storefront/hero.png",
+    mainImage: { url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124712/zaevyul/storefront/hero.png" },
+    featuredImage: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124712/zaevyul/storefront/hero.png",
     publishedAt: new Date("2025-04-08")
   }
 ];

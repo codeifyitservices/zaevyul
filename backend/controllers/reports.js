@@ -9,11 +9,13 @@ export const getReports = async (req, res) => {
       totalCustomers,
       totalProducts,
       lowStockCount,
+      outOfStockCount,
       totalOrdersCount,
       pendingOrdersCount,
       revenueAgg,
       categoryAgg,
       monthlyReportAgg,
+      topProductsAgg,
     ] = await Promise.all([
       // 1. Count customers
       Customer.countDocuments(),
@@ -23,22 +25,30 @@ export const getReports = async (req, res) => {
 
       // 3. Low stock count using individual product thresholds
       Product.countDocuments({
-        $expr: { $lte: ['$quantity', '$lowStockThreshold'] }
+        $expr: {
+          $and: [
+            { $gt: ['$quantity', 0] },
+            { $lte: ['$quantity', '$lowStockThreshold'] }
+          ]
+        }
       }),
 
-      // 4. Total orders count
+      // 4. Out of stock count
+      Product.countDocuments({ quantity: 0 }),
+
+      // 5. Total orders count
       Order.countDocuments(),
 
-      // 5. Pending orders count
+      // 6. Pending orders count
       Order.countDocuments({ status: 'pending' }),
 
-      // 6. Revenue aggregation — avoids loading all documents into memory
+      // 7. Revenue aggregation
       Order.aggregate([
         { $match: { status: 'delivered' } },
         { $group: { _id: null, totalRevenue: { $sum: '$total' } } }
       ]),
 
-      // 7. Category sales breakdown via aggregation — single pipeline, no N+1
+      // 8. Category sales breakdown via aggregation
       Order.aggregate([
         { $match: { status: 'delivered' } },
         { $unwind: '$items' },
@@ -74,7 +84,7 @@ export const getReports = async (req, res) => {
         }
       ]),
 
-      // 8. Monthly sales aggregate for the last 12 months
+      // 9. Monthly sales aggregate for the last 12 months
       Order.aggregate([
         {
           $match: {
@@ -93,10 +103,26 @@ export const getReports = async (req, res) => {
           }
         },
         { $sort: { '_id.year': 1, '_id.month': 1 } }
+      ]),
+
+      // 10. Top selling products aggregate
+      Order.aggregate([
+        { $unwind: '$items' },
+        {
+          $group: {
+            _id: '$items.product',
+            sold: { $sum: '$items.qty' },
+            revenue: { $sum: { $multiply: ['$items.price', '$items.qty'] } },
+            name: { $first: '$items.name' }
+          }
+        },
+        { $sort: { sold: -1 } },
+        { $limit: 5 }
       ])
     ]);
 
     const totalRevenue = revenueAgg[0]?.totalRevenue ?? 0;
+    const inStockCount = Math.max(0, totalProducts - outOfStockCount - lowStockCount);
 
     // Calculate category percentage breakdown
     const totalQtySold = categoryAgg.reduce((sum, c) => sum + c.qtySold, 0);
@@ -107,7 +133,6 @@ export const getReports = async (req, res) => {
       }))
       .filter(c => c.value > 0);
 
-    // Default fallback if no sales yet
     if (categoryBreakdown.length === 0) {
       categoryBreakdown = [
         { name: 'Shawls', value: 60 },
@@ -116,7 +141,6 @@ export const getReports = async (req, res) => {
       ];
     }
 
-    // Populate last 12 months dynamically starting with current month back to 11 months ago
     const monthsLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const monthlyReportMap = {};
     for (let i = 11; i >= 0; i--) {
@@ -129,7 +153,6 @@ export const getReports = async (req, res) => {
       monthlyReportMap[key] = { month: label, revenue: 0, orders: 0 };
     }
 
-    // Populate the monthly values with real aggregated data
     for (const item of monthlyReportAgg) {
       const key = `${item._id.year}-${item._id.month}`;
       if (monthlyReportMap[key]) {
@@ -140,6 +163,12 @@ export const getReports = async (req, res) => {
 
     const monthlyReport = Object.values(monthlyReportMap);
 
+    const topProducts = topProductsAgg.map(p => ({
+      name: p.name || 'Pashmina Item',
+      sold: p.sold || 0,
+      revenue: p.revenue || 0
+    }));
+
     return res.status(200).json({
       success: true,
       stats: {
@@ -148,10 +177,13 @@ export const getReports = async (req, res) => {
         pendingOrders: pendingOrdersCount,
         totalCustomers,
         totalProducts,
-        lowStockCount
+        inStockCount,
+        lowStockCount,
+        outOfStockCount
       },
       categoryBreakdown,
-      monthlyReport
+      monthlyReport,
+      topProducts
     });
   } catch (error) {
     console.error('Fetch reports error:', error);

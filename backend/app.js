@@ -24,6 +24,7 @@ import customerFavoritesRoutes from "./routes/customerFavorites.js";
 import customerOrdersRoutes from "./routes/customerOrders.js";
 import publicRoutes from "./routes/public.js";
 import taxRulesRoutes from "./routes/taxRules.js";
+import uploadRoutes from "./routes/upload.js";
 
 const PORT = 5000;
 const app = express();
@@ -86,6 +87,8 @@ app.use("/api/admin/reports", apiLimiter, reportsRoutes);
 app.use("/api/admin/settings", apiLimiter, settingsRoutes);
 app.use("/api/admin/profile", apiLimiter, profileRoutes);
 app.use("/api/admin/tax-rules", apiLimiter, taxRulesRoutes);
+app.use("/api/admin/upload", apiLimiter, uploadRoutes);
+app.use("/api/upload", apiLimiter, uploadRoutes);
 
 // ── Customer storefront routes ────────────────────────────────────────────────
 app.use("/api/customer/favorites", apiLimiter, customerFavoritesRoutes);

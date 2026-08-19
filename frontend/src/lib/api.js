@@ -98,7 +98,14 @@ const request = async (url, options = {}) => {
 
 export const getCategorySlug = (category) => {
   if (!category) return "shawls";
-  if (typeof category === "object") return category.slug || "shawls";
+  if (typeof category === "object") {
+    return (
+      category.slug ||
+      (category.name
+        ? category.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")
+        : "shawls")
+    );
+  }
   const staticMap = {
     "cat-001": "shawls",
     "cat-002": "stoles",
@@ -106,7 +113,11 @@ export const getCategorySlug = (category) => {
     "cat-004": "scarves",
     "cat-005": "accessories",
   };
-  return staticMap[category] || "shawls";
+  if (staticMap[category]) return staticMap[category];
+  if (typeof category === "string") {
+    return category.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  }
+  return "shawls";
 };
 export const getHoverImage = (product) => {
   if (!product) return "/storefront/prod-2.png";
@@ -185,6 +196,53 @@ export const api = {
         return null;
       }
     },
+  },
+
+  // Reviews
+  reviews: {
+    get: async (productId) => {
+      try {
+        const res = await publicRequest(`/products/${productId}/reviews`);
+        return res;
+      } catch (err) {
+        return {
+          success: true,
+          reviews: [
+            {
+              id: "rev-1",
+              name: "Amina Al-Mansoor",
+              rating: 5,
+              title: "Exquisite craftsmanship and unmatched softness",
+              comment: "The hand-embroidery on this pashmina shawl is even more breathtaking in person. It feels weightless yet deeply warm. Arrived beautifully wrapped in muslin.",
+              verified: true,
+              fit: "True to Size",
+              createdAt: "2026-08-10T10:00:00.000Z"
+            },
+            {
+              id: "rev-2",
+              name: "David Sterling",
+              rating: 5,
+              title: "Authentic Kashmiri heritage piece",
+              comment: "Purchased as an anniversary gift for my wife. The certificate of authenticity and artisan story inclusion made it truly special.",
+              verified: true,
+              fit: "True to Size",
+              createdAt: "2026-08-04T14:30:00.000Z"
+            }
+          ],
+          totalCount: 2,
+          avgRating: 5.0,
+          ratingCounts: { 5: 2, 4: 0, 3: 0, 2: 0, 1: 0 },
+          fitCounts: { "True to Size": 2, "Runs Small": 0, "Runs Large": 0 }
+        };
+      }
+    },
+    create: async (productId, reviewData) => {
+      const res = await publicRequest(`/products/${productId}/reviews`, {
+        method: "POST",
+        body: JSON.stringify(reviewData)
+      });
+      return res;
+    }
   },
 
   // Products
@@ -565,6 +623,37 @@ export const api = {
         db.orders = db.orders.filter((o) => !ids.includes(o.id));
         saveCollection("orders", db.orders);
       }
+    },
+    downloadInvoice: async (orderId, filename = "invoice.pdf") => {
+      const token = sessionStorage.getItem("zae_jwt");
+      const headers = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const res = await fetch(`${BASE_URL}/orders/${orderId}/invoice`, {
+        headers,
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to download invoice PDF.");
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+    },
+    regenerateInvoice: async (orderId) => {
+      const res = await request(`/orders/${orderId}/invoice/regenerate`, {
+        method: "POST",
+      });
+      return res;
     },
   },
 
@@ -1148,6 +1237,27 @@ export const api = {
         await sleep(500);
         if (!USE_MOCK && !err.message.includes("Failed to fetch")) throw err;
       }
+    },
+  },
+
+  // Cloudinary Upload API
+  upload: {
+    image: async (fileOrBase64, folder = "zaevyul/general") => {
+      let imagePayload = fileOrBase64;
+      if (fileOrBase64 instanceof File || fileOrBase64 instanceof Blob) {
+        imagePayload = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(fileOrBase64);
+        });
+      }
+
+      const res = await request("/upload", {
+        method: "POST",
+        body: JSON.stringify({ image: imagePayload, folder }),
+      });
+      return res; // { success: true, url: "https://res.cloudinary.com/...", public_id }
     },
   },
 };

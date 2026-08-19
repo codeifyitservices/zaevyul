@@ -89,14 +89,14 @@ const DEFAULT_RELATED = [
     slug: "why-handwoven-pashmina-worth-it",
     title: "Why Handwoven Pashmina is Worth It",
     publishedAt: "2025-04-28",
-    featuredImage: "/storefront/prod-2.png",
+    featuredImage: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124716/zaevyul/storefront/prod-2.jpg",
   },
   {
     id: "rel-3",
     slug: "how-to-style-pashmina-every-season",
     title: "How to Style Pashmina for Every Season",
     publishedAt: "2025-04-15",
-    featuredImage: "/storefront/prod-3.png",
+    featuredImage: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124717/zaevyul/storefront/prod-3.jpg",
   },
 ];
 
@@ -290,9 +290,9 @@ export default function JournalDetailPage() {
                   const key = post.slug || post.id || post._id;
                   const fallbackList = [
                     "/storefront/hero-1.png",
-                    "/storefront/prod-1.png",
-                    "/storefront/prod-2.png",
-                    "/storefront/prod-3.png"
+                    "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124715/zaevyul/storefront/prod-1.jpg",
+                    "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124716/zaevyul/storefront/prod-2.jpg",
+                    "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124717/zaevyul/storefront/prod-3.jpg"
                   ];
                   const img = getBlogImage(post, fallbackList[idx % fallbackList.length]);
 

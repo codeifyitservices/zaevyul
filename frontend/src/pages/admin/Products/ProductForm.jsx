@@ -13,10 +13,11 @@ const BLANK = {
   name: '', slug: '', sku: '', description: '', shortDescription: '',
   basePrice: '', discountPrice: '',
   quantity: '', lowStockThreshold: 5, status: 'draft',
-  category: '', material: '', color: '', size: '',
+  category: '', gender: 'neutral', material: '', color: '', size: '',
   mainImage: null,
   hoverImage: null,
   gallery: [],
+  colors: [],
   seo: { title: '', description: '', url: '' },
   sizes: [],
 };
@@ -48,6 +49,12 @@ export default function ProductForm() {
               mainImage: product.mainImage || (product.images && product.images[0]) || null,
               hoverImage: product.hoverImage || (product.images && product.images[1]) || null,
               gallery: product.gallery || (product.images && product.images.slice(2)) || [],
+              colors: (product.colors || []).map((c, i) => ({
+                name: c.name || '',
+                mainImage: c.mainImage ? (typeof c.mainImage === 'string' ? { id: `main-${i}`, url: c.mainImage, name: 'Main' } : c.mainImage) : null,
+                galleryImages: (c.galleryImages || []).map((g, gi) => typeof g === 'string' ? { id: `g-${i}-${gi}`, url: g, name: `Gallery ${gi + 1}` } : g),
+                sizes: c.sizes || []
+              })),
               seo: product.seo || BLANK.seo,
               category: typeof product.category === 'string' ? product.category : product.category?._id || product.category?.id || ''
             });
@@ -79,29 +86,92 @@ export default function ProductForm() {
       quantity: Number(s.quantity) || 0
     }));
 
+    const colors = (form.colors || []).map(c => {
+      const mainImgUrl = typeof c.mainImage === 'string' ? c.mainImage : (c.mainImage?.url || c.mainImage?.name || '');
+      const galleryUrls = (c.galleryImages || []).map(g => typeof g === 'string' ? g : (g.url || g.name || '')).filter(Boolean);
+      const colorSizes = (c.sizes || []).map(s => ({
+        size: s.size ? s.size.trim() : '',
+        price: Number(s.price) || 0,
+        discountPrice: s.discountPrice ? Number(s.discountPrice) : null,
+        quantity: Number(s.quantity) || 0
+      })).filter(s => s.size);
+
+      return {
+        name: c.name ? c.name.trim() : '',
+        mainImage: mainImgUrl,
+        galleryImages: galleryUrls,
+        sizes: colorSizes
+      };
+    });
+
+    for (let i = 0; i < colors.length; i++) {
+      if (!colors[i].name || !colors[i].mainImage) {
+        toast(`Color Variant #${i + 1} requires a Color Name and Main Image`, 'error');
+        setSaving(false);
+        return;
+      }
+    }
+
     // Calculate dynamic basePrice, discountPrice, and quantity for backward-compatibility
     let basePrice = Number(form.basePrice) || 0;
     let discountPrice = form.discountPrice ? Number(form.discountPrice) : null;
     let quantity = Number(form.quantity) || 0;
 
-    if (sizes.length > 0) {
+    let hasColorSizes = false;
+    let totalColorStock = 0;
+    let firstColorPrice = null;
+    let firstColorDiscount = null;
+
+    colors.forEach(c => {
+      if (c.sizes && c.sizes.length > 0) {
+        hasColorSizes = true;
+        c.sizes.forEach(s => {
+          totalColorStock += s.quantity;
+          if (firstColorPrice === null) {
+            firstColorPrice = s.price;
+            firstColorDiscount = s.discountPrice;
+          }
+        });
+      }
+    });
+
+    if (hasColorSizes) {
+      quantity = totalColorStock;
+      if (firstColorPrice !== null) {
+        basePrice = firstColorPrice;
+        discountPrice = firstColorDiscount;
+      }
+    } else if (sizes.length > 0) {
       basePrice = sizes[0].price;
       discountPrice = sizes[0].discountPrice;
       quantity = sizes.reduce((sum, s) => sum + s.quantity, 0);
     }
 
+    const extractUrl = (img) => typeof img === 'string' ? img : (img?.url || img?.src || '');
+
+    const mainImgStr = extractUrl(form.mainImage);
+    const hoverImgStr = extractUrl(form.hoverImage);
+    const galleryStrList = (form.gallery || []).map(extractUrl).filter(Boolean);
+
+    const allImageUrls = [
+      ...(mainImgStr ? [mainImgStr] : []),
+      ...(hoverImgStr ? [hoverImgStr] : []),
+      ...galleryStrList,
+    ];
+
     const productData = {
       ...form,
       status,
       sizes,
+      colors,
       basePrice,
       discountPrice,
       quantity,
-      images: [
-        ...(form.mainImage ? [form.mainImage] : []),
-        ...(form.hoverImage ? [form.hoverImage] : []),
-        ...(form.gallery || [])
-      ]
+      img: mainImgStr || (allImageUrls[0] || ''),
+      mainImage: mainImgStr,
+      hoverImage: hoverImgStr,
+      gallery: galleryStrList,
+      images: allImageUrls
     };
 
     try {
@@ -133,7 +203,7 @@ export default function ProductForm() {
     { id: 'basic',    label: 'Basic Info' },
     { id: 'pricing',  label: 'Pricing & Stock' },
     { id: 'media',    label: 'Media' },
-    { id: 'variants', label: 'Variants' },
+    { id: 'variants', label: 'Color & Size Variants' },
     { id: 'seo',      label: 'SEO' },
   ];
 
@@ -219,12 +289,22 @@ export default function ProductForm() {
                 <div className="form-section">
                   <p className="form-section-title">Organisation</p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    <div className="field-group">
-                      <label className="field-label">Category</label>
-                      <select className="field-select" value={form.category} onChange={e => set('category', e.target.value)}>
-                        <option value="">Select category</option>
-                        {categories.map(c => <option key={c._id || c.id} value={c._id || c.id}>{c.name}</option>)}
-                      </select>
+                    <div className="form-row">
+                      <div className="field-group">
+                        <label className="field-label">Category</label>
+                        <select className="field-select" value={form.category} onChange={e => set('category', e.target.value)}>
+                          <option value="">Select category</option>
+                          {categories.map(c => <option key={c._id || c.id} value={c._id || c.id}>{c.name}</option>)}
+                        </select>
+                      </div>
+                      <div className="field-group">
+                        <label className="field-label">Gender Target</label>
+                        <select className="field-select" value={form.gender || 'neutral'} onChange={e => set('gender', e.target.value)}>
+                          <option value="neutral">Neutral / Unisex</option>
+                          <option value="men">Men</option>
+                          <option value="women">Women</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -311,7 +391,7 @@ export default function ProductForm() {
                   <p className="form-section-title">Product Attributes</p>
                   <div className="form-row">
                     <div className="field-group">
-                      <label className="field-label">Color</label>
+                      <label className="field-label">Default Color Label</label>
                       <input className="field-input" value={form.color} placeholder="e.g. Ivory, Walnut Brown"
                         onChange={e => set('color', e.target.value)} />
                     </div>
@@ -324,14 +404,14 @@ export default function ProductForm() {
                 </div>
               </div>
 
-              {/* Dynamic Size Variants card */}
+              {/* Color Variants (with Sizes & Stock for each color) */}
               <div className="card">
                 <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <p className="form-section-title" style={{ marginBottom: 2 }}>Size Variants</p>
+                      <p className="form-section-title" style={{ marginBottom: 2 }}>Color Variants (with Sizes & Stock)</p>
                       <span style={{ fontSize: 11, color: 'var(--color-text-caption)' }}>
-                        Manage prices, sale prices, and stock quantities for each size.
+                        Add color options, upload photos, and configure specific prices, sale prices, and stock for each size under each color.
                       </span>
                     </div>
                     <button
@@ -339,100 +419,248 @@ export default function ProductForm() {
                       className="btn btn-secondary"
                       style={{ padding: '6px 12px', fontSize: 11.5 }}
                       onClick={() => {
-                        const updatedSizes = [...(form.sizes || []), { size: '', price: '', discountPrice: null, quantity: 0 }];
-                        set('sizes', updatedSizes);
+                        const updated = [...(form.colors || []), { name: '', mainImage: null, galleryImages: [], sizes: [] }];
+                        set('colors', updated);
                       }}
                     >
-                      + Add Size Variant
+                      + Add Color Variant
                     </button>
                   </div>
 
-                  {(!form.sizes || form.sizes.length === 0) ? (
-                    <div style={{ padding: '24px 0', textTransform: 'uppercase', textAlign: 'center', fontSize: 11, color: 'var(--color-text-caption)', border: '1px dashed var(--color-border)', borderRadius: 4 }}>
-                      No sizes configured. Click above to add one.
+                  {(!form.colors || form.colors.length === 0) ? (
+                    <div style={{ padding: '24px 0', textAlign: 'center', fontSize: 11, color: 'var(--color-text-caption)', border: '1px dashed var(--color-border)', borderRadius: 4 }}>
+                      No color variants configured yet. Click "+ Add Color Variant" above, or use the standalone sizes section below.
                     </div>
                   ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                      {form.sizes.map((s, idx) => {
-                        const updateSizeVal = (key, val) => {
-                          const list = [...form.sizes];
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                      {form.colors.map((c, idx) => {
+                        const updateColor = (key, val) => {
+                          const list = [...form.colors];
                           list[idx] = { ...list[idx], [key]: val };
-                          set('sizes', list);
+                          set('colors', list);
                         };
-                        const removeSizeVal = () => {
-                          const list = form.sizes.filter((_, i) => i !== idx);
-                          set('sizes', list);
+
+                        const removeColor = () => {
+                          const list = form.colors.filter((_, i) => i !== idx);
+                          set('colors', list);
                         };
+
+                        const moveUp = () => {
+                          if (idx === 0) return;
+                          const list = [...form.colors];
+                          const temp = list[idx - 1];
+                          list[idx - 1] = list[idx];
+                          list[idx] = temp;
+                          set('colors', list);
+                        };
+
+                        const moveDown = () => {
+                          if (idx === form.colors.length - 1) return;
+                          const list = [...form.colors];
+                          const temp = list[idx + 1];
+                          list[idx + 1] = list[idx];
+                          list[idx] = temp;
+                          set('colors', list);
+                        };
+
+                        const colorSizes = c.sizes || [];
+
+                        const addColorSize = () => {
+                          const updatedSizes = [...colorSizes, { size: '', price: '', discountPrice: null, quantity: 0 }];
+                          updateColor('sizes', updatedSizes);
+                        };
+
+                        const updateColorSize = (sIdx, key, val) => {
+                          const updatedSizes = [...colorSizes];
+                          updatedSizes[sIdx] = { ...updatedSizes[sIdx], [key]: val };
+                          updateColor('sizes', updatedSizes);
+                        };
+
+                        const removeColorSize = (sIdx) => {
+                          const updatedSizes = colorSizes.filter((_, i) => i !== sIdx);
+                          updateColor('sizes', updatedSizes);
+                        };
+
+                        const mainImgList = c.mainImage
+                          ? [typeof c.mainImage === 'string' ? { id: c.mainImage, url: c.mainImage, name: 'Main' } : c.mainImage]
+                          : [];
+
+                        const galleryList = (c.galleryImages || []).map((g, gi) =>
+                          typeof g === 'string' ? { id: `${g}-${gi}`, url: g, name: `Gallery ${gi + 1}` } : g
+                        );
 
                         return (
                           <div
                             key={idx}
                             style={{
-                              display: 'grid',
-                              gridTemplateColumns: '1.2fr 1fr 1fr 0.8fr 40px',
-                              gap: 10,
-                              alignItems: 'end',
-                              padding: 12,
-                              background: 'var(--color-surface-2)',
                               border: '1px solid var(--color-border)',
-                              borderRadius: 4
+                              borderRadius: 6,
+                              background: 'var(--color-surface-2)',
+                              padding: 16,
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: 14
                             }}
                           >
+                            {/* Color Header & Actions */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--color-walnut)', display: 'inline-block' }} />
+                                <strong style={{ fontSize: 13, color: 'var(--color-text-primary)' }}>
+                                  Color #{idx + 1}: {c.name || 'Untitled Color'}
+                                </strong>
+                              </div>
+                              <div style={{ display: 'flex', gap: 6 }}>
+                                <button type="button" className="btn btn-secondary" style={{ padding: '3px 8px', fontSize: 10 }} onClick={moveUp} disabled={idx === 0}>
+                                  ↑ Up
+                                </button>
+                                <button type="button" className="btn btn-secondary" style={{ padding: '3px 8px', fontSize: 10 }} onClick={moveDown} disabled={idx === form.colors.length - 1}>
+                                  ↓ Down
+                                </button>
+                                <button type="button" className="btn btn-secondary" style={{ padding: '3px 8px', fontSize: 10, color: 'var(--color-saffron)' }} onClick={removeColor}>
+                                  <Trash2 size={12} /> Remove Color
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Color Name */}
                             <div className="field-group">
-                              <label className="field-label" style={{ fontSize: 10 }}>Size *</label>
+                              <label className="field-label">Color Name *</label>
                               <input
                                 className="field-input"
-                                value={s.size}
-                                placeholder="e.g. Standard (200x70cm)"
-                                onChange={e => updateSizeVal('size', e.target.value)}
+                                value={c.name || ''}
+                                placeholder="e.g. Black, Ivory, Camel"
+                                onChange={e => updateColor('name', e.target.value)}
                               />
                             </div>
-                            <div className="field-group">
-                              <label className="field-label" style={{ fontSize: 10 }}>Price (₹) *</label>
-                              <input
-                                className="field-input"
-                                type="number"
-                                value={s.price}
-                                placeholder="Base Price"
-                                onChange={e => updateSizeVal('price', e.target.value)}
-                              />
+
+                            {/* Main & Gallery Images */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: 14 }}>
+                              <div>
+                                <label className="field-label" style={{ marginBottom: 6, display: 'block' }}>
+                                  Main Image * <span style={{ fontSize: 10, color: 'var(--color-text-caption)' }}>(Primary)</span>
+                                </label>
+                                <ImageUploader
+                                  images={mainImgList}
+                                  onChange={imgs => updateColor('mainImage', imgs[0] || null)}
+                                  max={1}
+                                  label="color main image"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="field-label" style={{ marginBottom: 6, display: 'block' }}>
+                                  Gallery Images <span style={{ fontSize: 10, color: 'var(--color-text-caption)' }}>(Additional shots)</span>
+                                </label>
+                                <ImageUploader
+                                  images={galleryList}
+                                  onChange={imgs => updateColor('galleryImages', imgs)}
+                                  max={8}
+                                  label="color gallery images"
+                                />
+                              </div>
                             </div>
-                            <div className="field-group">
-                              <label className="field-label" style={{ fontSize: 10 }}>Sale Price (₹)</label>
-                              <input
-                                className="field-input"
-                                type="number"
-                                value={s.discountPrice || ''}
-                                placeholder="Leave blank if none"
-                                onChange={e => updateSizeVal('discountPrice', e.target.value ? Number(e.target.value) : null)}
-                              />
+
+                            {/* Sizes & Stock for this Color */}
+                            <div style={{ marginTop: 8, borderTop: '1px solid var(--color-border)', paddingTop: 12 }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                  Sizes & Stock for "{c.name || `Color #${idx + 1}`}"
+                                </span>
+                                <button
+                                  type="button"
+                                  className="btn btn-secondary"
+                                  style={{ padding: '4px 10px', fontSize: 10.5 }}
+                                  onClick={addColorSize}
+                                >
+                                  + Add Size for {c.name || 'this color'}
+                                </button>
+                              </div>
+
+                              {colorSizes.length === 0 ? (
+                                <div style={{ padding: '12px', fontSize: 11, color: 'var(--color-text-caption)', textTransform: 'uppercase', textAlign: 'center', border: '1px dashed var(--color-border)', borderRadius: 4 }}>
+                                  No sizes added for this color yet. Click button above.
+                                </div>
+                              ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                  {colorSizes.map((cs, sIdx) => (
+                                    <div
+                                      key={sIdx}
+                                      style={{
+                                        display: 'grid',
+                                        gridTemplateColumns: '1.2fr 1fr 1fr 0.8fr 34px',
+                                        gap: 8,
+                                        alignItems: 'end',
+                                        padding: 8,
+                                        background: 'var(--color-surface-1)',
+                                        border: '1px solid var(--color-border)',
+                                        borderRadius: 4
+                                      }}
+                                    >
+                                      <div className="field-group">
+                                        <label className="field-label" style={{ fontSize: 9 }}>Size *</label>
+                                        <input
+                                          className="field-input"
+                                          style={{ height: 32, fontSize: 12 }}
+                                          value={cs.size}
+                                          placeholder="e.g. Standard (200x70cm)"
+                                          onChange={e => updateColorSize(sIdx, 'size', e.target.value)}
+                                        />
+                                      </div>
+                                      <div className="field-group">
+                                        <label className="field-label" style={{ fontSize: 9 }}>Price (₹) *</label>
+                                        <input
+                                          className="field-input"
+                                          style={{ height: 32, fontSize: 12 }}
+                                          type="number"
+                                          value={cs.price}
+                                          placeholder="Price"
+                                          onChange={e => updateColorSize(sIdx, 'price', e.target.value)}
+                                        />
+                                      </div>
+                                      <div className="field-group">
+                                        <label className="field-label" style={{ fontSize: 9 }}>Sale Price (₹)</label>
+                                        <input
+                                          className="field-input"
+                                          style={{ height: 32, fontSize: 12 }}
+                                          type="number"
+                                          value={cs.discountPrice || ''}
+                                          placeholder="Optional"
+                                          onChange={e => updateColorSize(sIdx, 'discountPrice', e.target.value ? Number(e.target.value) : null)}
+                                        />
+                                      </div>
+                                      <div className="field-group">
+                                        <label className="field-label" style={{ fontSize: 9 }}>Stock *</label>
+                                        <input
+                                          className="field-input"
+                                          style={{ height: 32, fontSize: 12 }}
+                                          type="number"
+                                          value={cs.quantity}
+                                          placeholder="0"
+                                          onChange={e => updateColorSize(sIdx, 'quantity', Number(e.target.value) || 0)}
+                                        />
+                                      </div>
+                                      <button
+                                        type="button"
+                                        onClick={() => removeColorSize(sIdx)}
+                                        style={{
+                                          height: 32,
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          border: 'none',
+                                          background: 'transparent',
+                                          color: 'var(--color-saffron)',
+                                          cursor: 'pointer'
+                                        }}
+                                      >
+                                        <Trash2 size={14} />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </div>
-                            <div className="field-group">
-                              <label className="field-label" style={{ fontSize: 10 }}>Stock Quantity *</label>
-                              <input
-                                className="field-input"
-                                type="number"
-                                value={s.quantity}
-                                placeholder="0"
-                                onChange={e => updateSizeVal('quantity', Number(e.target.value) || 0)}
-                              />
-                            </div>
-                            <button
-                              type="button"
-                              onClick={removeSizeVal}
-                              style={{
-                                height: 34,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                border: 'none',
-                                background: 'transparent',
-                                color: 'var(--color-saffron)',
-                                cursor: 'pointer'
-                              }}
-                            >
-                              <Trash2 size={15} />
-                            </button>
                           </div>
                         );
                       })}

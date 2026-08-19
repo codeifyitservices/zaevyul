@@ -16,15 +16,72 @@ export function CartProvider({ children }) {
     }
   });
 
+  const [savedItems, setSavedItems] = useState(() => {
+    try {
+      const stored = localStorage.getItem("zae_saved_for_later");
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
   const [isOpen, setIsOpen] = useState(false);
   const [settings, setSettings] = useState(null);
   const [isBadgeAnimated, setIsBadgeAnimated] = useState(false);
 
   const [selectedAddress, setSelectedAddress] = useState(null);
-  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [appliedCoupon, setAppliedCoupon] = useState(() => {
+    try {
+      const stored = localStorage.getItem("zae_applied_coupon");
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      if (appliedCoupon) {
+        localStorage.setItem("zae_applied_coupon", JSON.stringify(appliedCoupon));
+      } else {
+        localStorage.removeItem("zae_applied_coupon");
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [appliedCoupon]);
+
   const [backendTotals, setBackendTotals] = useState(null);
   const [loadingTotals, setLoadingTotals] = useState(false);
   const [errorTotals, setErrorTotals] = useState(null);
+
+  const [giftNote, setGiftNote] = useState(() => {
+    try {
+      return localStorage.getItem("zae_cart_gift_note") || localStorage.getItem("zae_gift_note") || "";
+    } catch {
+      return "";
+    }
+  });
+
+  const saveGiftNote = (note) => {
+    setGiftNote(note);
+    try {
+      localStorage.setItem("zae_cart_gift_note", note);
+      localStorage.setItem("zae_gift_note", note);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const clearGiftNote = () => {
+    setGiftNote("");
+    try {
+      localStorage.removeItem("zae_cart_gift_note");
+      localStorage.removeItem("zae_gift_note");
+    } catch {
+      /* ignore */
+    }
+  };
 
   const fetchBackendTotals = useCallback(async (items, address, coupon) => {
     if (!items || items.length === 0) {
@@ -173,6 +230,36 @@ export function CartProvider({ children }) {
     }
   };
 
+  useEffect(() => {
+    localStorage.setItem("zae_saved_for_later", JSON.stringify(savedItems));
+  }, [savedItems]);
+
+  const saveForLater = (cartItemKey) => {
+    const itemToSave = cart.find((i) => i.key === cartItemKey || i.id === cartItemKey);
+    if (!itemToSave) return;
+    setCart((prev) => prev.filter((i) => i.key !== cartItemKey && i.id !== cartItemKey));
+    setSavedItems((prev) => {
+      if (prev.some((i) => i.key === itemToSave.key)) return prev;
+      return [...prev, itemToSave];
+    });
+    toast(`Moved "${itemToSave.name}" to Saved for Later`, "success");
+  };
+
+  const moveToCart = (savedItemKey) => {
+    const itemToMove = savedItems.find((i) => i.key === savedItemKey || i.id === savedItemKey);
+    if (!itemToMove) return;
+    setSavedItems((prev) => prev.filter((i) => i.key !== savedItemKey && i.id !== savedItemKey));
+    setCart((prev) => {
+      if (prev.some((i) => i.key === itemToMove.key)) return prev;
+      return [...prev, itemToMove];
+    });
+    toast(`Moved "${itemToMove.name}" back to Bag`, "success");
+  };
+
+  const removeSavedItem = (savedItemKey) => {
+    setSavedItems((prev) => prev.filter((i) => i.key !== savedItemKey && i.id !== savedItemKey));
+  };
+
   const removeItem = (keyOrId) => {
     setCart((prev) => prev.filter((item) => item.key !== keyOrId && item.id !== keyOrId && item._id !== keyOrId));
   };
@@ -204,6 +291,17 @@ export function CartProvider({ children }) {
 
   const clearCart = () => {
     setCart([]);
+    setAppliedCoupon(null);
+    setBackendTotals(null);
+    setGiftNote("");
+    try {
+      localStorage.removeItem("zae_cart");
+      localStorage.removeItem("zae_applied_coupon");
+      localStorage.removeItem("zae_cart_gift_note");
+      localStorage.removeItem("zae_gift_note");
+    } catch {
+      /* ignore */
+    }
   };
 
   // Memoized totals calculation
@@ -263,6 +361,17 @@ export function CartProvider({ children }) {
     };
   }, [cart, backendTotals, settings, loadingTotals, errorTotals]);
 
+  const isInCart = useCallback(
+    (productId) => {
+      if (!productId) return false;
+      const idStr = String(productId);
+      return cart.some(
+        (item) => String(item.id) === idStr || String(item._id) === idStr,
+      );
+    },
+    [cart],
+  );
+
   return (
     <CartContext.Provider
       value={{
@@ -270,6 +379,7 @@ export function CartProvider({ children }) {
         isOpen,
         setIsOpen,
         addToCart,
+        isInCart,
         removeItem,
         updateQuantity,
         clearCart,
@@ -280,6 +390,14 @@ export function CartProvider({ children }) {
         setSelectedAddress,
         appliedCoupon,
         setAppliedCoupon,
+        savedItems,
+        saveForLater,
+        moveToCart,
+        removeSavedItem,
+        giftNote,
+        setGiftNote,
+        saveGiftNote,
+        clearGiftNote,
         loadingTotals,
         errorTotals,
       }}

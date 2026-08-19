@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import Razorpay from "razorpay";
 import Order from "../model/Order.js";
 import Customer from "../model/Customer.js";
 import CustomerUser from "../model/CustomerUser.js";
@@ -8,6 +9,7 @@ import Settings from "../model/Settings.js";
 import { sendOrderConfirmationEmail } from "../services/emailService.js";
 import { normalizeAddressForResponse } from "../utils/addressValidation.js";
 import { calculateTax } from "../services/taxService.js";
+import { generateInvoiceForOrder, getInvoicePDFPath } from "../services/invoiceService.js";
 
 /**
  * GET /api/customer/orders
@@ -53,9 +55,18 @@ export const getCustomerOrders = async (req, res) => {
 
 export const getCustomerOrderById = async (req, res) => {
   try {
-    const order = await Order.findById(req.params.id)
-      .populate("customer")
-      .populate("items.product", "_id name slug images basePrice discountPrice");
+    const { id } = req.params;
+    let order;
+    if (id && id.match(/^[0-9a-fA-F]{24}$/)) {
+      order = await Order.findById(id)
+        .populate("customer")
+        .populate("items.product", "_id name slug images basePrice discountPrice");
+    }
+    if (!order && id) {
+      order = await Order.findOne({ orderNumber: id })
+        .populate("customer")
+        .populate("items.product", "_id name slug images basePrice discountPrice");
+    }
     if (!order) {
       return res
         .status(404)
@@ -436,6 +447,15 @@ export const placeCustomerOrder = async (req, res) => {
     customerObj.lastOrder = newOrder.createdAt;
     await customerObj.save();
 
+    // Automatically generate invoice snapshot and PDF for successful order
+    try {
+      await generateInvoiceForOrder(newOrder._id);
+      const reloadedOrder = await Order.findById(newOrder._id);
+      if (reloadedOrder) newOrder = reloadedOrder;
+    } catch (invErr) {
+      console.error("[customerOrders] Invoice auto-generation warning:", invErr.message);
+    }
+
     // Dispatch order confirmation email asynchronously (AUD-023)
     if (email && !email.endsWith("@zaevyul.customer")) {
       sendOrderConfirmationEmail(newOrder, email).catch((err) =>
@@ -505,6 +525,62 @@ export const cancelCustomerOrder = async (req, res) => {
     return res
       .status(500)
       .json({ success: false, message: "Failed to cancel order." });
+  }
+};
+
+/**
+ * POST /api/customer/orders/:id/return
+ * Allows customers to request returns for delivered orders within 7 days.
+ */
+export const requestCustomerOrderReturn = async (req, res) => {
+  const { id } = req.params;
+  const { reason, details } = req.body;
+  try {
+    let order;
+    if (id && id.match(/^[0-9a-fA-F]{24}$/)) {
+      order = await Order.findById(id);
+    } else {
+      order = await Order.findOne({ orderNumber: id });
+    }
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found." });
+    }
+
+    if (order.status !== "delivered") {
+      return res.status(400).json({
+        success: false,
+        message: `Returns can only be requested for delivered orders. Current status: ${order.status}.`
+      });
+    }
+
+    // Enforce 7-day return window rule
+    const deliveryDate = order.updatedAt || order.createdAt;
+    const daysSinceDelivery = (Date.now() - new Date(deliveryDate).getTime()) / (1000 * 3600 * 24);
+    if (daysSinceDelivery > 7) {
+      return res.status(400).json({
+        success: false,
+        message: "The 7-day return window for this order has elapsed."
+      });
+    }
+
+    order.status = "return_requested";
+    order.returnRequest = {
+      reason: reason || "Exchanged or Return Requested",
+      details: details || "",
+      requestedAt: new Date(),
+      status: "pending"
+    };
+    await order.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Return request received successfully. Our concierge team will reach out within 24 hours.",
+      order
+    });
+  } catch (error) {
+    console.error("[customerOrders] requestCustomerOrderReturn error:", error);
+    return res.status(500).json({ success: false, message: "Failed to process return request." });
   }
 };
 
@@ -614,3 +690,246 @@ export const calculateTaxForCart = async (req, res) => {
     return res.status(400).json({ success: false, message: error.message });
   }
 };
+
+/**
+ * GET /api/customer/orders/:id/invoice
+ * Secure customer invoice download.
+ * Authorizes that the requesting customer owns the order.
+ */
+export const downloadCustomerInvoice = async (req, res) => {
+  const { id } = req.params;
+  try {
+    let order;
+    if (id && id.match(/^[0-9a-fA-F]{24}$/)) {
+      order = await Order.findById(id).populate("customer");
+    }
+    if (!order && id) {
+      order = await Order.findOne({ orderNumber: id }).populate("customer");
+    }
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found." });
+    }
+
+    // Authorize Customer Ownership
+    const reqEmail = req.customerUser?.email?.toLowerCase()?.trim();
+    const reqPhone = req.customerUser?.phone?.trim();
+    const orderCustomerObj = order.customer;
+
+    let isAuthorized = false;
+
+    if (orderCustomerObj) {
+      if (reqEmail && orderCustomerObj.email?.toLowerCase()?.trim() === reqEmail) {
+        isAuthorized = true;
+      }
+      if (reqPhone && orderCustomerObj.phone?.trim() === reqPhone) {
+        isAuthorized = true;
+      }
+    }
+
+    // Fallback match check
+    if (!isAuthorized && reqEmail && order.shippingAddress?.phone) {
+      if (reqPhone && order.shippingAddress.phone.includes(reqPhone)) {
+        isAuthorized = true;
+      }
+    }
+
+    // If order was created by this logged-in customer user
+    if (!isAuthorized && req.customerUser && String(order.customer) === String(req.customerUser._id)) {
+      isAuthorized = true;
+    }
+
+    // For Guest check: if unauthenticated request or no match, reject
+    if (!isAuthorized) {
+      return res.status(403).json({
+        success: false,
+        message: "Access forbidden: You can only download your own order invoices.",
+      });
+    }
+
+    // Retrieve or generate PDF file
+    const { filePath, invoiceNumber } = await getInvoicePDFPath(order._id);
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `inline; filename="${invoiceNumber}.pdf"`
+    );
+
+    return res.sendFile(filePath);
+  } catch (error) {
+    console.error("[customerOrders] downloadCustomerInvoice error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to download invoice. Please try again later.",
+    });
+  }
+};
+
+/**
+ * POST /api/customer/orders/create-razorpay-order
+ * Creates a Razorpay Order ID for online checkout.
+ */
+export const createRazorpayOrder = async (req, res) => {
+  const { items, shippingAddress, shippingAddressId, couponCode } = req.body;
+  if (!items || items.length === 0) {
+    return res.status(400).json({ success: false, message: "Cart items are required." });
+  }
+
+  try {
+    let resolvedShippingAddress = shippingAddress;
+    if (shippingAddressId && req.customerUser) {
+      const savedAddress = req.customerUser.addresses.id(shippingAddressId);
+      if (savedAddress) {
+        resolvedShippingAddress = normalizeAddressForResponse(savedAddress);
+      }
+    }
+
+    // Calculate tax, subtotal, and shipping
+    const taxCalculation = await calculateTax({
+      items,
+      shippingAddress: resolvedShippingAddress || {},
+    });
+
+    const calculatedSubtotal = taxCalculation.subtotal;
+    const calculatedTaxAmount = taxCalculation.taxAmount;
+    const pricingMode = taxCalculation.pricingMode;
+
+    let calculatedDiscount = 0;
+    if (couponCode) {
+      const coupon = await Coupon.findOne({
+        code: couponCode.toUpperCase().trim(),
+        active: true,
+      });
+      if (coupon) {
+        const minOrderAmount = coupon.minOrderAmount ?? coupon.minOrderValue ?? 0;
+        const discountType = coupon.discountType || coupon.type;
+        const discountValue = coupon.discountValue ?? coupon.value ?? 0;
+        const maxDiscountAmount = coupon.maxDiscountAmount ?? null;
+        if (calculatedSubtotal >= minOrderAmount) {
+          if (discountType === "percentage") {
+            calculatedDiscount = Math.round((calculatedSubtotal * discountValue) / 100);
+            if (maxDiscountAmount && calculatedDiscount > maxDiscountAmount) {
+              calculatedDiscount = maxDiscountAmount;
+            }
+          } else {
+            calculatedDiscount = discountValue;
+          }
+          calculatedDiscount = Math.min(calculatedDiscount, calculatedSubtotal);
+        }
+      }
+    }
+
+    let storeSettings = await Settings.findOne();
+    const freeShippingThreshold = storeSettings?.freeShippingThreshold || storeSettings?.freeShippingAbove || 5000;
+    const standardShippingFee = storeSettings?.standardShippingFee || 250;
+    const calculatedShipping = calculatedSubtotal >= freeShippingThreshold ? 0 : standardShippingFee;
+
+    const calculatedTotal =
+      pricingMode === "inclusive"
+        ? Math.max(0, calculatedSubtotal + calculatedShipping - calculatedDiscount)
+        : Math.max(0, calculatedSubtotal + calculatedShipping - calculatedDiscount + calculatedTaxAmount);
+
+    const razorpayKeyId =
+      process.env.RAZORPAY_KEY_ID ||
+      storeSettings?.paymentGateways?.razorpay?.keyId ||
+      "rzp_test_1DP5mmOlF5G5ag";
+    const razorpayKeySecret =
+      process.env.RAZORPAY_KEY_SECRET ||
+      storeSettings?.paymentGateways?.razorpay?.keySecret ||
+      "w2F9tH87ZkPqX3mN0vL4R5sT";
+
+    const instance = new Razorpay({
+      key_id: razorpayKeyId,
+      key_secret: razorpayKeySecret,
+    });
+
+    const receipt = `rcpt_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    const amountInPaise = Math.max(100, Math.round(calculatedTotal * 100)); // Minimum ₹1
+
+    const razorpayOrder = await instance.orders.create({
+      amount: amountInPaise,
+      currency: "INR",
+      receipt,
+      notes: {
+        customerEmail: req.body.email || req.customerUser?.email || "",
+      },
+    });
+
+    return res.status(200).json({
+      success: true,
+      razorpayOrderId: razorpayOrder.id,
+      amount: razorpayOrder.amount,
+      currency: razorpayOrder.currency,
+      keyId: razorpayKeyId,
+      orderAmount: calculatedTotal,
+    });
+  } catch (error) {
+    console.error("[customerOrders] createRazorpayOrder error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to initialize Razorpay payment.",
+    });
+  }
+};
+
+/**
+ * POST /api/customer/orders/verify-razorpay-payment
+ * Verifies Razorpay HMAC SHA256 signature and creates paid order.
+ */
+export const verifyRazorpayPayment = async (req, res) => {
+  const {
+    razorpay_order_id,
+    razorpay_payment_id,
+    razorpay_signature,
+    orderPayload,
+  } = req.body;
+
+  if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !orderPayload) {
+    return res.status(400).json({
+      success: false,
+      message: "Missing Razorpay verification payment details.",
+    });
+  }
+
+  try {
+    let storeSettings = await Settings.findOne();
+    const razorpayKeySecret =
+      process.env.RAZORPAY_KEY_SECRET ||
+      storeSettings?.paymentGateways?.razorpay?.keySecret ||
+      "w2F9tH87ZkPqX3mN0vL4R5sT";
+
+    // Verify HMAC-SHA256 signature
+    const hmac = crypto.createHmac("sha256", razorpayKeySecret);
+    hmac.update(razorpay_order_id + "|" + razorpay_payment_id);
+    const generatedSignature = hmac.digest("hex");
+
+    const isSignatureValid = generatedSignature === razorpay_signature;
+
+    if (!isSignatureValid) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid Razorpay payment signature verification failed.",
+      });
+    }
+
+    // Pass request with updated payment method and status
+    req.body = {
+      ...orderPayload,
+      paymentMethod: "Razorpay",
+      paymentStatus: "paid",
+      notes: `${orderPayload.notes || ''} [Razorpay Payment ID: ${razorpay_payment_id}]`.trim(),
+    };
+
+    // Invoke placeCustomerOrder logic to create order & invoice
+    return placeCustomerOrder(req, res);
+  } catch (error) {
+    console.error("[customerOrders] verifyRazorpayPayment error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Razorpay payment verification failed.",
+    });
+  }
+};
+
+

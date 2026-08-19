@@ -16,13 +16,18 @@ import {
   RotateCcw,
   CheckCircle2,
   AlertCircle,
+  Tag,
+  ChevronRight,
 } from "lucide-react";
 import { useCart } from "../../context/CartContext";
 import { useCurrency } from "../../context/CurrencyContext";
 import { useCustomerAuth } from "../../context/CustomerAuthContext";
 import { useToast } from "../../context/ToastContext";
 import { customerApi } from "../../lib/customerApi";
+import { api } from "../../lib/api";
+import CouponPickerModal from "../../components/CouponPickerModal";
 import SiteFooter from "../components/SiteFooter";
+import OrderConfirmationPage from "./OrderConfirmationPage";
 
 const COUNTRIES = [
   "United States",
@@ -44,9 +49,51 @@ const COUNTRIES = [
 export default function CheckoutPage() {
   const navigate = useNavigate();
   const toast = useToast();
-  const { cart, totals, clearCart } = useCart();
+  const {
+    cart,
+    totals,
+    clearCart,
+    giftNote,
+    settings: contextSettings,
+    appliedCoupon,
+    setAppliedCoupon,
+  } = useCart();
   const { formatPrice, currencyCode } = useCurrency();
   const { user, isAuthenticated } = useCustomerAuth();
+
+  const [companySettings, setCompanySettings] = useState(
+    contextSettings || null,
+  );
+
+  useEffect(() => {
+    if (contextSettings) {
+      setCompanySettings(contextSettings);
+    } else {
+      let active = true;
+      api.settings
+        .getPublicLive()
+        .then((data) => {
+          if (active && data) setCompanySettings(data);
+        })
+        .catch((err) => {
+          console.warn(
+            "Could not fetch company settings for checkout header:",
+            err,
+          );
+        });
+      return () => {
+        active = false;
+      };
+    }
+  }, [contextSettings]);
+
+  const companyName = (
+    companySettings?.storeName ||
+    contextSettings?.storeName ||
+    "Zaevyul"
+  )
+    .trim()
+    .toUpperCase();
 
   // Step and Accordion states
   const [activeStep, setActiveStep] = useState(1); // 1 = Shipping, 2 = Payment, 3 = Review
@@ -81,7 +128,7 @@ export default function CheckoutPage() {
   const [shippingMethod, setShippingMethod] = useState("standard"); // 'standard' | 'express'
 
   // Payment Method state
-  const [paymentMethod, setPaymentMethod] = useState("card"); // 'card' | 'paypal' | 'shop_pay' | 'apple_pay'
+  const [paymentMethod, setPaymentMethod] = useState("razorpay"); // 'razorpay' | 'card' | 'cod' | 'paypal'
   const [cardForm, setCardForm] = useState({
     cardNumber: "",
     cardName: "",
@@ -91,9 +138,49 @@ export default function CheckoutPage() {
 
   // Promo Code state
   const [promoCode, setPromoCode] = useState("");
-  const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponError, setCouponError] = useState("");
   const [couponLoading, setCouponLoading] = useState(false);
+
+  // Coupon picker modal state
+  const [showCouponModal, setShowCouponModal] = useState(false);
+  const [availableCoupons, setAvailableCoupons] = useState([]);
+  const [couponsLoading, setCouponsLoading] = useState(false);
+  const [couponsLoaded, setCouponsLoaded] = useState(false);
+
+  const openCouponModal = async () => {
+    setShowCouponModal(true);
+    if (couponsLoaded) return;
+    setCouponsLoading(true);
+    try {
+      const data = await api.coupons.listPublic();
+      setAvailableCoupons(data || []);
+      setCouponsLoaded(true);
+    } catch (err) {
+      toast("Could not load coupons. Please try again.", "error");
+    } finally {
+      setCouponsLoading(false);
+    }
+  };
+
+  const handlePickCoupon = async (code) => {
+    setShowCouponModal(false);
+    setPromoCode("");
+    setCouponError("");
+    setCouponLoading(true);
+    try {
+      const coupon = await api.coupons.validate(code, totals.subtotal);
+      setAppliedCoupon(coupon);
+      const label =
+        coupon.discountType === "percentage"
+          ? `${coupon.discountValue}% off`
+          : `₹${coupon.discountValue} off`;
+      toast(`Coupon "${coupon.code}" applied — ${label}`, "success");
+    } catch (err) {
+      setCouponError(err.message || "Invalid or expired coupon code.");
+    } finally {
+      setCouponLoading(false);
+    }
+  };
 
   // Order Placement state
   const [placingOrder, setPlacingOrder] = useState(false);
@@ -157,20 +244,25 @@ export default function CheckoutPage() {
   };
 
   const handleApplyCoupon = async (e) => {
-    e.preventDefault();
-    if (!promoCode.trim()) return;
+    if (e) e.preventDefault();
+    const code = promoCode.trim();
+    if (!code) {
+      setCouponError("Please enter a coupon code.");
+      return;
+    }
     setCouponLoading(true);
     setCouponError("");
     try {
-      const res = await customerApi.coupons.validate(promoCode.trim());
-      if (res && res.coupon) {
-        setAppliedCoupon(res.coupon);
-        toast(`Coupon "${res.coupon.code}" applied!`, "success");
-      } else {
-        setCouponError("Invalid coupon code.");
-      }
+      const coupon = await api.coupons.validate(code, totals.subtotal);
+      setAppliedCoupon(coupon);
+      setPromoCode("");
+      const label =
+        coupon.discountType === "percentage"
+          ? `${coupon.discountValue}% off`
+          : `₹${coupon.discountValue} off`;
+      toast(`Coupon "${coupon.code}" applied — ${label}`, "success");
     } catch (err) {
-      setCouponError(err.message || "Failed to apply coupon.");
+      setCouponError(err.message || "Invalid or expired coupon code.");
     } finally {
       setCouponLoading(false);
     }
@@ -218,6 +310,19 @@ export default function CheckoutPage() {
     setExpandedAccordion({ shipping: false, payment: false, review: true });
   };
 
+  const [paymentError, setPaymentError] = useState(null);
+
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      if (window.Razorpay) return resolve(true);
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
   const handlePlaceOrder = async () => {
     if (cart.length === 0) {
       toast("Your cart is empty.", "error");
@@ -225,6 +330,7 @@ export default function CheckoutPage() {
     }
 
     setPlacingOrder(true);
+    setPaymentError(null);
     try {
       // Resolve selected shipping address
       let shippingAddressObj = {};
@@ -273,8 +379,89 @@ export default function CheckoutPage() {
         shippingMethod: shippingMethod,
         customerEmail: formData.email,
         couponCode: appliedCoupon?.code || "",
+        notes: giftNote || "",
       };
 
+      // ── Razorpay Online Payment Flow ──────────────────────────────────────
+      if (
+        paymentMethod === "razorpay" ||
+        paymentMethod === "card" ||
+        paymentMethod === "upi" ||
+        paymentMethod === "gpay"
+      ) {
+        const isLoaded = await loadRazorpayScript();
+        if (!isLoaded) {
+          toast(
+            "Failed to load Razorpay SDK. Please check your internet connection.",
+            "error",
+          );
+          setPlacingOrder(false);
+          return;
+        }
+
+        const razorpayData =
+          await customerApi.orders.createRazorpayOrder(orderPayload);
+
+        const options = {
+          key: razorpayData.keyId,
+          amount: razorpayData.amount,
+          currency: razorpayData.currency || "INR",
+          name: companyName || "Zaevyul",
+          description: "Artisanal Pashmina Purchase",
+          image: "/storefront/artisan.png",
+          order_id: razorpayData.razorpayOrderId,
+          handler: async (response) => {
+            try {
+              setPlacingOrder(true);
+              const verifyRes = await customerApi.orders.verifyRazorpayPayment({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                orderPayload,
+              });
+              clearCart();
+              setOrderSuccess(verifyRes.order || verifyRes);
+              toast(
+                "Payment successful! Your order has been placed.",
+                "success",
+              );
+            } catch (vErr) {
+              console.error("Razorpay verification error:", vErr);
+              const errMsg = vErr.message || "Payment verification failed.";
+              setPaymentError(errMsg);
+              toast(errMsg, "error");
+            } finally {
+              setPlacingOrder(false);
+            }
+          },
+          prefill: {
+            name: shippingAddressObj.fullName || user?.name || "",
+            email: formData.email || user?.email || "",
+            contact: shippingAddressObj.phone || user?.phone || "",
+          },
+          theme: {
+            color: "#1C1916",
+          },
+          modal: {
+            ondismiss: () => {
+              setPlacingOrder(false);
+            },
+          },
+        };
+
+        const rzp = new window.Razorpay(options);
+        rzp.on("payment.failed", (response) => {
+          const msg =
+            response.error?.description || "Payment failed. Please try again.";
+          setPaymentError(msg);
+          toast(msg, "error");
+          setPlacingOrder(false);
+        });
+        rzp.open();
+        return;
+      }
+
+      // Standard / Cash on Delivery Flow
       const res = await customerApi.orders.place(orderPayload);
       clearCart();
       setOrderSuccess(res.order || res);
@@ -284,7 +471,11 @@ export default function CheckoutPage() {
       );
     } catch (err) {
       console.error("Order placement failed:", err);
-      toast(err.message || "Failed to place order. Please try again.", "error");
+      const errMsg =
+        err.message ||
+        "Payment couldn't be completed. Your order has not been charged. Please try again or choose another payment method.";
+      setPaymentError(errMsg);
+      toast(errMsg, "error");
     } finally {
       setPlacingOrder(false);
     }
@@ -301,134 +492,47 @@ export default function CheckoutPage() {
   const finalTotal = totals.total + extraShippingCost;
 
   if (orderSuccess) {
-    return (
-      <div className="min-h-screen bg-[#FAF8F5] flex flex-col justify-between font-sans">
-        {/* Top Header */}
-        <header className="bg-[#FAF8F5] border-b border-[#E6DED4]/80 px-6 sm:px-12 py-5 flex items-center justify-between">
-          <Link
-            to="/"
-            className="font-serif text-[22px] tracking-[0.24em] text-[#1C1916] uppercase"
-          >
-            ZAEVYUL{" "}
-            <span className="block text-[9px] font-sans tracking-[0.35em] text-[#8A857E] text-center -mt-1">
-              PASHMINA
-            </span>
-          </Link>
-        </header>
-
-        <main className="max-w-[680px] mx-auto px-6 py-20 text-center">
-          <div className="w-16 h-16 bg-[#2E7D32]/10 text-[#2E7D32] rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle2 size={36} />
-          </div>
-          <span className="font-sans text-[11px] font-semibold uppercase tracking-[0.25em] text-[#B58A5B]">
-            Order Confirmed
-          </span>
-          <h1 className="font-serif text-[36px] sm:text-[44px] font-normal text-[#1C1916] mt-2 mb-4">
-            Thank You for Your Order
-          </h1>
-          <p className="font-sans text-[14px] font-light text-[#6B6560] leading-relaxed max-w-[500px] mx-auto mb-8">
-            Your order{" "}
-            <strong className="text-[#1C1916] font-medium">
-              #{orderSuccess.orderNumber || orderSuccess._id}
-            </strong>{" "}
-            has been received. We have sent a confirmation email to{" "}
-            <span className="text-[#1C1916]">{formData.email}</span>.
-          </p>
-
-          <div className="bg-white border border-[#E6DED4] p-6 rounded-[4px] text-left mb-8 shadow-xs">
-            <h3 className="font-serif text-[18px] text-[#1C1916] border-b border-[#ECE7E1] pb-3 mb-4">
-              Order Summary
-            </h3>
-            <div className="flex justify-between text-[13px] text-[#6B6560] mb-2">
-              <span>Order Number</span>
-              <span className="font-medium text-[#1C1916]">
-                #{orderSuccess.orderNumber || orderSuccess._id}
-              </span>
-            </div>
-            <div className="flex justify-between text-[13px] text-[#6B6560] mb-2">
-              <span>Status</span>
-              <span className="text-[#2E7D32] font-semibold uppercase text-[11px] bg-[#2E7D32]/10 px-2 py-0.5 rounded-[2px]">
-                {orderSuccess.status || "Confirmed"}
-              </span>
-            </div>
-            <div className="flex justify-between text-[13px] text-[#6B6560]">
-              <span>Est. Delivery</span>
-              <span className="text-[#1C1916]">
-                {shippingMethod === "express"
-                  ? "2-3 Business Days"
-                  : "5-7 Business Days"}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              to="/collections"
-              className="bg-[#1C1916] text-white px-8 py-3.5 text-[11px] font-semibold uppercase tracking-[0.2em] rounded-[2px] hover:bg-[#B58A5B] transition-colors"
-            >
-              Continue Shopping
-            </Link>
-            {isAuthenticated && (
-              <Link
-                to="/my-account/orders"
-                className="border border-[#1C1916] text-[#1C1916] px-8 py-3.5 text-[11px] font-semibold uppercase tracking-[0.2em] rounded-[2px] hover:bg-[#1C1916] hover:text-white transition-colors"
-              >
-                View Order History
-              </Link>
-            )}
-          </div>
-        </main>
-
-        <SiteFooter />
-      </div>
-    );
+    return <OrderConfirmationPage order={orderSuccess} />;
   }
 
   return (
     <div className="min-h-screen bg-[#FAF8F5] font-sans text-[#1C1916] flex flex-col justify-between">
       <div>
-        {/* Top Announcement Ribbon */}
-        <div className="bg-[#F5EFE7]/80 border-b border-[#E6DED4]/60 py-2.5 px-4 text-center text-[10.5px] font-sans font-light uppercase tracking-[0.2em] text-[#6B6560]">
-          <span className="text-[#B58A5B] font-normal mr-1.5">+</span>{" "}
-          COMPLIMENTARY WORLDWIDE SHIPPING ON ORDERS ABOVE $250
-        </div>
-
         {/* Header Navbar */}
-        <header className="bg-[#FAF8F5] border-b border-[#E6DED4]/80 px-6 sm:px-12 py-4 flex items-center justify-between sticky top-0 z-40 backdrop-blur-md">
+        <header className="bg-[#FAF8F5] border-b border-[#E6DED4]/80 px-4 sm:px-12 py-3.5 sm:py-4 flex items-center justify-between sticky top-0 z-40 backdrop-blur-md">
           <Link
             to="/cart"
-            className="inline-flex items-center gap-2 text-[11px] font-sans font-medium uppercase tracking-[0.16em] text-[#1C1916]/70 hover:text-[#1C1916] transition-colors"
+            className="inline-flex items-center gap-1.5 sm:gap-2 text-[10.5px] sm:text-[11px] font-sans font-medium uppercase tracking-[0.14em] sm:tracking-[0.16em] text-[#1C1916]/70 hover:text-[#1C1916] transition-colors"
           >
-            <ArrowLeft size={14} />
-            CONTINUE SHOPPING
+            <ArrowLeft size={14} className="shrink-0" />
+            <span className="hidden sm:inline">CONTINUE SHOPPING</span>
+            <span className="sm:hidden">SHOPPING</span>
           </Link>
 
           <Link
             to="/"
-            className="font-serif text-[18px] sm:text-[22px] tracking-[0.24em] text-[#1C1916] font-normal uppercase text-center"
+            className="font-serif text-[18px] sm:text-[22px] tracking-[0.2em] sm:tracking-[0.24em] text-[#1C1916] font-normal uppercase text-center"
           >
-            ZAEVYUL{" "}
-            <span className="block text-[8.5px] font-sans tracking-[0.38em] text-[#8A857E] text-center -mt-1 font-light">
-              PASHMINA
-            </span>
+            {companyName}{" "}
           </Link>
 
-          <div className="inline-flex items-center gap-1.5 text-[10.5px] font-sans font-medium uppercase tracking-[0.16em] text-[#1C1916]/80">
-            <Lock size={13} className="text-[#1C1916]/70" />
-            SECURE CHECKOUT
+          <div className="inline-flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-[10.5px] font-sans font-medium uppercase tracking-[0.12em] sm:tracking-[0.16em] text-[#1C1916]/80">
+            <Lock size={13} className="text-[#1C1916]/70 shrink-0" />
+            <span className="hidden sm:inline">SECURE CHECKOUT</span>
+            <span className="sm:hidden">SECURE</span>
           </div>
         </header>
 
         {/* Main Content Area */}
-        <main className="max-w-[1280px] mx-auto px-6 sm:px-10 lg:px-14 pt-8 pb-20">
+        <main className="max-w-[1280px] mx-auto px-4 sm:px-10 lg:px-14 pt-6 sm:pt-8 pb-16 sm:pb-20">
           {/* Checkout Title & Stepper Navigation */}
-          <div className="text-center mb-10">
-            <h1 className="font-serif text-[32px] sm:text-[42px] font-normal text-[#1C1916] mb-6">
+          <div className="text-center mb-8 sm:mb-10">
+            <h1 className="font-serif text-[28px] sm:text-[42px] font-normal text-[#1C1916] mb-4 sm:mb-6">
               Checkout
             </h1>
 
             {/* Stepper Tabs */}
-            <div className="flex justify-center items-center gap-8 sm:gap-14 font-sans text-[11.5px] font-light text-[#8A857E]">
+            <div className="flex justify-center items-center gap-3 xs:gap-6 sm:gap-14 font-sans text-[10.5px] sm:text-[11.5px] font-light text-[#8A857E]">
               <button
                 onClick={() => {
                   setActiveStep(1);
@@ -438,7 +542,7 @@ export default function CheckoutPage() {
                     review: false,
                   });
                 }}
-                className={`pb-2 border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
+                className={`pb-2 border-b-2 transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer ${
                   activeStep === 1
                     ? "border-[#1C1916] text-[#1C1916] font-medium"
                     : "border-transparent text-[#8A857E] hover:text-[#1C1916]"
@@ -455,7 +559,7 @@ export default function CheckoutPage() {
                     review: false,
                   });
                 }}
-                className={`pb-2 border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
+                className={`pb-2 border-b-2 transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer ${
                   activeStep === 2
                     ? "border-[#1C1916] text-[#1C1916] font-medium"
                     : "border-transparent text-[#8A857E] hover:text-[#1C1916]"
@@ -472,7 +576,7 @@ export default function CheckoutPage() {
                     review: true,
                   });
                 }}
-                className={`pb-2 border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
+                className={`pb-2 border-b-2 transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer ${
                   activeStep === 3
                     ? "border-[#1C1916] text-[#1C1916] font-medium"
                     : "border-transparent text-[#8A857E] hover:text-[#1C1916]"
@@ -864,8 +968,23 @@ export default function CheckoutPage() {
                               <p className="font-sans text-[13px] font-medium text-[#1C1916]">
                                 Standard Shipping
                               </p>
-                              <p className="font-sans text-[11px] font-light text-[#8A857E]">
-                                5-7 business days
+                              <p className="font-sans text-[11px] font-light text-[#B58A5B] mt-0.5">
+                                {(() => {
+                                  const now = new Date();
+                                  const minD = new Date(now);
+                                  minD.setDate(now.getDate() + 5);
+                                  const maxD = new Date(now);
+                                  maxD.setDate(now.getDate() + 7);
+                                  const minS = minD.toLocaleDateString(
+                                    "en-US",
+                                    { month: "short", day: "numeric" },
+                                  );
+                                  const maxS = maxD.toLocaleDateString(
+                                    "en-US",
+                                    { month: "short", day: "numeric" },
+                                  );
+                                  return `Arrives ${minS} – ${maxS} (5-7 business days)`;
+                                })()}
                               </p>
                             </div>
                           </div>
@@ -894,8 +1013,23 @@ export default function CheckoutPage() {
                               <p className="font-sans text-[13px] font-medium text-[#1C1916]">
                                 Express Shipping
                               </p>
-                              <p className="font-sans text-[11px] font-light text-[#8A857E]">
-                                2-3 business days
+                              <p className="font-sans text-[11px] font-light text-[#B58A5B] mt-0.5">
+                                {(() => {
+                                  const now = new Date();
+                                  const minD = new Date(now);
+                                  minD.setDate(now.getDate() + 2);
+                                  const maxD = new Date(now);
+                                  maxD.setDate(now.getDate() + 3);
+                                  const minS = minD.toLocaleDateString(
+                                    "en-US",
+                                    { month: "short", day: "numeric" },
+                                  );
+                                  const maxS = maxD.toLocaleDateString(
+                                    "en-US",
+                                    { month: "short", day: "numeric" },
+                                  );
+                                  return `Arrives ${minS} – ${maxS} (2-3 business days)`;
+                                })()}
                               </p>
                             </div>
                           </div>
@@ -951,6 +1085,43 @@ export default function CheckoutPage() {
 
                     {/* Payment Options (Image 3) */}
                     <div className="space-y-3 mb-6">
+                      {/* Razorpay Featured Option */}
+                      <label
+                        onClick={() => setPaymentMethod("razorpay")}
+                        className={`flex items-center justify-between p-4 rounded-[4px] border cursor-pointer transition-all duration-300 ${
+                          paymentMethod === "razorpay"
+                            ? "border-[#1C1916] bg-[#FAF8F5] shadow-xs"
+                            : "border-[#E6DED4] bg-[#FAF8F5] hover:border-[#B58A5B]"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="radio"
+                            name="paymentMethod"
+                            checked={paymentMethod === "razorpay"}
+                            onChange={() => setPaymentMethod("razorpay")}
+                            className="text-[#1C1916] focus:ring-0 cursor-pointer"
+                          />
+                          <div>
+                            <span className="font-sans text-[13px] font-medium text-[#1C1916] flex items-center gap-2">
+                              Razorpay Secure Payment
+                              <span className="bg-[#2E7D32]/10 text-[#2E7D32] text-[9.5px] font-semibold uppercase px-2 py-0.5 rounded-[2px] tracking-wider">
+                                FAST & SECURE
+                              </span>
+                            </span>
+                            <p className="font-sans text-[11px] font-light text-[#8A857E] mt-0.5">
+                              UPI (Google Pay, PhonePe, Paytm), Credit/Debit
+                              Cards, NetBanking
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className="font-sans text-[10px] font-bold tracking-wider text-[#0C2340] border border-[#0C2340]/20 px-2 py-1 rounded-[2px] bg-white">
+                            UPI / CARDS
+                          </span>
+                        </div>
+                      </label>
+
                       {/* Credit / Debit Card Option */}
                       <div
                         className={`rounded-[4px] border transition-all duration-300 overflow-hidden ${
@@ -978,9 +1149,21 @@ export default function CheckoutPage() {
 
                           {/* Real Card logos */}
                           <div className="flex items-center gap-2">
-                            <img src="/payment-logos/visa.svg" alt="Visa" className="h-5 w-auto object-contain" />
-                            <img src="/payment-logos/mastercard.svg" alt="Mastercard" className="h-5 w-auto object-contain" />
-                            <img src="/payment-logos/amex.svg" alt="Amex" className="h-5 w-auto object-contain" />
+                            <img
+                              src="/payment-logos/visa.svg"
+                              alt="Visa"
+                              className="h-5 w-auto object-contain"
+                            />
+                            <img
+                              src="/payment-logos/mastercard.svg"
+                              alt="Mastercard"
+                              className="h-5 w-auto object-contain"
+                            />
+                            <img
+                              src="/payment-logos/amex.svg"
+                              alt="Amex"
+                              className="h-5 w-auto object-contain"
+                            />
                           </div>
                         </label>
 
@@ -1098,14 +1281,18 @@ export default function CheckoutPage() {
                             PayPal
                           </span>
                         </div>
-                        <img src="/payment-logos/paypal.svg" alt="PayPal" className="h-5 w-auto object-contain" />
+                        <img
+                          src="/payment-logos/paypal.svg"
+                          alt="PayPal"
+                          className="h-5 w-auto object-contain"
+                        />
                       </label>
 
-                      {/* Shop Pay Option */}
+                      {/* Google Pay Option */}
                       <label
-                        onClick={() => setPaymentMethod("shop_pay")}
+                        onClick={() => setPaymentMethod("gpay")}
                         className={`flex items-center justify-between p-4 rounded-[4px] border cursor-pointer transition-all duration-300 ${
-                          paymentMethod === "shop_pay"
+                          paymentMethod === "gpay"
                             ? "border-[#1C1916] bg-[#FAF8F5] shadow-xs"
                             : "border-[#E6DED4] bg-[#FAF8F5] hover:border-[#B58A5B]"
                         }`}
@@ -1114,15 +1301,17 @@ export default function CheckoutPage() {
                           <input
                             type="radio"
                             name="paymentMethod"
-                            checked={paymentMethod === "shop_pay"}
-                            onChange={() => setPaymentMethod("shop_pay")}
+                            checked={paymentMethod === "gpay"}
+                            onChange={() => setPaymentMethod("gpay")}
                             className="text-[#1C1916] focus:ring-0 cursor-pointer"
                           />
                           <span className="font-sans text-[13px] font-medium text-[#1C1916]">
-                            Shop Pay
+                            Google Pay
                           </span>
                         </div>
-                        <img src="/payment-logos/shoppay.svg" alt="Shop Pay" className="h-5 w-auto object-contain" />
+                        <span className="font-sans text-[11px] font-bold tracking-wider text-[#4285F4] border border-[#4285F4]/30 px-2 py-0.5 rounded-[2px] bg-white">
+                          GPay (UPI)
+                        </span>
                       </label>
 
                       {/* Apple Pay Option */}
@@ -1146,7 +1335,11 @@ export default function CheckoutPage() {
                             Apple Pay
                           </span>
                         </div>
-                        <img src="/payment-logos/applepay.svg" alt="Apple Pay" className="h-5 w-auto object-contain" />
+                        <img
+                          src="/payment-logos/applepay.svg"
+                          alt="Apple Pay"
+                          className="h-5 w-auto object-contain"
+                        />
                       </label>
                     </div>
 
@@ -1250,6 +1443,16 @@ export default function CheckoutPage() {
                       </div>
                     </div>
 
+                    {paymentError && (
+                      <div className="mb-4 p-4 bg-[#FDF2F2] border border-[#F8B4B4] rounded-[2px] text-[12.5px] text-[#C94C4C] space-y-1">
+                        <div className="flex items-center gap-2 font-semibold uppercase text-[11px] tracking-wider">
+                          <AlertCircle size={15} /> Payment Couldn't Be
+                          Completed
+                        </div>
+                        <p className="font-light">{paymentError}</p>
+                      </div>
+                    )}
+
                     <button
                       type="button"
                       disabled={placingOrder}
@@ -1270,7 +1473,7 @@ export default function CheckoutPage() {
             </div>
 
             {/* Right Column: YOUR ORDER Summary Panel */}
-            <div className="bg-[#FAF8F5] border border-[#E6DED4] rounded-[4px] p-6 sm:p-8 sticky top-[95px]">
+            <div className="bg-[#FAF8F5] border border-[#E6DED4] rounded-[4px] p-5 sm:p-8 static lg:sticky lg:top-[95px]">
               <h2 className="font-serif text-[18px] font-normal tracking-wide text-[#1C1916] mb-6">
                 YOUR ORDER
               </h2>
@@ -1332,11 +1535,14 @@ export default function CheckoutPage() {
                   </span>
                 </div>
 
-                {appliedCoupon && (
-                  <div className="flex justify-between text-[#2E7D32]">
-                    <span>Discount ({appliedCoupon.code})</span>
+                {(totals.discount > 0 || appliedCoupon) && (
+                  <div className="flex justify-between text-[#2E7D32] font-medium">
+                    <span>Discount ({appliedCoupon?.code || "Coupon"})</span>
                     <span>
-                      -{formatPrice(appliedCoupon.discountAmount || 0)}
+                      -
+                      {formatPrice(
+                        totals.discount || appliedCoupon?.discountAmount || 0,
+                      )}
                     </span>
                   </div>
                 )}
@@ -1357,23 +1563,60 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-              {/* Promo Code Form */}
-              <form onSubmit={handleApplyCoupon} className="mt-6 flex gap-2">
-                <input
-                  type="text"
-                  value={promoCode}
-                  onChange={(e) => setPromoCode(e.target.value)}
-                  placeholder="Enter promo code"
-                  className="flex-1 bg-[#FAF8F5] border border-[#E6DED4] px-3.5 py-2.5 text-[12px] font-light text-[#1C1916] outline-none placeholder:text-[#8A857E] rounded-[2px]"
-                />
-                <button
-                  type="submit"
-                  disabled={couponLoading}
-                  className="bg-[#C3A98B] hover:bg-[#B58A5B] text-white px-5 py-2.5 text-[10.5px] font-semibold uppercase tracking-[0.16em] rounded-[2px] transition-colors cursor-pointer"
-                >
-                  {couponLoading ? "..." : "APPLY"}
-                </button>
-              </form>
+              {/* Applied Coupon Badge */}
+              {appliedCoupon ? (
+                <div className="flex items-center justify-between bg-[#EAF3EB] border border-[#2E7D32]/30 px-3.5 py-2.5 rounded-[2px] mt-6 text-[#2E7D32] text-[12px]">
+                  <div className="flex items-center gap-2 font-medium">
+                    <Tag size={14} />
+                    <span>
+                      Coupon <strong>"{appliedCoupon.code}"</strong> applied
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAppliedCoupon(null);
+                      setPromoCode("");
+                      setCouponError("");
+                      toast("Coupon removed", "info");
+                    }}
+                    className="text-[#C94C4C] hover:underline text-[11px] font-sans font-medium"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <form
+                    onSubmit={handleApplyCoupon}
+                    className="mt-6 flex gap-2"
+                  >
+                    <input
+                      type="text"
+                      value={promoCode}
+                      onChange={(e) => setPromoCode(e.target.value)}
+                      placeholder="Enter promo code"
+                      className="flex-1 uppercase bg-[#FAF8F5] border border-[#E6DED4] px-3.5 py-2.5 text-[12px] font-light text-[#1C1916] outline-none placeholder:text-[#8A857E] rounded-[2px]"
+                    />
+                    <button
+                      type="submit"
+                      disabled={couponLoading}
+                      className="bg-[#C3A98B] hover:bg-[#B58A5B] text-white px-5 py-2.5 text-[10.5px] font-semibold uppercase tracking-[0.16em] rounded-[2px] transition-colors cursor-pointer"
+                    >
+                      {couponLoading ? "..." : "APPLY"}
+                    </button>
+                  </form>
+                  <button
+                    type="button"
+                    onClick={openCouponModal}
+                    className="mt-2.5 flex items-center gap-1 text-[11px] text-[#B58A5B] hover:text-[#1C1916] font-medium tracking-wide transition-colors cursor-pointer"
+                  >
+                    <Tag size={12} />
+                    View available coupons
+                    <ChevronRight size={11} />
+                  </button>
+                </div>
+              )}
               {couponError && (
                 <p className="text-[11px] text-[#C94C4C] mt-1.5 flex items-center gap-1">
                   <AlertCircle size={12} /> {couponError}
@@ -1401,10 +1644,12 @@ export default function CheckoutPage() {
                   <Truck size={18} className="text-[#1C1916] shrink-0 mt-0.5" />
                   <div>
                     <h5 className="font-medium text-[#1C1916] uppercase text-[10px] tracking-wider mb-0.5">
-                      COMPLIMENTARY SHIPPING
+                      COMPLIMENTARY SHIPPING & DUTIES
                     </h5>
                     <p className="font-light text-[#8A857E] text-[10.5px] leading-snug">
-                      Enjoy free worldwide shipping on orders above $250.
+                      Orders ship direct from Srinagar/Delhi with full tracking.
+                      International duties & VAT options calculated
+                      transparently.
                     </p>
                   </div>
                 </div>
@@ -1416,10 +1661,11 @@ export default function CheckoutPage() {
                   />
                   <div>
                     <h5 className="font-medium text-[#1C1916] uppercase text-[10px] tracking-wider mb-0.5">
-                      EASY RETURNS
+                      7-DAY HASSLE-FREE RETURNS
                     </h5>
                     <p className="font-light text-[#8A857E] text-[10.5px] leading-snug">
-                      Not in love? Return within 30 days for a full refund.
+                      Shop with complete peace of mind. Easy returns and
+                      exchanges within 7 days of delivery.
                     </p>
                   </div>
                 </div>
@@ -1430,6 +1676,18 @@ export default function CheckoutPage() {
       </div>
 
       <SiteFooter />
+
+      {/* Coupon Picker Modal */}
+      {showCouponModal && (
+        <CouponPickerModal
+          coupons={availableCoupons}
+          loading={couponsLoading}
+          cartSubtotal={totals.subtotal}
+          onPick={handlePickCoupon}
+          onClose={() => setShowCouponModal(false)}
+          formatPrice={formatPrice}
+        />
+      )}
     </div>
   );
 }

@@ -4,7 +4,7 @@ export default function CraftHighlight({
   tag = "THE CRAFT",
   title = "A Heritage Woven by Hand",
   description = "Sozni embroidery is a centuries-old Kashmiri technique known for its intricate fine-needlework. Each motif is meticulously hand-stitched by skilled artisans, preserving a legacy of patience, precision and pride.",
-  image = "/storefront/prod-2.png",
+  image = "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124716/zaevyul/storefront/prod-2.jpg",
   linkText = "Discover The Craft",
   linkUrl = "#"
 }) {

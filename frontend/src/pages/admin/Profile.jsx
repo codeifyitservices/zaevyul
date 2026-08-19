@@ -152,16 +152,25 @@ export default function Profile() {
                 <span className="card-title">Recent Activity</span>
                 <Clock size={14} style={{ color: 'var(--color-text-caption)' }} />
               </div>
-              <div style={{ padding: '4px 20px' }}>
-                {MOCK_ACTIVITY.map(a => (
-                  <div key={a.id} className="activity-item">
-                    <div className={`activity-dot ${a.dot}`} />
-                    <div>
-                      <p style={{ fontSize: 12, color: 'var(--color-text-primary)', lineHeight: 1.5 }}>{a.message}</p>
-                      <p style={{ fontSize: 11, color: 'var(--color-text-caption)', marginTop: 2 }}>{a.time}</p>
-                    </div>
+              <div style={{ padding: '16px 20px' }}>
+                <div className="activity-item">
+                  <div className="activity-dot green" />
+                  <div>
+                    <p style={{ fontSize: 12, color: 'var(--color-text-primary)', lineHeight: 1.5 }}>Active Admin Session Authenticated</p>
+                    <p style={{ fontSize: 11, color: 'var(--color-text-caption)', marginTop: 2 }}>
+                      {user?.lastLogin ? `Last authenticated: ${new Date(user.lastLogin).toLocaleString()}` : 'Currently logged in'}
+                    </p>
                   </div>
-                ))}
+                </div>
+                <div className="activity-item" style={{ marginTop: 12 }}>
+                  <div className="activity-dot blue" />
+                  <div>
+                    <p style={{ fontSize: 12, color: 'var(--color-text-primary)', lineHeight: 1.5 }}>Role & Permissions</p>
+                    <p style={{ fontSize: 11, color: 'var(--color-text-caption)', marginTop: 2 }}>
+                      Assigned role: {user?.role?.replace('_', ' ') || 'Admin'}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           )}

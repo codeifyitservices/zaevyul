@@ -15,6 +15,7 @@ const CategorySchema = new mongoose.Schema({
     name: { type: String, default: null },
     url:  { type: String, default: null }
   },
+  sizeChartImage: { type: String, default: "" },
   seo: {
     title:       { type: String, default: '' },
     description: { type: String, default: '' },

@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Product from "../model/Product.js";
 import Category from "../model/Category.js";
 import Blog from "../model/Blog.js";
@@ -5,6 +6,10 @@ import BlogCategory from "../model/BlogCategory.js";
 import Coupon from "../model/Coupon.js";
 import Newsletter from "../model/Newsletter.js";
 import Settings from "../model/Settings.js";
+import Order from "../model/Order.js";
+import Customer from "../model/Customer.js";
+import CustomerUser from "../model/CustomerUser.js";
+import Review from "../model/Review.js";
 
 // Helper to escape regex inputs safely (AUD-021)
 export const escapeRegex = (str) => {
@@ -25,9 +30,18 @@ const visibleProductFilter = {
  * Fetch active/published products with optional filtering.
  */
 export const getPublicProducts = async (req, res) => {
-  const { search, category, featured, limit, page = 1 } = req.query;
+  const { search, category, gender, featured, limit, page = 1 } = req.query;
   try {
     const filter = { ...visibleProductFilter };
+
+    if (gender && ['men', 'women', 'neutral'].includes(gender.toLowerCase())) {
+      const g = gender.toLowerCase();
+      if (g === 'neutral') {
+        filter.gender = 'neutral';
+      } else {
+        filter.gender = { $in: [g, 'neutral'] };
+      }
+    }
 
     if (category && category !== "ALL" && category !== "all") {
       // Find category by slug or id
@@ -56,7 +70,7 @@ export const getPublicProducts = async (req, res) => {
     const limitNum = parseInt(limit, 10) || 0; // 0 means no limit (all)
 
     let query = Product.find(filter)
-      .populate("category", "name slug")
+      .populate("category", "name slug sizeChartImage")
       .sort({ featuredOrder: 1, createdAt: -1 });
 
     if (limitNum > 0) {
@@ -89,13 +103,13 @@ export const getPublicProductBySlug = async (req, res) => {
   try {
     let product;
     if (identifier.match(/^[0-9a-fA-F]{24}$/)) {
-      product = await Product.findOne({ _id: identifier, ...visibleProductFilter }).populate("category", "name slug");
+      product = await Product.findOne({ _id: identifier, ...visibleProductFilter }).populate("category", "name slug sizeChartImage");
     }
     if (!product) {
       product = await Product.findOne({
         $or: [{ slug: identifier }, { id: identifier }, { sku: identifier }],
         ...visibleProductFilter,
-      }).populate("category", "name slug");
+      }).populate("category", "name slug sizeChartImage");
     }
 
     if (!product) {
@@ -293,10 +307,18 @@ export const subscribeNewsletter = async (req, res) => {
     const normalizedEmail = email.toLowerCase().trim();
     let sub = await Newsletter.findOne({ email: normalizedEmail });
     if (!sub) {
-      sub = await Newsletter.create({ email: normalizedEmail, status: "subscribed" });
-    } else if (sub.status !== "subscribed") {
-      sub.status = "subscribed";
+      sub = await Newsletter.create({ email: normalizedEmail, status: "active" });
+    } else if (sub.status !== "active") {
+      sub.status = "active";
       await sub.save();
+    }
+
+    // Sync CustomerUser marketing preference if matching user exists
+    const customer = await CustomerUser.findOne({ email: normalizedEmail });
+    if (customer && !customer.marketingPreferences?.emailUpdates) {
+      customer.marketingPreferences = customer.marketingPreferences || {};
+      customer.marketingPreferences.emailUpdates = true;
+      await customer.save();
     }
 
     return res.status(200).json({
@@ -391,5 +413,156 @@ export const getPublicLocation = async (req, res) => {
   } catch (error) {
     console.error("[public] getPublicLocation error:", error);
     return res.status(200).json({ success: true, countryCode: "US" });
+  }
+};
+
+/**
+ * GET /api/public/orders/:identifier (orderNumber or Mongo _id)
+ */
+export const getPublicOrderById = async (req, res) => {
+  const { identifier } = req.params;
+  try {
+    let order;
+    if (identifier && identifier.match(/^[0-9a-fA-F]{24}$/)) {
+      order = await Order.findById(identifier)
+        .populate("items.product", "_id name slug images mainImage basePrice discountPrice");
+    }
+    if (!order && identifier) {
+      order = await Order.findOne({ orderNumber: identifier })
+        .populate("items.product", "_id name slug images mainImage basePrice discountPrice");
+    }
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+    return res.status(200).json({ success: true, order });
+  } catch (error) {
+    console.error("Fetch public order error:", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+/**
+ * GET /api/public/products/:id/reviews
+ */
+export const getProductReviews = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const filter = { status: "approved" };
+    if (id.match(/^[0-9a-fA-F]{24}$/)) {
+      filter.product = id;
+    } else {
+      const prod = await Product.findOne({ slug: id });
+      if (prod) filter.product = prod._id;
+    }
+
+    const reviews = await Review.find(filter).sort({ createdAt: -1 });
+
+    const totalCount = reviews.length;
+    let avgRating = 5.0;
+    let ratingCounts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+    let fitCounts = { "True to Size": 0, "Runs Small": 0, "Runs Large": 0 };
+
+    if (totalCount > 0) {
+      const sum = reviews.reduce((acc, r) => {
+        const rating = Math.min(5, Math.max(1, r.rating || 5));
+        ratingCounts[rating] = (ratingCounts[rating] || 0) + 1;
+        if (r.fit && fitCounts[r.fit] !== undefined) {
+          fitCounts[r.fit] += 1;
+        }
+        return acc + rating;
+      }, 0);
+      avgRating = Number((sum / totalCount).toFixed(1));
+    }
+
+    return res.status(200).json({
+      success: true,
+      reviews,
+      totalCount,
+      avgRating,
+      ratingCounts,
+      fitCounts
+    });
+  } catch (error) {
+    console.error("Fetch product reviews error:", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+/**
+ * POST /api/public/products/:id/reviews
+ */
+export const createProductReview = async (req, res) => {
+  const { id } = req.params;
+  const { name, email, rating, title, comment, fit, photos } = req.body;
+
+  if (!name || !email || !rating || !comment) {
+    return res.status(400).json({ success: false, message: "Name, email, rating, and comment are required." });
+  }
+
+  try {
+    let productId = id;
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+      const prod = await Product.findOne({ slug: id });
+      if (prod) productId = prod._id;
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Find all matching Customer and CustomerUser IDs for this email
+    const matchingCustomers = await Customer.find({ email: normalizedEmail }).select("_id");
+    const customerIds = matchingCustomers.map((c) => c._id);
+
+    const matchingUser = await CustomerUser.findOne({ email: normalizedEmail }).select("_id");
+    if (matchingUser) {
+      customerIds.push(matchingUser._id);
+    }
+
+    const prodStr = String(productId);
+    const prodObjId = mongoose.Types.ObjectId.isValid(prodStr) ? new mongoose.Types.ObjectId(prodStr) : null;
+
+    const productMatchConditions = prodObjId
+      ? [{ "items.product": prodObjId }, { "items.product": prodStr }]
+      : [{ "items.product": prodStr }];
+
+    // Enforce requirement: ONLY users with a delivered order for this product can leave a review
+    const deliveredOrder = await Order.findOne({
+      status: "delivered",
+      $or: [
+        { customer: { $in: customerIds } },
+        { "shippingAddress.email": normalizedEmail }
+      ],
+      $or: productMatchConditions
+    });
+
+    if (!deliveredOrder) {
+      return res.status(403).json({
+        success: false,
+        message: "Only verified customers with a delivered order for this product can leave a review."
+      });
+    }
+
+    const newReview = new Review({
+      product: productId,
+      name,
+      email: normalizedEmail,
+      rating: Number(rating),
+      title: title || "",
+      comment,
+      fit: fit || "True to Size",
+      photos: Array.isArray(photos) ? photos : [],
+      verified: true,
+      status: "approved"
+    });
+
+    await newReview.save();
+
+    return res.status(201).json({
+      success: true,
+      message: "Thank you! Your verified review has been published.",
+      review: newReview
+    });
+  } catch (error) {
+    console.error("Create product review error:", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };

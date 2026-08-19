@@ -11,9 +11,19 @@ import {
   subscribeNewsletter,
   getPublicSettings,
   getPublicLocation,
+  getPublicOrderById,
+  getProductReviews,
+  createProductReview,
 } from "../controllers/public.js";
 
 const router = express.Router();
+
+// Orders
+router.get("/orders/:identifier", getPublicOrderById);
+
+// Reviews
+router.get("/products/:id/reviews", getProductReviews);
+router.post("/products/:id/reviews", createProductReview);
 
 // Products & Categories
 router.get("/products", getPublicProducts);

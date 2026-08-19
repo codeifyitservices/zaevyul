@@ -143,8 +143,8 @@ export const MOCK_PRODUCTS = [
     description:
       "Hand-spun and handwoven in the valleys of Kashmir, this ivory shawl carries the quiet warmth of Himalayan winters.",
     images: [
-      { id: "img-001a", name: "snow-1", url: "/storefront/prod-1.png" },
-      { id: "img-001b", name: "snow-2", url: "/storefront/prod-stack.png" },
+      { id: "img-001a", name: "snow-1", url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124715/zaevyul/storefront/prod-1.jpg" },
+      { id: "img-001b", name: "snow-2", url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124718/zaevyul/storefront/prod-stack.jpg" },
     ],
     createdAt: new Date(now - 30 * day).toISOString(),
   },
@@ -167,8 +167,8 @@ export const MOCK_PRODUCTS = [
     description:
       "Inspired by Kashmir's famed saffron fields, woven in rich earthy tones.",
     images: [
-      { id: "img-002a", name: "saffron-1", url: "/storefront/cat-stoles.png" },
-      { id: "img-002b", name: "saffron-2", url: "/storefront/prod-3.png" },
+      { id: "img-002a", name: "saffron-1", url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124710/zaevyul/storefront/cat-stoles.jpg" },
+      { id: "img-002b", name: "saffron-2", url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124717/zaevyul/storefront/prod-3.jpg" },
     ],
     createdAt: new Date(now - 25 * day).toISOString(),
   },
@@ -191,8 +191,8 @@ export const MOCK_PRODUCTS = [
     description:
       "Deep warm tones of aged walnut wood, woven into a piece of lasting heritage.",
     images: [
-      { id: "img-003a", name: "walnut-1", url: "/storefront/prod-3.png" },
-      { id: "img-003b", name: "walnut-2", url: "/storefront/prod-stack.png" },
+      { id: "img-003a", name: "walnut-1", url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124717/zaevyul/storefront/prod-3.jpg" },
+      { id: "img-003b", name: "walnut-2", url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124718/zaevyul/storefront/prod-stack.jpg" },
     ],
     createdAt: new Date(now - 22 * day).toISOString(),
   },
@@ -215,8 +215,8 @@ export const MOCK_PRODUCTS = [
     description:
       "The serene clarity of mountain glaciers, rendered in delicate Pashmina threads.",
     images: [
-      { id: "img-004a", name: "glacier-1", url: "/storefront/cat-scarves.png" },
-      { id: "img-004b", name: "glacier-2", url: "/storefront/prod-stack.png" },
+      { id: "img-004a", name: "glacier-1", url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124708/zaevyul/storefront/cat-scarves.jpg" },
+      { id: "img-004b", name: "glacier-2", url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124718/zaevyul/storefront/prod-stack.jpg" },
     ],
     createdAt: new Date(now - 20 * day).toISOString(),
   },
@@ -239,8 +239,8 @@ export const MOCK_PRODUCTS = [
     description:
       "Heavy Pashmina throw in the dense green of Kashmiri cedar forests.",
     images: [
-      { id: "img-005a", name: "cedar-1", url: "/storefront/prod-stack.png" },
-      { id: "img-005b", name: "cedar-2", url: "/storefront/prod-3.png" },
+      { id: "img-005a", name: "cedar-1", url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124718/zaevyul/storefront/prod-stack.jpg" },
+      { id: "img-005b", name: "cedar-2", url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124717/zaevyul/storefront/prod-3.jpg" },
     ],
     createdAt: new Date(now - 18 * day).toISOString(),
   },
@@ -262,8 +262,8 @@ export const MOCK_PRODUCTS = [
     size: "Standard (170×50cm)",
     description: "Feather-light scarf in the pale grey of Dal Lake mornings.",
     images: [
-      { id: "img-006a", name: "mist-1", url: "/storefront/cat-scarves.png" },
-      { id: "img-006b", name: "mist-2", url: "/storefront/prod-stack.png" },
+      { id: "img-006a", name: "mist-1", url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124708/zaevyul/storefront/cat-scarves.jpg" },
+      { id: "img-006b", name: "mist-2", url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124718/zaevyul/storefront/prod-stack.jpg" },
     ],
     createdAt: new Date(now - 16 * day).toISOString(),
   },
@@ -286,8 +286,8 @@ export const MOCK_PRODUCTS = [
     description:
       "The golden hours of a Kashmiri autumn captured in warm amber weave.",
     images: [
-      { id: "img-007a", name: "meadow-1", url: "/storefront/prod-3.png" },
-      { id: "img-007b", name: "meadow-2", url: "/storefront/prod-stack.png" },
+      { id: "img-007a", name: "meadow-1", url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124717/zaevyul/storefront/prod-3.jpg" },
+      { id: "img-007b", name: "meadow-2", url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124718/zaevyul/storefront/prod-stack.jpg" },
     ],
     createdAt: new Date(now - 14 * day).toISOString(),
   },
@@ -309,8 +309,8 @@ export const MOCK_PRODUCTS = [
     size: "One Size",
     description: "Refined fingerless gloves for the modern traveller.",
     images: [
-      { id: "img-008a", name: "gloves-1", url: "/storefront/prod-stack.png" },
-      { id: "img-008b", name: "gloves-2", url: "/storefront/prod-1.png" },
+      { id: "img-008a", name: "gloves-1", url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124718/zaevyul/storefront/prod-stack.jpg" },
+      { id: "img-008b", name: "gloves-2", url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124715/zaevyul/storefront/prod-1.jpg" },
     ],
     createdAt: new Date(now - 12 * day).toISOString(),
   },
@@ -333,8 +333,8 @@ export const MOCK_PRODUCTS = [
     description:
       "The weathered beauty of Himalayan rock translated into soft Pashmina.",
     images: [
-      { id: "img-009a", name: "stone-1", url: "/storefront/prod-stack.png" },
-      { id: "img-009b", name: "stone-2", url: "/storefront/prod-3.png" },
+      { id: "img-009a", name: "stone-1", url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124718/zaevyul/storefront/prod-stack.jpg" },
+      { id: "img-009b", name: "stone-2", url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124717/zaevyul/storefront/prod-3.jpg" },
     ],
     createdAt: new Date(now - 10 * day).toISOString(),
   },
@@ -357,8 +357,8 @@ export const MOCK_PRODUCTS = [
     description:
       "The purest expression of Pashmina. Undyed, unadorned, unmatched.",
     images: [
-      { id: "img-010a", name: "cream-1", url: "/storefront/prod-1.png" },
-      { id: "img-010b", name: "cream-2", url: "/storefront/prod-stack.png" },
+      { id: "img-010a", name: "cream-1", url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124715/zaevyul/storefront/prod-1.jpg" },
+      { id: "img-010b", name: "cream-2", url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124718/zaevyul/storefront/prod-stack.jpg" },
     ],
     createdAt: new Date(now - 8 * day).toISOString(),
   },
@@ -380,8 +380,8 @@ export const MOCK_PRODUCTS = [
     size: "King (240×120cm)",
     description: "For those who seek warmth in the grandest sense.",
     images: [
-      { id: "img-011a", name: "alpine-1", url: "/storefront/prod-stack.png" },
-      { id: "img-011b", name: "alpine-2", url: "/storefront/prod-3.png" },
+      { id: "img-011a", name: "alpine-1", url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124718/zaevyul/storefront/prod-stack.jpg" },
+      { id: "img-011b", name: "alpine-2", url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124717/zaevyul/storefront/prod-3.jpg" },
     ],
     createdAt: new Date(now - 7 * day).toISOString(),
   },
@@ -403,8 +403,8 @@ export const MOCK_PRODUCTS = [
     size: "Standard (170×50cm)",
     description: "Delicate dusty rose tones that soften any ensemble.",
     images: [
-      { id: "img-012a", name: "blush-1", url: "/storefront/cat-stoles.png" },
-      { id: "img-012b", name: "blush-2", url: "/storefront/prod-stack.png" },
+      { id: "img-012a", name: "blush-1", url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124710/zaevyul/storefront/cat-stoles.jpg" },
+      { id: "img-012b", name: "blush-2", url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124718/zaevyul/storefront/prod-stack.jpg" },
     ],
     createdAt: new Date(now - 6 * day).toISOString(),
   },
@@ -427,8 +427,8 @@ export const MOCK_PRODUCTS = [
     description:
       "Dark, rich, and deeply woven — for evenings that deserve something extraordinary.",
     images: [
-      { id: "img-013a", name: "ember-1", url: "/storefront/prod-3.png" },
-      { id: "img-013b", name: "ember-2", url: "/storefront/prod-stack.png" },
+      { id: "img-013a", name: "ember-1", url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124717/zaevyul/storefront/prod-3.jpg" },
+      { id: "img-013b", name: "ember-2", url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124718/zaevyul/storefront/prod-stack.jpg" },
     ],
     createdAt: new Date(now - 5 * day).toISOString(),
   },
@@ -451,8 +451,8 @@ export const MOCK_PRODUCTS = [
     description:
       "Pristine white Pashmina, the choice for celebrations and milestones.",
     images: [
-      { id: "img-014a", name: "cloud-1", url: "/storefront/prod-1.png" },
-      { id: "img-014b", name: "cloud-2", url: "/storefront/prod-stack.png" },
+      { id: "img-014a", name: "cloud-1", url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124715/zaevyul/storefront/prod-1.jpg" },
+      { id: "img-014b", name: "cloud-2", url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124718/zaevyul/storefront/prod-stack.jpg" },
     ],
     createdAt: new Date(now - 4 * day).toISOString(),
   },
@@ -475,11 +475,11 @@ export const MOCK_PRODUCTS = [
     description:
       "Kani loom weaving — the ancient art of Kanihama village preserved in every thread.",
     images: [
-      { id: "img-015a", name: "kani-1", url: "/storefront/prod-2.png" },
+      { id: "img-015a", name: "kani-1", url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124716/zaevyul/storefront/prod-2.jpg" },
       {
         id: "img-015b",
         name: "kani-2",
-        url: "/storefront/cat-embroidered.png",
+        url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124707/zaevyul/storefront/cat-embroidered.jpg",
       },
     ],
     createdAt: new Date(now - 3 * day).toISOString(),
@@ -503,8 +503,8 @@ export const MOCK_PRODUCTS = [
     description:
       "Warm terracotta tones that echo the ochre earth of Kashmir in late summer.",
     images: [
-      { id: "img-016a", name: "desert-1", url: "/storefront/prod-3.png" },
-      { id: "img-016b", name: "desert-2", url: "/storefront/prod-stack.png" },
+      { id: "img-016a", name: "desert-1", url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124717/zaevyul/storefront/prod-3.jpg" },
+      { id: "img-016b", name: "desert-2", url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124718/zaevyul/storefront/prod-stack.jpg" },
     ],
     createdAt: new Date(now - 2 * day).toISOString(),
   },
@@ -527,8 +527,8 @@ export const MOCK_PRODUCTS = [
     description:
       "Deep indigo inspired by the ink-dark nights over the Himalayas.",
     images: [
-      { id: "img-017a", name: "indigo-1", url: "/storefront/prod-stack.png" },
-      { id: "img-017b", name: "indigo-2", url: "/storefront/prod-3.png" },
+      { id: "img-017a", name: "indigo-1", url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124718/zaevyul/storefront/prod-stack.jpg" },
+      { id: "img-017b", name: "indigo-2", url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124717/zaevyul/storefront/prod-3.jpg" },
     ],
     createdAt: new Date(now - 1 * day).toISOString(),
   },
@@ -551,8 +551,8 @@ export const MOCK_PRODUCTS = [
     description:
       "A modern infinity silhouette meets centuries of Pashmina craft.",
     images: [
-      { id: "img-018a", name: "infinity-1", url: "/storefront/prod-stack.png" },
-      { id: "img-018b", name: "infinity-2", url: "/storefront/prod-1.png" },
+      { id: "img-018a", name: "infinity-1", url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124718/zaevyul/storefront/prod-stack.jpg" },
+      { id: "img-018b", name: "infinity-2", url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124715/zaevyul/storefront/prod-1.jpg" },
     ],
     createdAt: new Date(now - 1 * day).toISOString(),
   },
@@ -578,9 +578,9 @@ export const MOCK_PRODUCTS = [
       {
         id: "img-019a",
         name: "sozni-1",
-        url: "/storefront/cat-embroidered.png",
+        url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124707/zaevyul/storefront/cat-embroidered.jpg",
       },
-      { id: "img-019b", name: "sozni-2", url: "/storefront/prod-2.png" },
+      { id: "img-019b", name: "sozni-2", url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124716/zaevyul/storefront/prod-2.jpg" },
     ],
     createdAt: new Date(now).toISOString(),
   },
@@ -603,8 +603,8 @@ export const MOCK_PRODUCTS = [
     description:
       "Softer than a whisper — pure baby Pashmina for the most precious gift.",
     images: [
-      { id: "img-020a", name: "baby-1", url: "/storefront/cat-stoles.png" },
-      { id: "img-020b", name: "baby-2", url: "/storefront/prod-stack.png" },
+      { id: "img-020a", name: "baby-1", url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124710/zaevyul/storefront/cat-stoles.jpg" },
+      { id: "img-020b", name: "baby-2", url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124718/zaevyul/storefront/prod-stack.jpg" },
     ],
     createdAt: new Date(now).toISOString(),
   },

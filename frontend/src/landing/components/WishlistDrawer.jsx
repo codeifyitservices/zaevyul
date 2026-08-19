@@ -245,17 +245,28 @@ export default function WishlistDrawer() {
                             {formatPrice(item.discountPrice || item.basePrice)}
                           </span>
                         </div>
+
+                        {/* Live Stock Availability Badge */}
+                        <div className="mt-1 font-sans text-[10.5px]">
+                          {typeof item.quantity !== "undefined" && item.quantity <= 0 ? (
+                            <span className="text-[#C94C4C] font-semibold uppercase tracking-wider">Out of Stock</span>
+                          ) : typeof item.quantity !== "undefined" && item.quantity <= 3 ? (
+                            <span className="text-[#B58A5B] font-medium">Only {item.quantity} left</span>
+                          ) : (
+                            <span className="text-[#2E7D32] font-medium">In Stock</span>
+                          )}
+                        </div>
                       </div>
 
                       {/* Actions */}
                       <div className="mt-4 flex items-center justify-between">
                         <button
-                          disabled={item.quantity <= 0}
+                          disabled={typeof item.quantity !== "undefined" && item.quantity <= 0}
                           onClick={() => handleMoveToCart(item)}
-                          className="text-[#8A857E] text-[12px] hover:text-[#B58A5B] transition-colors border-b border-transparent hover:border-[#B58A5B]/40 pb-0.5 cursor-pointer flex items-center gap-2"
+                          className="text-[#1C1916] text-[10.5px] font-semibold uppercase tracking-[0.14em] hover:text-[#B58A5B] transition-colors border-b border-[#1C1916] hover:border-[#B58A5B] pb-0.5 cursor-pointer flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
                         >
-                          <ShoppingBag size={11} />{" "}
-                          {item.quantity <= 0 ? "Out of Stock" : "Move to Cart"}
+                          <ShoppingBag size={12} />{" "}
+                          {typeof item.quantity !== "undefined" && item.quantity <= 0 ? "Out of Stock" : "Move to Bag"}
                         </button>
 
                         <button

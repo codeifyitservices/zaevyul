@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Printer, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Printer, CheckCircle, Download, RotateCw } from 'lucide-react';
 import { formatCurrency, formatDate, ORDER_STATUS } from '../../../lib/mockData';
 import PageHeader from '../../../components/PageHeader';
 import StatusBadge from '../../../components/StatusBadge';
@@ -17,6 +17,37 @@ export default function OrderDetail() {
   const [loading, setLoading] = useState(true);
   const [note, setNote] = useState('');
   const [trackingInput, setTrackingInput] = useState('');
+  const [downloadingInvoice, setDownloadingInvoice] = useState(false);
+  const [regeneratingInvoice, setRegeneratingInvoice] = useState(false);
+
+  const handleDownloadInvoice = async () => {
+    if (!order?._id && !order?.id) return;
+    setDownloadingInvoice(true);
+    try {
+      const orderId = order._id || order.id;
+      const invName = order.invoice?.invoiceNumber || `invoice-${order.orderNumber}`;
+      await api.orders.downloadInvoice(orderId, `${invName}.pdf`);
+    } catch (err) {
+      toast(err.message || 'Failed to download invoice', 'error');
+    } finally {
+      setDownloadingInvoice(false);
+    }
+  };
+
+  const handleRegenerateInvoice = async () => {
+    if (!order?._id && !order?.id) return;
+    setRegeneratingInvoice(true);
+    try {
+      const orderId = order._id || order.id;
+      const res = await api.orders.regenerateInvoice(orderId);
+      if (res.order) setOrder(res.order);
+      toast('Invoice regenerated successfully', 'success');
+    } catch (err) {
+      toast(err.message || 'Failed to regenerate invoice', 'error');
+    } finally {
+      setRegeneratingInvoice(false);
+    }
+  };
 
   const fetchOrder = async () => {
     try {
@@ -94,7 +125,29 @@ export default function OrderDetail() {
         title={order.orderNumber}
         subtitle={`Placed ${formatDate(order.createdAt)}`}
         actions={
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              disabled={downloadingInvoice}
+              onClick={handleDownloadInvoice}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}
+            >
+              <Download size={14} />
+              {downloadingInvoice ? 'Downloading...' : 'Download Invoice'}
+            </button>
+            {order.invoice?.status === 'failed' && (
+              <button
+                type="button"
+                className="btn btn-outline btn-sm"
+                disabled={regeneratingInvoice}
+                onClick={handleRegenerateInvoice}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', color: 'var(--color-terracotta)' }}
+              >
+                <RotateCw size={14} className={regeneratingInvoice ? 'spin' : ''} />
+                Regenerate Invoice
+              </button>
+            )}
             <StatusBadge status={order.status} />
             <select
               className="field-select"

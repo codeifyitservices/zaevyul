@@ -30,6 +30,7 @@ import { useCustomerAuth } from "../../context/CustomerAuthContext";
 import { useCurrency } from "../../context/CurrencyContext";
 import { customerApi } from "../../lib/customerApi";
 import { useEffect } from "react";
+import CouponPickerModal from "../../components/CouponPickerModal";
 
 export default function CartPage() {
   const navigate = useNavigate();
@@ -45,6 +46,9 @@ export default function CartPage() {
     setSelectedAddress,
     appliedCoupon,
     setAppliedCoupon,
+    giftNote,
+    saveGiftNote,
+    clearGiftNote,
   } = useCart();
   const { addFavorite } = useFavorite();
   const { user, isAuthenticated } = useCustomerAuth();
@@ -88,12 +92,25 @@ export default function CartPage() {
     await handleMoveToWishlist(item);
   };
 
-  // State for gift note
+  // State for gift note accordion UI
   const [showGiftInput, setShowGiftInput] = useState(false);
-  const [giftNote, setGiftNote] = useState(() => {
-    return localStorage.getItem("zae_cart_gift_note") || "";
-  });
-  const [isGiftSaved, setIsGiftSaved] = useState(!!giftNote);
+  const [tempGiftNote, setTempGiftNote] = useState(giftNote || "");
+
+  useEffect(() => {
+    setTempGiftNote(giftNote || "");
+  }, [giftNote]);
+
+  const handleSaveGiftNote = (e) => {
+    if (e) e.preventDefault();
+    saveGiftNote(tempGiftNote);
+    toast("Gift note saved to your order", "success");
+  };
+
+  const handleClearGiftNote = () => {
+    setTempGiftNote("");
+    clearGiftNote();
+    toast("Gift note removed", "info");
+  };
 
   // Coupon code state
   const [couponInput, setCouponInput] = useState("");
@@ -236,21 +253,6 @@ export default function CartPage() {
     }
   }, [location.search, isAuthenticated, navigate]);
 
-  const handleSaveGiftNote = (e) => {
-    e.preventDefault();
-    localStorage.setItem("zae_cart_gift_note", giftNote);
-    setIsGiftSaved(true);
-    toast("Gift note saved to your order", "success");
-    setShowGiftInput(false);
-  };
-
-  const handleClearGiftNote = () => {
-    localStorage.removeItem("zae_cart_gift_note");
-    setGiftNote("");
-    setIsGiftSaved(false);
-    toast("Gift note removed", "success");
-  };
-
   const handleCheckoutSubmit = async (e) => {
     e.preventDefault();
     if (!selectedAddressId) {
@@ -305,7 +307,7 @@ export default function CartPage() {
       <main className="flex-1 pt-[68px]">
         {/* Dedicated Minimal Cart Header */}
         <div className="border-b border-[#E6DED4]/60 bg-[#FAF8F5]">
-          <div className="mx-auto max-w-[] w-full px-6 sm:px-10 lg:px-16 py-4 flex items-center justify-between">
+          <div className="mx-auto max-w-[1280px] w-full px-4 sm:px-10 lg:px-16 py-4 flex items-center justify-between">
             <button
               onClick={() => navigate(-1)}
               className="group flex items-center gap-2 text-[10px] font-semibold tracking-[0.25em] uppercase text-[#1C1916]/70 hover:text-[#1C1916] cursor-pointer transition-colors duration-200"
@@ -315,7 +317,7 @@ export default function CartPage() {
               </span>{" "}
               CART
             </button>
-            <div className="flex items-center gap-5 text-[#1C1916]/70">
+            <div className="flex items-center gap-4 sm:gap-5 text-[#1C1916]/70">
               <button
                 onClick={() => toast("Added to saved items", "success")}
                 className="hover:text-[#1C1916] cursor-pointer transition-colors"
@@ -344,7 +346,7 @@ export default function CartPage() {
         </div>
 
         {/* Cart Contents Section */}
-        <div className="mx-auto max-w-[] w-full px-6 sm:px-10 lg:px-16 py-12">
+        <div className="mx-auto max-w-[1280px] w-full px-4 sm:px-10 lg:px-16 py-8 sm:py-12">
           {/* Title Area */}
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-10 pb-6 border-b border-[#E6DED4]/60">
             <div>
@@ -389,10 +391,10 @@ export default function CartPage() {
             </div>
           ) : (
             /* Main Cart Layout */
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 lg:gap-16 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-16 items-start">
               {/* Left Side: Items List & Extras */}
               <div className="lg:col-span-2 space-y-8">
-                <div className="divide-y divide-[#E6DED4]/60 bg-white rounded-lg border border-[#E6DED4]/40 px-6">
+                <div className="divide-y divide-[#E6DED4]/60 bg-white rounded-lg border border-[#E6DED4]/40 px-4 sm:px-6">
                   {cart.map((item) => {
                     const productSlug =
                       item.slug ||
@@ -405,7 +407,7 @@ export default function CartPage() {
                     const isRemoving = removingKeys.includes(item.key);
 
                     return (
-                      <div key={item.key} className={`flex gap-6 py-6 md:py-8 transition-all duration-300 ease-in-out ${
+                      <div key={item.key} className={`flex gap-4 sm:gap-6 py-6 md:py-8 transition-all duration-300 ease-in-out ${
                         isRemoving
                           ? "opacity-0 translate-x-8 max-h-0 py-0 overflow-hidden"
                           : ""
@@ -413,7 +415,7 @@ export default function CartPage() {
                         {/* Image */}
                         <Link
                           to={detailPath}
-                          className="aspect-[4/5] w-[100px] sm:w-[130px] shrink-0 overflow-hidden rounded-[4px] bg-[#EFE9E1] border border-[#E6DED4]/30 shadow-sm"
+                          className="aspect-[4/5] w-[84px] sm:w-[130px] shrink-0 overflow-hidden rounded-[4px] bg-[#EFE9E1] border border-[#E6DED4]/30 shadow-sm"
                         >
                           <img
                             src={item.image}
@@ -423,26 +425,26 @@ export default function CartPage() {
                         </Link>
 
                         {/* Details */}
-                        <div className="flex-1 flex flex-col justify-between">
+                        <div className="flex-1 flex flex-col justify-between min-w-0">
                           <div>
-                            <div className="flex items-start justify-between gap-4">
+                            <div className="flex items-start justify-between gap-3">
                               <Link
                                 to={detailPath}
-                                className="font-serif text-[16px] sm:text-[19px] font-normal leading-snug text-[#1C1916] hover:text-[#B58A5B] transition-colors cursor-pointer"
+                                className="font-serif text-[15px] sm:text-[19px] font-normal leading-snug text-[#1C1916] hover:text-[#B58A5B] transition-colors cursor-pointer truncate"
                               >
                                 {item.name}
                               </Link>
 
                               {/* Price */}
-                              <span className="font-sans text-[15px] sm:text-[16px] font-medium text-[#1C1916] whitespace-nowrap">
+                              <span className="font-sans text-[14px] sm:text-[16px] font-medium text-[#1C1916] whitespace-nowrap">
                                 {formatPrice(item.price * item.quantity)}
                               </span>
                             </div>
 
                             {/* Options Details */}
-                            <p className="font-sans text-[11px] sm:text-[12px] text-[#8A857E] mt-2 font-light">
+                            <p className="font-sans text-[11px] sm:text-[12px] text-[#8A857E] mt-1.5 font-light">
                               {item.color}{" "}
-                              <span className="mx-1.5 text-[#E6DED4]">•</span>{" "}
+                              <span className="mx-1 text-[#E6DED4]">•</span>{" "}
                               {item.size}
                             </p>
 
@@ -455,7 +457,7 @@ export default function CartPage() {
                           </div>
 
                           {/* Controls & Delete */}
-                          <div className="flex items-center justify-between mt-4">
+                          <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 mt-4">
                             {/* Quantity Selector */}
                             <div className="flex items-center border border-[#E6DED4] bg-white rounded-[2px] shadow-xs">
                               <button
@@ -463,12 +465,12 @@ export default function CartPage() {
                                   updateQuantity(item.key, item.quantity - 1)
                                 }
                                 disabled={item.quantity <= 1}
-                                className="px-3 py-1.5 text-[#8A857E] hover:text-[#1C1916] disabled:opacity-30 transition-colors cursor-pointer disabled:cursor-not-allowed"
+                                className="px-2.5 sm:px-3 py-1.5 text-[#8A857E] hover:text-[#1C1916] disabled:opacity-30 transition-colors cursor-pointer disabled:cursor-not-allowed"
                                 aria-label="Decrease quantity"
                               >
                                 <Minus size={11} />
                               </button>
-                              <span className="px-2.5 font-sans text-[12px] text-[#1C1916] font-medium select-none min-w-[20px] text-center">
+                              <span className="px-2 font-sans text-[12px] text-[#1C1916] font-medium select-none min-w-[20px] text-center">
                                 {item.quantity}
                               </span>
                               <button
@@ -476,17 +478,17 @@ export default function CartPage() {
                                   updateQuantity(item.key, item.quantity + 1)
                                 }
                                 disabled={item.quantity >= item.stockQuantity}
-                                className="px-3 py-1.5 text-[#8A857E] hover:text-[#1C1916] disabled:opacity-30 transition-colors cursor-pointer disabled:cursor-not-allowed"
+                                className="px-2.5 sm:px-3 py-1.5 text-[#8A857E] hover:text-[#1C1916] disabled:opacity-30 transition-colors cursor-pointer disabled:cursor-not-allowed"
                                 aria-label="Increase quantity"
                               >
                                 <Plus size={11} />
                               </button>
                             </div>
 
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-3 sm:gap-4">
                               <button
                                 onClick={() => handleMoveToWishlist(item)}
-                                className="font-sans text-[11px] font-semibold text-[#8A857E] hover:text-[#B58A5B] transition-colors uppercase tracking-wider pb-0.5 border-b border-transparent hover:border-[#B58A5B]/40 cursor-pointer"
+                                className="font-sans text-[10.5px] sm:text-[11px] font-semibold text-[#8A857E] hover:text-[#B58A5B] transition-colors uppercase tracking-wider pb-0.5 border-b border-transparent hover:border-[#B58A5B]/40 cursor-pointer whitespace-nowrap"
                               >
                                 Move to Wishlist
                               </button>
@@ -494,7 +496,7 @@ export default function CartPage() {
                               {/* Trash Button */}
                               <button
                                 onClick={() => setConfirmModalItem(item)}
-                                className="p-2 text-[#8A857E] hover:text-[#C94C4C] hover:bg-[#C94C4C]/5 rounded-full cursor-pointer transition-colors duration-200"
+                                className="p-1.5 text-[#8A857E] hover:text-[#C94C4C] hover:bg-[#C94C4C]/5 rounded-full cursor-pointer transition-colors duration-200"
                                 aria-label="Remove item"
                               >
                                 <Trash2 size={16} strokeWidth={1.5} />
@@ -511,22 +513,22 @@ export default function CartPage() {
                 <div className="border border-[#E6DED4]/60 rounded-[4px] bg-[#FBF9F6] overflow-hidden transition-all duration-300">
                   <button
                     onClick={() => setShowGiftInput(!showGiftInput)}
-                    className="w-full flex items-center justify-between p-5 text-left cursor-pointer hover:bg-[#F5EFE7]/30 transition-colors"
+                    className="w-full flex items-center justify-between p-4 sm:p-5 text-left cursor-pointer hover:bg-[#F5EFE7]/30 transition-colors"
                   >
-                    <div className="flex items-center gap-3.5">
-                      <Gift size={16} className="text-[#B58A5B]" />
+                    <div className="flex items-center gap-3">
+                      <Gift size={16} className="text-[#B58A5B] shrink-0" />
                       <div>
                         <span className="font-sans text-[12px] md:text-[13px] font-medium tracking-wide text-[#1C1916]">
                           Add a gift note or special instructions
                         </span>
-                        {isGiftSaved && (
-                          <span className="ml-3 inline-flex items-center gap-1 text-[10px] font-semibold text-[#2E7D32] uppercase tracking-wider bg-[#2E7D32]/5 px-2 py-0.5 rounded-[2px]">
+                        {!!giftNote && (
+                          <span className="ml-2.5 inline-flex items-center gap-1 text-[10px] font-semibold text-[#2E7D32] uppercase tracking-wider bg-[#2E7D32]/5 px-2 py-0.5 rounded-[2px]">
                             <Check size={8} strokeWidth={3} /> Added
                           </span>
                         )}
                       </div>
                     </div>
-                    <span className="text-[#8A857E] font-light text-lg">
+                    <span className="text-[#8A857E] font-light text-lg ml-2">
                       {showGiftInput ? "−" : "+"}
                     </span>
                   </button>
@@ -534,31 +536,31 @@ export default function CartPage() {
                   {showGiftInput && (
                     <form
                       onSubmit={handleSaveGiftNote}
-                      className="px-5 pb-5 pt-1 border-t border-[#E6DED4]/40"
+                      className="px-4 sm:px-5 pb-5 pt-1 border-t border-[#E6DED4]/40"
                     >
                       <textarea
-                        value={giftNote}
-                        onChange={(e) => setGiftNote(e.target.value)}
+                        value={tempGiftNote}
+                        onChange={(e) => setTempGiftNote(e.target.value)}
                         placeholder="Write a message to be hand-written on our luxury packaging card (Max 250 characters)..."
                         maxLength={250}
                         rows={3}
                         className="w-full p-3 bg-white border border-[#E6DED4] rounded-[2px] font-sans text-[12.5px] font-light text-[#1C1916] placeholder:text-[#8A857E]/65 focus:outline-none focus:border-[#B58A5B] transition-colors resize-none"
                       />
-                      <div className="flex items-center justify-end gap-3 mt-3">
-                        {isGiftSaved && (
+                      <div className="flex flex-wrap items-center justify-end gap-2.5 mt-3">
+                        {!!giftNote && (
                           <button
                             type="button"
                             onClick={handleClearGiftNote}
-                            className="px-4 py-2 text-[10px] font-semibold tracking-wider uppercase text-[#C94C4C] hover:bg-[#C94C4C]/5 rounded-[2px] transition-colors cursor-pointer"
+                            className="px-3.5 py-2 text-[10px] font-semibold tracking-wider uppercase text-[#C94C4C] hover:bg-[#C94C4C]/5 rounded-[2px] transition-colors cursor-pointer"
                           >
                             Remove Note
                           </button>
                         )}
                         <button
                           type="submit"
-                          className="px-5 py-2 bg-[#1C1916] hover:bg-[#B58A5B] text-white text-[10px] font-semibold tracking-wider uppercase rounded-[2px] transition-colors cursor-pointer"
+                          className="px-5 py-2.5 bg-[#1C1916] hover:bg-[#B58A5B] text-white text-[10px] sm:text-[10.5px] font-semibold tracking-[0.16em] uppercase rounded-[2px] transition-colors cursor-pointer shadow-xs"
                         >
-                          Save Instructions
+                          SAVE INSTRUCTIONS
                         </button>
                       </div>
                     </form>
@@ -568,7 +570,7 @@ export default function CartPage() {
 
               {/* Right Side: Order Summary */}
               <div className="lg:col-span-1">
-                <div className="bg-[#FBF9F6] border border-[#E6DED4]/60 rounded-[4px] p-6 md:p-8 sticky top-[95px] shadow-xs">
+                <div className="bg-[#FBF9F6] border border-[#E6DED4]/60 rounded-[4px] p-5 sm:p-8 static lg:sticky lg:top-[95px] shadow-xs">
                   <h2 className="font-serif text-[18px] font-normal tracking-wide text-[#1C1916] mb-6">
                     Order Summary
                   </h2>
@@ -788,7 +790,7 @@ export default function CartPage() {
           />
 
           {/* Modal content */}
-          <div className="relative z-10 w-full max-w-[500px] bg-[#FAF8F5] border border-[#E6DED4] rounded-lg shadow-2xl p-6 sm:p-8 animate-in fade-in zoom-in-95 duration-200">
+          <div className="relative z-10 w-full max-w-[500px] max-h-[90vh] overflow-y-auto bg-[#FAF8F5] border border-[#E6DED4] rounded-lg shadow-2xl p-5 sm:p-8 animate-in fade-in zoom-in-95 duration-200">
             {/* Close Button */}
             <button
               onClick={() => setShowCheckoutModal(false)}
@@ -1026,119 +1028,6 @@ export default function CartPage() {
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-/* ─── Coupon Picker Modal ────────────────────────────────────────────── */
-function CouponPickerModal({ coupons, loading, cartSubtotal, onPick, onClose, formatPrice }) {
-  return (
-    <div
-      className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center"
-      onClick={onClose}
-    >
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-
-      {/* Panel */}
-      <div
-        className="relative z-10 w-full sm:max-w-md bg-[#FAF8F5] rounded-t-2xl sm:rounded-xl shadow-2xl overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[#E6DED4]/60">
-          <div className="flex items-center gap-2">
-            <Tag size={16} className="text-[#B58A5B]" />
-            <h3 className="font-serif text-[17px] text-[#1C1916]">Available Coupons</h3>
-          </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#E6DED4]/50 transition-colors cursor-pointer text-[#6B6560]"
-          >
-            <X size={16} />
-          </button>
-        </div>
-
-        {/* Body */}
-        <div className="max-h-[60vh] overflow-y-auto px-5 py-4 space-y-3">
-          {loading ? (
-            <div className="py-10 flex flex-col items-center gap-3 text-[#8A857E]">
-              <div className="w-8 h-8 border-2 border-[#B58A5B] border-t-transparent rounded-full animate-spin" />
-              <p className="text-[12px] font-light">Loading coupons…</p>
-            </div>
-          ) : coupons.length === 0 ? (
-            <div className="py-10 flex flex-col items-center gap-3 text-[#8A857E]">
-              <AlertCircle size={28} className="text-[#E6DED4]" />
-              <p className="text-[13px] font-light">No coupons available right now.</p>
-            </div>
-          ) : (
-            coupons.map((coupon) => {
-              const minAmt = coupon.minOrderValue ?? 0;
-              const shortfall = minAmt - cartSubtotal;
-              const eligible = shortfall <= 0;
-              const discLabel = coupon.type === "percentage"
-                ? `${coupon.value}% off`
-                : `₹${coupon.value} flat off`;
-
-              return (
-                <div
-                  key={coupon.code}
-                  className={`relative border rounded-[6px] px-4 py-3.5 ${
-                    eligible
-                      ? "border-[#B58A5B]/40 bg-white"
-                      : "border-[#E6DED4] bg-[#FDFBF8] opacity-80"
-                  }`}
-                >
-                  {/* Top row */}
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      {/* Code pill */}
-                      <span className="inline-block font-mono font-bold text-[12px] tracking-widest bg-[#F5EFE7] text-[#B58A5B] border border-[#B58A5B]/30 rounded-[3px] px-2 py-0.5 mb-1.5">
-                        {coupon.code}
-                      </span>
-                      <p className="font-sans text-[13px] font-medium text-[#1C1916]">{discLabel}</p>
-                      {coupon.description && (
-                        <p className="font-sans text-[11px] text-[#8A857E] font-light mt-0.5">{coupon.description}</p>
-                      )}
-                      {minAmt > 0 && (
-                        <p className="font-sans text-[10.5px] text-[#8A857E] font-light mt-1">
-                          Min. order: {formatPrice(minAmt)}
-                        </p>
-                      )}
-                    </div>
-
-                    {eligible ? (
-                      <button
-                        onClick={() => onPick(coupon.code)}
-                        className="shrink-0 flex items-center gap-1 bg-[#1C1916] hover:bg-[#B58A5B] text-white text-[10px] font-semibold tracking-wider uppercase px-3 py-2 rounded-[3px] transition-colors cursor-pointer"
-                      >
-                        Apply <ChevronRight size={10} />
-                      </button>
-                    ) : (
-                      <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-[#C4A882] bg-[#F5EFE7] px-3 py-2 rounded-[3px]">
-                        Locked
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Shortfall nudge */}
-                  {!eligible && (
-                    <div className="mt-2.5 flex items-center gap-1.5 text-[10.5px] text-[#B58A5B] font-medium bg-[#FDF5EB] border border-[#E6DED4]/60 rounded-[3px] px-2.5 py-1.5">
-                      <Gift size={11} />
-                      Add items worth {formatPrice(shortfall)} more to avail {discLabel}
-                    </div>
-                  )}
-                </div>
-              );
-            })
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="px-5 py-3 border-t border-[#E6DED4]/60 text-center">
-          <p className="text-[10.5px] text-[#8A857E] font-light">Only one coupon can be applied per order.</p>
-        </div>
-      </div>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { OAuth2Client } from 'google-auth-library';
 import CustomerUser from '../model/CustomerUser.js';
 import OtpRecord from '../model/OtpRecord.js';
+import Newsletter from '../model/Newsletter.js';
 import { sendOtpEmail } from '../services/emailService.js';
 import { sendOtpSms, normalizePhone } from '../services/smsService.js';
 import { signCustomerToken, setCustomerCookie } from '../middleware/customerAuth.js';
@@ -470,7 +471,28 @@ export const updateCustomerMarketing = async (req, res) => {
     }
 
     if (emailUpdates !== undefined) {
-      customer.marketingPreferences.emailUpdates = !!emailUpdates;
+      const isSubscribed = !!emailUpdates;
+      customer.marketingPreferences.emailUpdates = isSubscribed;
+
+      if (customer.email) {
+        if (isSubscribed) {
+          await Newsletter.findOneAndUpdate(
+            { email: customer.email.toLowerCase().trim() },
+            {
+              email: customer.email.toLowerCase().trim(),
+              name: customer.name || '',
+              status: 'active',
+              subscribedAt: new Date(),
+            },
+            { upsert: true, new: true }
+          );
+        } else {
+          await Newsletter.findOneAndUpdate(
+            { email: customer.email.toLowerCase().trim() },
+            { status: 'unsubscribed' }
+          );
+        }
+      }
     }
 
     await customer.save();

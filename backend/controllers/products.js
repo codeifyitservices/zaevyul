@@ -13,11 +13,12 @@ const compactFeaturedProductOrder = async () => {
  * Supports regex escaping (AUD-021) and pagination (AUD-025).
  */
 export const getProducts = async (req, res) => {
-  const { search, category, status, page = 1, limit = 0 } = req.query;
+  const { search, category, status, gender, page = 1, limit = 0 } = req.query;
   try {
     const filter = {};
     if (status) filter.status = status;
     if (category) filter.category = category;
+    if (gender) filter.gender = gender;
     if (search) {
       const safeSearch = escapeRegex(search);
       filter.$or = [
@@ -29,7 +30,7 @@ export const getProducts = async (req, res) => {
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const limitNum = parseInt(limit, 10) || 0;
 
-    let query = Product.find(filter).populate('category', 'name slug').sort({ createdAt: -1 });
+    let query = Product.find(filter).populate('category', 'name slug sizeChartImage').sort({ createdAt: -1 });
     if (limitNum > 0) {
       query = query.skip((pageNum - 1) * limitNum).limit(limitNum);
     }
@@ -57,7 +58,7 @@ export const getFeaturedProducts = async (req, res) => {
     const products = await Product.find({ featured: true })
       .sort({ featuredOrder: 1 })
       .limit(6)
-      .populate('category', 'name slug')
+      .populate('category', 'name slug sizeChartImage')
       .select('name slug category basePrice discountPrice material images featuredOrder');
     return res.status(200).json({ success: true, products });
   } catch (error) {
@@ -68,7 +69,7 @@ export const getFeaturedProducts = async (req, res) => {
 
 export const getProductById = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id).populate('category', 'name slug');
+    const product = await Product.findById(req.params.id).populate('category', 'name slug sizeChartImage');
     if (!product) {
       return res.status(404).json({ success: false, message: 'Product not found' });
     }
@@ -82,8 +83,8 @@ export const getProductById = async (req, res) => {
 const getProductFields = (body) => {
   const {
     name, slug, sku, category, basePrice, discountPrice, costPrice,
-    quantity, lowStockThreshold, status, tags, material, color, size,
-    description, shortDescription, images, seo, sizes
+    quantity, lowStockThreshold, status, tags, gender, material, color, size,
+    description, shortDescription, images, seo, sizes, colors
   } = body;
 
   const fields = {};
@@ -95,6 +96,7 @@ const getProductFields = (body) => {
   if (lowStockThreshold !== undefined) fields.lowStockThreshold = lowStockThreshold;
   if (status !== undefined) fields.status = status;
   if (tags !== undefined) fields.tags = tags;
+  if (gender !== undefined) fields.gender = gender;
   if (material !== undefined) fields.material = material;
   if (color !== undefined) fields.color = color;
   if (size !== undefined) fields.size = size;
@@ -102,11 +104,57 @@ const getProductFields = (body) => {
   if (shortDescription !== undefined) fields.shortDescription = shortDescription;
   if (images !== undefined) fields.images = images;
   if (seo !== undefined) fields.seo = seo;
+  if (colors !== undefined) {
+    fields.colors = Array.isArray(colors)
+      ? colors
+          .map((c) => ({
+            name: (c.name || '').trim(),
+            mainImage: typeof c.mainImage === 'string' ? c.mainImage : (c.mainImage?.url || c.mainImage?.name || ''),
+            galleryImages: Array.isArray(c.galleryImages)
+              ? c.galleryImages.map((g) => (typeof g === 'string' ? g : (g.url || g.name || '')))
+              : [],
+            sizes: Array.isArray(c.sizes)
+              ? c.sizes.map((s) => ({
+                  size: (s.size || '').trim(),
+                  price: Number(s.price) || 0,
+                  discountPrice: s.discountPrice ? Number(s.discountPrice) : null,
+                  quantity: Number(s.quantity) || 0,
+                })).filter((s) => s.size)
+              : [],
+          }))
+          .filter((c) => c.name && c.mainImage)
+      : [];
+  }
 
-  // Sizes variant processing
-  if (sizes !== undefined) {
+  // Calculate dynamic root basePrice, discountPrice, and quantity from sizes or color sizes
+  let computedStock = 0;
+  let hasColorStock = false;
+  let firstPrice = null;
+  let firstDiscount = null;
+
+  if (fields.colors && fields.colors.length > 0) {
+    fields.colors.forEach((c) => {
+      if (c.sizes && c.sizes.length > 0) {
+        hasColorStock = true;
+        c.sizes.forEach((s) => {
+          computedStock += Number(s.quantity) || 0;
+          if (firstPrice === null) {
+            firstPrice = s.price;
+            firstDiscount = s.discountPrice;
+          }
+        });
+      }
+    });
+  }
+
+  if (hasColorStock) {
+    fields.quantity = computedStock;
+    if (firstPrice !== null) {
+      fields.basePrice = firstPrice;
+      fields.discountPrice = firstDiscount;
+    }
+  } else if (sizes !== undefined) {
     fields.sizes = Array.isArray(sizes) ? sizes : [];
-    // Automatically calculate root prices and stock based on sizes
     if (fields.sizes.length > 0) {
       fields.basePrice = fields.sizes[0].price;
       fields.discountPrice = fields.sizes[0].discountPrice;
@@ -271,7 +319,7 @@ export const toggleFeatured = async (req, res) => {
       await Product.findByIdAndUpdate(req.params.id, { featured: true, featuredOrder: nextOrder });
     }
 
-    const updated = await Product.findById(req.params.id).populate('category', 'name slug');
+    const updated = await Product.findById(req.params.id).populate('category', 'name slug sizeChartImage');
     return res.status(200).json({ success: true, product: updated });
   } catch (error) {
     console.error('Toggle product featured error:', error);

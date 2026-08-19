@@ -5,7 +5,7 @@ export default function HeroSection() {
     <section className="relative h-[92svh] max-h-[920px] min-h-[620px] w-full">
       <div className="absolute inset-0">
         <img
-          src="/storefront/hero.png"
+          src="https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124712/zaevyul/storefront/hero.png"
           alt="Woman in Kashmir pashmina shawl against Himalayan mountains"
           className="absolute inset-0 h-full w-full object-cover object-[80%_top]"
         />

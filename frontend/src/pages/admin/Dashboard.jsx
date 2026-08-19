@@ -494,9 +494,9 @@ export default function Dashboard() {
               justifyContent: "space-around",
             }}
           >
-            {TOP_PRODUCTS.map((prod, idx) => (
+            {(data?.topProducts?.length ? data.topProducts : TOP_PRODUCTS).map((prod, idx) => (
               <div
-                key={prod.name}
+                key={prod.name + idx}
                 style={{ display: "flex", alignItems: "center", gap: 12 }}
               >
                 <div
@@ -741,115 +741,126 @@ export default function Dashboard() {
               View All
             </Link>
           </div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 24,
-              flex: 1,
-              justifyContent: "center",
-            }}
-          >
-            <div
-              style={{
-                position: "relative",
-                width: 100,
-                height: 100,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-              }}
-            >
-              <svg
-                width="100"
-                height="100"
-                viewBox="0 0 100 100"
-                style={{ transform: "rotate(-90deg)" }}
+          {(() => {
+            const totalProdCount = data?.stats?.totalProducts || 0;
+            const lowStockCount = data?.stats?.lowStockCount || 0;
+            const outOfStockCount = data?.stats?.outOfStockCount || 0;
+            const inStockCount = data?.stats?.inStockCount ?? Math.max(0, totalProdCount - lowStockCount - outOfStockCount);
+            const inStockRatio = totalProdCount > 0 ? inStockCount / totalProdCount : 1;
+            const inStockPct = Math.round(inStockRatio * 100);
+
+            return (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 24,
+                  flex: 1,
+                  justifyContent: "center",
+                }}
               >
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="42"
-                  fill="transparent"
-                  stroke="#F0ECE8"
-                  strokeWidth="6"
-                />
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="42"
-                  fill="transparent"
-                  stroke="#B58A5B"
-                  strokeWidth="6"
-                  strokeDasharray={2 * Math.PI * 42}
-                  strokeDashoffset={2 * Math.PI * 42 * (1 - 0.78)}
-                  strokeLinecap="round"
-                />
-              </svg>
-              <div style={{ position: "absolute", textAlign: "center" }}>
-                <p
-                  style={{
-                    fontSize: 16,
-                    fontWeight: 700,
-                    color: "var(--color-text-primary)",
-                    margin: 0,
-                  }}
-                >
-                  78%
-                </p>
-                <span
-                  style={{
-                    fontSize: 9,
-                    color: "var(--color-text-caption)",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  In Stock
-                </span>
-              </div>
-            </div>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 6,
-                flex: 1,
-              }}
-            >
-              {[
-                {
-                  label: "Total Products",
-                  value: data?.stats?.totalProducts || 450,
-                  color: "#222222",
-                },
-                { label: "In Stock", value: 351, color: "#2E7D32" },
-                {
-                  label: "Low Stock",
-                  value: data?.stats?.lowStockCount || 24,
-                  color: "#D98B2B",
-                },
-                { label: "Out of Stock", value: 12, color: "#C94C4C" },
-              ].map((item) => (
                 <div
-                  key={item.label}
+                  style={{
+                    position: "relative",
+                    width: 100,
+                    height: 100,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <svg
+                    width="100"
+                    height="100"
+                    viewBox="0 0 100 100"
+                    style={{ transform: "rotate(-90deg)" }}
+                  >
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="42"
+                      fill="transparent"
+                      stroke="#F0ECE8"
+                      strokeWidth="6"
+                    />
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="42"
+                      fill="transparent"
+                      stroke="#B58A5B"
+                      strokeWidth="6"
+                      strokeDasharray={2 * Math.PI * 42}
+                      strokeDashoffset={2 * Math.PI * 42 * (1 - inStockRatio)}
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <div style={{ position: "absolute", textAlign: "center" }}>
+                    <p
+                      style={{
+                        fontSize: 16,
+                        fontWeight: 700,
+                        color: "var(--color-text-primary)",
+                        margin: 0,
+                      }}
+                    >
+                      {inStockPct}%
+                    </p>
+                    <span
+                      style={{
+                        fontSize: 9,
+                        color: "var(--color-text-caption)",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      In Stock
+                    </span>
+                  </div>
+                </div>
+                <div
                   style={{
                     display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    fontSize: 11,
+                    flexDirection: "column",
+                    gap: 6,
+                    flex: 1,
                   }}
                 >
-                  <span style={{ color: "var(--color-text-secondary)" }}>
-                    {item.label}
-                  </span>
-                  <span style={{ fontWeight: 600, color: item.color }}>
-                    {item.value}
-                  </span>
+                  {[
+                    {
+                      label: "Total Products",
+                      value: totalProdCount,
+                      color: "#222222",
+                    },
+                    { label: "In Stock", value: inStockCount, color: "#2E7D32" },
+                    {
+                      label: "Low Stock",
+                      value: lowStockCount,
+                      color: "#D98B2B",
+                    },
+                    { label: "Out of Stock", value: outOfStockCount, color: "#C94C4C" },
+                  ].map((item) => (
+                    <div
+                      key={item.label}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        fontSize: 11,
+                      }}
+                    >
+                      <span style={{ color: "var(--color-text-secondary)" }}>
+                        {item.label}
+                      </span>
+                      <span style={{ fontWeight: 600, color: item.color }}>
+                        {item.value}
+                      </span>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
+              </div>
+            );
+          })()}
         </div>
       </div>
 

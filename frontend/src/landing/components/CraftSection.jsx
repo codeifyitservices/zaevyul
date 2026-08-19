@@ -10,7 +10,7 @@ export default function CraftSection() {
             style={{ aspectRatio: "4/3" }}
           >
             <img
-              src="/storefront/artisan.png"
+              src="https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124706/zaevyul/storefront/artisan.jpg"
               alt="Kashmiri artisan weaving at a traditional loom"
               className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 hover:scale-[1.02]"
             />
@@ -21,7 +21,7 @@ export default function CraftSection() {
             style={{ aspectRatio: "1/1" }}
           >
             <img
-              src="/storefront/cat-embroidered.png"
+              src="https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124707/zaevyul/storefront/cat-embroidered.jpg"
               alt="Hand-spun pashmina yarn detail"
               className="absolute inset-0 h-full w-full object-cover"
             />

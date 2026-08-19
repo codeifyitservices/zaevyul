@@ -19,11 +19,11 @@ import { useCurrency } from "../../context/CurrencyContext";
 
 const NAV_LINKS = [
   { label: "New Arrivals", href: "/collections" },
-  { label: "Men", href: "/collections" },
-  { label: "Women", href: "/collections" },
-  { label: "Tailoring", href: "/collections" },
+  { label: "Men", href: "/collections?gender=men" },
+  { label: "Women", href: "/collections?gender=women" },
+  { label: "Tailoring", href: "/collections/stoles" },
   { label: "About", href: "/about" },
-  { label: "Shop", href: "/collections" },
+  { label: "Shop All", href: "/collections" },
 ];
 
 const DEFAULT_STORE_NAME = "Zaevyul";

@@ -14,6 +14,7 @@ const BLANK = {
   description: '',
   status: 'active',
   mainImage: null,
+  sizeChartImage: null,
   seo: { title: '', description: '', url: '' },
 };
 
@@ -38,6 +39,7 @@ export default function CategoryForm() {
               ...BLANK,
               ...category,
               mainImage: category.mainImage || null,
+              sizeChartImage: category.sizeChartImage || null,
               seo: category.seo || { ...BLANK.seo }
             });
           } else {
@@ -61,8 +63,19 @@ export default function CategoryForm() {
     if (!form.name) { toast('Category name is required', 'error'); return; }
     setSaving(true);
 
+    const mainImageUrl = typeof form.mainImage === 'string'
+      ? form.mainImage
+      : (form.mainImage?.url || form.mainImage?.src || '');
+
+    const sizeChartUrl = typeof form.sizeChartImage === 'string'
+      ? form.sizeChartImage
+      : (form.sizeChartImage?.url || form.sizeChartImage?.src || '');
+
     const categoryData = {
       ...form,
+      mainImage: mainImageUrl,
+      image: mainImageUrl,
+      sizeChartImage: sizeChartUrl,
       status
     };
 
@@ -169,17 +182,40 @@ export default function CategoryForm() {
 
           {activeTab === 'media' && (
             <div className="card">
-              <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                 <div>
-                  <p className="form-section-title">Main Image</p>
-                  <span style={{ fontSize: 11, color: 'var(--color-text-caption)' }}>Primary thumbnail for category pages.</span>
+                  <div>
+                    <p className="form-section-title">Main Image</p>
+                    <span style={{ fontSize: 11, color: 'var(--color-text-caption)' }}>Primary thumbnail for category pages.</span>
+                  </div>
+                  <div style={{ marginTop: 8 }}>
+                    <ImageUploader
+                      images={form.mainImage ? [form.mainImage] : []}
+                      onChange={imgs => set('mainImage', imgs[0] || null)}
+                      max={1}
+                      label="category image"
+                      folder="zaevyul/categories"
+                    />
+                  </div>
                 </div>
-                <ImageUploader
-                  images={form.mainImage ? [form.mainImage] : []}
-                  onChange={imgs => set('mainImage', imgs[0] || null)}
-                  max={1}
-                  label="category image"
-                />
+
+                <div style={{ paddingTop: 16, borderTop: '1px solid var(--color-border)' }}>
+                  <div>
+                    <p className="form-section-title">Category Size Chart</p>
+                    <span style={{ fontSize: 11, color: 'var(--color-text-caption)' }}>
+                      Size guide / dimension chart displayed in the storefront size guide modal for products in this category.
+                    </span>
+                  </div>
+                  <div style={{ marginTop: 8 }}>
+                    <ImageUploader
+                      images={form.sizeChartImage ? [form.sizeChartImage] : []}
+                      onChange={imgs => set('sizeChartImage', imgs[0] || null)}
+                      max={1}
+                      label="size chart image"
+                      folder="zaevyul/size-charts"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           )}

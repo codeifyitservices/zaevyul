@@ -105,7 +105,7 @@ export default function JournalPage() {
       >
         {/* Background Image */}
         <img
-          src="/storefront/journal-hero.png"
+          src="https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124713/zaevyul/storefront/journal-hero.png"
           alt="Journal Hero"
           className="absolute inset-0 w-full h-full object-cover object-center"
         />
@@ -250,7 +250,7 @@ export default function JournalPage() {
                       src={
                         blog.featuredImage ||
                         blog.mainImage?.url ||
-                        "/storefront/story-bg.png"
+                        "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124719/zaevyul/storefront/story-bg.jpg"
                       }
                       alt={blog.title}
                       className="h-full w-full font-bold object-cover transition-transform duration-700 ease-out group-hover:scale-105"

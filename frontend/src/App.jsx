@@ -15,12 +15,15 @@ import CheckoutPage from "./landing/pages/CheckoutPage";
 import MyAccountPage from "./landing/pages/MyAccountPage";
 import JournalPage from "./landing/pages/JournalPage";
 import JournalDetailPage from "./landing/pages/JournalDetailPage";
+import OrderConfirmationPage from "./landing/pages/OrderConfirmationPage";
 import CustomerLoginPage from "./landing/pages/CustomerLoginPage";
 import OurStoryPage from "./landing/pages/OurStory";
 import ScrollToTop from "./landing/components/ScrollToTop";
 import CartDrawer from "./landing/components/CartDrawer";
 import WishlistDrawer from "./landing/components/WishlistDrawer";
 import ContactPage from "./landing/pages/ContactPage";
+import { PersonalizationProvider } from "./context/PersonalizationContext";
+import TrackOrderPage from "./landing/pages/TrackOrderPage";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
@@ -33,8 +36,9 @@ export default function App() {
             {/* Customer auth wraps the storefront — Google provider needed for GoogleLogin component */}
             <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
               <CustomerAuthProvider>
-                <FavoritesProvider>
-                  <CartProvider>
+                <PersonalizationProvider>
+                  <FavoritesProvider>
+                    <CartProvider>
                     <ScrollToTop />
                     <CartDrawer />
                     <WishlistDrawer />
@@ -55,6 +59,14 @@ export default function App() {
                       />
                       <Route path="/cart" element={<CartPage />} />
                       <Route path="/checkout" element={<CheckoutPage />} />
+                      <Route
+                        path="/order-confirmation"
+                        element={<OrderConfirmationPage />}
+                      />
+                      <Route
+                        path="/order-confirmation/:orderId"
+                        element={<OrderConfirmationPage />}
+                      />
                       <Route path="/my-account/*" element={<MyAccountPage />} />
                       <Route path="/journal" element={<JournalPage />} />
                       <Route
@@ -66,6 +78,7 @@ export default function App() {
                       {/* Customer auth */}
                       <Route path="/login" element={<CustomerLoginPage />} />
                       <Route path="/contact" element={<ContactPage />} />
+                      <Route path="/track-order" element={<TrackOrderPage />} />
 
                       {/* Admin panel — separate auth context */}
                       <Route path="/admin/*" element={<AdminRouter />} />
@@ -74,7 +87,8 @@ export default function App() {
                     </Routes>
                   </CartProvider>
                 </FavoritesProvider>
-              </CustomerAuthProvider>
+              </PersonalizationProvider>
+            </CustomerAuthProvider>
             </GoogleOAuthProvider>
           </ToastProvider>
         </ThemeProvider>

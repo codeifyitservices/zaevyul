@@ -185,12 +185,67 @@ export const customerApi = {
         body: JSON.stringify(data),
       }),
 
-    getById: (id) => request(`/orders/${id}`, { method: "GET" }),
+    getById: async (id) => {
+      try {
+        return await request(`/orders/${id}`);
+      } catch (err) {
+        try {
+          const PUBLIC_URL =
+            import.meta.env.VITE_PUBLIC_API_URL || "http://localhost:5000/api/public";
+          const res = await fetch(`${PUBLIC_URL}/orders/${id}`);
+          if (res.ok) return await res.json();
+        } catch {
+          /* ignore */
+        }
+        throw err;
+      }
+    },
 
     /** Cancel pending order */
     cancel: (orderId) =>
       request(`/orders/${orderId}/cancel`, {
         method: "POST",
       }),
+
+    /** Create Razorpay order ID */
+    createRazorpayOrder: (orderData) =>
+      request("/orders/create-razorpay-order", {
+        method: "POST",
+        body: JSON.stringify(orderData),
+      }),
+
+    /** Verify Razorpay payment signature & create paid order */
+    verifyRazorpayPayment: (verificationData) =>
+      request("/orders/verify-razorpay-payment", {
+        method: "POST",
+        body: JSON.stringify(verificationData),
+      }),
+
+    /** Download invoice PDF for order */
+    downloadInvoice: async (orderId, filename = "invoice.pdf") => {
+      const token = sessionStorage.getItem("zae_customer_jwt");
+      const headers = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const res = await fetch(`${CUSTOMER_BASE_URL}/orders/${orderId}/invoice`, {
+        headers,
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to download invoice PDF.");
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+    },
   },
 };

@@ -3,18 +3,18 @@ import { ArrowRight } from "lucide-react";
 import { api } from "../../lib/api";
 
 const FALLBACK_IMAGES = {
-  shawls: "/storefront/cat-shawls.png",
-  stoles: "/storefront/cat-stoles.png",
-  embroidered: "/storefront/cat-embroidered.png",
-  scarves: "/storefront/cat-scarves.png",
-  blankets: "/storefront/prod-stack.png",
-  accessories: "/storefront/prod-3.png",
+  shawls: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124709/zaevyul/storefront/cat-shawls.jpg",
+  stoles: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124710/zaevyul/storefront/cat-stoles.jpg",
+  embroidered: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124707/zaevyul/storefront/cat-embroidered.jpg",
+  scarves: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124708/zaevyul/storefront/cat-scarves.jpg",
+  blankets: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124718/zaevyul/storefront/prod-stack.jpg",
+  accessories: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124717/zaevyul/storefront/prod-3.jpg",
 };
 
 const getCategoryImage = (cat) => {
   if (cat.mainImage?.url) return cat.mainImage.url;
   const slug = (cat.slug || cat.name || "").toLowerCase();
-  return FALLBACK_IMAGES[slug] || "/storefront/cat-shawls.png";
+  return FALLBACK_IMAGES[slug] || "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124709/zaevyul/storefront/cat-shawls.jpg";
 };
 
 function ColCard({ cat, className = "" }) {

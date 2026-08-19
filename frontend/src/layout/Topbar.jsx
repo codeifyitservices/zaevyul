@@ -2,22 +2,44 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Bell, Menu, LogOut, User, Settings } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { MOCK_LOW_STOCK } from '../lib/mockData';
-
-const NOTIFICATIONS = [
-  { id: 1, message: 'New order from Layla Al-Rashid', time: '2m ago', read: false },
-  { id: 2, message: `${MOCK_LOW_STOCK.length} products low on stock`, time: '18m ago', read: false },
-  { id: 3, message: 'Blog post published by Amir Shah', time: '4h ago', read: true },
-];
+import { api } from '../lib/api';
 
 export default function Topbar({ onMenuToggle }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState([
+    { id: 1, message: 'System active & operational', time: 'Just now', read: false }
+  ]);
   const profileRef = useRef(null);
   const notifRef = useRef(null);
-  const unread = NOTIFICATIONS.filter(n => !n.read).length;
+
+  useEffect(() => {
+    const loadNotifs = async () => {
+      try {
+        const report = await api.reports.get();
+        const lowStock = report?.stats?.lowStockCount || 0;
+        const pending = report?.stats?.pendingOrders || 0;
+        const list = [];
+        if (lowStock > 0) {
+          list.push({ id: 'low-stock', message: `${lowStock} product${lowStock > 1 ? 's' : ''} low on stock`, time: 'Live alert', read: false });
+        }
+        if (pending > 0) {
+          list.push({ id: 'pending-orders', message: `${pending} pending order${pending > 1 ? 's' : ''} awaiting fulfillment`, time: 'Live alert', read: false });
+        }
+        if (list.length === 0) {
+          list.push({ id: 'all-clear', message: 'All inventory & orders up to date', time: 'Just now', read: true });
+        }
+        setNotifications(list);
+      } catch (e) {
+        // keep default
+      }
+    };
+    loadNotifs();
+  }, []);
+
+  const unread = notifications.filter(n => !n.read).length;
 
   useEffect(() => {
     const handler = (e) => {
@@ -57,7 +79,7 @@ export default function Topbar({ onMenuToggle }) {
                 <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-secondary)' }}>Notifications</span>
                 {unread > 0 && <span style={{ fontSize: 11, color: 'var(--color-text-caption)' }}>{unread} unread</span>}
               </div>
-              {NOTIFICATIONS.map(n => (
+              {notifications.map(n => (
                 <div key={n.id} className="dropdown-item" style={{ alignItems: 'flex-start', padding: '9px 10px' }}>
                   <div style={{ width: 6, height: 6, borderRadius: '50%', background: n.read ? 'transparent' : 'var(--color-walnut)', flexShrink: 0, marginTop: 4, border: n.read ? '1px solid var(--color-border)' : 'none' }} />
                   <div>

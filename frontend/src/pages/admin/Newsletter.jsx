@@ -1,49 +1,68 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Search, Download, Trash2, ArrowUpDown } from 'lucide-react';
-import { MOCK_NEWSLETTER, formatDate } from '../../lib/mockData';
+import { formatDate } from '../../lib/mockData';
 import PageHeader from '../../components/PageHeader';
 import StatusBadge from '../../components/StatusBadge';
 import Pagination from '../../components/Pagination';
 import { DeleteDialog } from '../../components/Modal';
 import { useToast } from '../../context/ToastContext';
+import { api } from '../../lib/api';
 
 export default function Newsletter() {
   const toast = useToast();
-  const [subs, setSubs] = useState(MOCK_NEWSLETTER);
+  const [subs, setSubs] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState([]);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [sortBy, setSortBy] = useState('newest');
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 12;
+
+  const fetchSubscribers = async () => {
+    setLoading(true);
+    try {
+      const data = await api.newsletter.list();
+      setSubs((data || []).map(s => ({ ...s, id: s._id || s.id })));
+    } catch (err) {
+      toast('Failed to load newsletter subscribers', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSubscribers();
+  }, []);
 
   const filtered = useMemo(() => {
     setSelected([]);
     setPage(1);
     const q = search.toLowerCase();
-    return subs.filter(s => !q || s.email.toLowerCase().includes(q) || s.name.toLowerCase().includes(q));
+    return subs.filter(s => !q || (s.email && s.email.toLowerCase().includes(q)) || (s.name && s.name.toLowerCase().includes(q)));
   }, [subs, search]);
 
   const sorted = useMemo(() => {
     const data = [...filtered];
     data.sort((a, b) => {
       if (sortBy === 'newest') {
-        return new Date(b.subscribedAt) - new Date(a.subscribedAt);
+        return new Date(b.subscribedAt || b.createdAt) - new Date(a.subscribedAt || a.createdAt);
       }
       if (sortBy === 'oldest') {
-        return new Date(a.subscribedAt) - new Date(b.subscribedAt);
+        return new Date(a.subscribedAt || a.createdAt) - new Date(b.subscribedAt || b.createdAt);
       }
       if (sortBy === 'name-asc') {
-        return a.name.localeCompare(b.name);
+        return (a.name || '').localeCompare(b.name || '');
       }
       if (sortBy === 'name-desc') {
-        return b.name.localeCompare(a.name);
+        return (b.name || '').localeCompare(a.name || '');
       }
       if (sortBy === 'email-asc') {
-        return a.email.localeCompare(b.email);
+        return (a.email || '').localeCompare(b.email || '');
       }
       if (sortBy === 'email-desc') {
-        return b.email.localeCompare(a.email);
+        return (b.email || '').localeCompare(a.email || '');
       }
       return 0;
     });
@@ -55,26 +74,41 @@ export default function Newsletter() {
   const safePage = Math.min(page, totalPages);
   const paginated = sorted.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
-  const allOnPageSelected = paginated.length > 0 && paginated.every(s => selected.includes(s.id));
+  const getItemId = s => s._id || s.id;
+
+  const allOnPageSelected = paginated.length > 0 && paginated.every(s => selected.includes(getItemId(s)));
   const toggleAll = () => {
-    if (allOnPageSelected) setSelected(s => s.filter(id => !paginated.some(item => item.id === id)));
-    else setSelected(s => [...new Set([...s, ...paginated.map(item => item.id)])]);
+    if (allOnPageSelected) setSelected(s => s.filter(id => !paginated.some(item => getItemId(item) === id)));
+    else setSelected(s => [...new Set([...s, ...paginated.map(item => getItemId(item))])]);
   };
   const toggleRow = (id) => setSelected(sel => sel.includes(id) ? sel.filter(x => x !== id) : [...sel, id]);
 
   const handleDelete = async () => {
-    await new Promise(r => setTimeout(r, 400));
-    setSubs(ss => ss.filter(s => s.id !== deleteTarget));
-    setDeleteTarget(null);
-    setSelected([]);
-    toast('Subscriber removed', 'success');
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
+    try {
+      await api.newsletter.delete(deleteTarget);
+      setSubs(ss => ss.filter(s => getItemId(s) !== deleteTarget));
+      setSelected(sel => sel.filter(id => id !== deleteTarget));
+      toast('Subscriber removed', 'success');
+    } catch (err) {
+      toast('Failed to delete subscriber', 'error');
+    } finally {
+      setDeleteTarget(null);
+      setDeleteLoading(false);
+    }
   };
 
   const handleBulkDelete = async () => {
-    await new Promise(r => setTimeout(r, 400));
-    setSubs(ss => ss.filter(s => !selected.includes(s.id)));
-    toast(`${selected.length} subscribers removed`, 'success');
-    setSelected([]);
+    try {
+      await api.newsletter.bulkDelete(selected);
+      setSubs(ss => ss.filter(s => !selected.includes(getItemId(s))));
+      toast(`${selected.length} subscribers removed`, 'success');
+    } catch (err) {
+      toast('Failed to delete selected subscribers', 'error');
+    } finally {
+      setSelected([]);
+    }
   };
 
   const exportCSV = () => {

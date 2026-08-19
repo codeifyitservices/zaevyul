@@ -151,6 +151,27 @@ export default function Products() {
       }
     },
     {
+      key: 'gender', label: 'Gender',
+      render: (val) => {
+        const g = (val || 'neutral').toLowerCase();
+        const label = g === 'men' ? 'Men' : g === 'women' ? 'Women' : 'Neutral';
+        return (
+          <span style={{
+            fontSize: 10,
+            fontWeight: 500,
+            textTransform: 'uppercase',
+            letterSpacing: '0.04em',
+            padding: '2px 6px',
+            background: g === 'men' ? 'rgba(42, 74, 106, 0.08)' : g === 'women' ? 'rgba(181, 138, 91, 0.1)' : 'var(--color-surface-2)',
+            color: g === 'men' ? '#2A4A6A' : g === 'women' ? '#B58A5B' : 'var(--color-text-caption)',
+            borderRadius: 4
+          }}>
+            {label}
+          </span>
+        );
+      }
+    },
+    {
       key: 'basePrice', label: 'Price', sortable: true,
       render: (val, row) => (
         <div>

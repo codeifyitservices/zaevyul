@@ -67,6 +67,20 @@ export default function OrderDetailPage({ orderId } = {}) {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [downloadingInvoice, setDownloadingInvoice] = useState(false);
+
+  const handleDownloadInvoice = async () => {
+    if (!order?._id) return;
+    setDownloadingInvoice(true);
+    try {
+      const invName = order.invoice?.invoiceNumber || `invoice-${order.orderNumber}`;
+      await customerApi.orders.downloadInvoice(order._id, `${invName}.pdf`);
+    } catch (err) {
+      toast(err.message || "Could not download invoice", "error");
+    } finally {
+      setDownloadingInvoice(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -96,16 +110,6 @@ export default function OrderDetailPage({ orderId } = {}) {
       setTimeout(() => setCopied(false), 1500);
     } catch {
       toast("Could not copy tracking number", "error");
-    }
-  };
-
-  const handleDownloadInvoice = () => {
-    if (customerApi.orders.downloadInvoice) {
-      customerApi.orders
-        .downloadInvoice(id)
-        .catch(() => toast("Could not download invoice", "error"));
-    } else {
-      toast("Invoice download coming soon", "info");
     }
   };
 
@@ -199,18 +203,36 @@ export default function OrderDetailPage({ orderId } = {}) {
             Placed on {fmtDate(order.createdAt, true)}
           </p>
         </div>
-        <div
-          className={`rounded-[4px] border px-4 py-2.5 text-right ${STATUS_BADGE[order.status] || "text-[#6B6560] bg-[#6B6560]/8 border-[#6B6560]/20"}`}
-        >
-          <span className="flex items-center gap-1.5 justify-end text-[13px] font-semibold capitalize">
-            <span className="w-1.5 h-1.5 rounded-full bg-current" />
-            {order.status}
-          </span>
-          {order.deliveredAt && (
-            <p className="text-[10.5px] mt-0.5 opacity-80">
-              Delivered on {fmtDate(order.deliveredAt)}
-            </p>
-          )}
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            disabled={downloadingInvoice}
+            onClick={handleDownloadInvoice}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-[4px] border border-[#E6DED4] bg-white text-[11px] font-semibold uppercase tracking-[0.14em] text-[#1C1916] hover:bg-[#FAF8F5] hover:border-[#B58A5B] hover:text-[#B58A5B] transition-all cursor-pointer shadow-xs disabled:opacity-50"
+          >
+            {downloadingInvoice ? (
+              <>
+                <RefreshCw size={13} className="animate-spin" /> DOWNLOADING...
+              </>
+            ) : (
+              <>
+                <Download size={13} /> DOWNLOAD INVOICE
+              </>
+            )}
+          </button>
+          <div
+            className={`rounded-[4px] border px-4 py-2.5 text-right ${STATUS_BADGE[order.status] || "text-[#6B6560] bg-[#6B6560]/8 border-[#6B6560]/20"}`}
+          >
+            <span className="flex items-center gap-1.5 justify-end text-[13px] font-semibold capitalize">
+              <span className="w-1.5 h-1.5 rounded-full bg-current" />
+              {order.status}
+            </span>
+            {order.deliveredAt && (
+              <p className="text-[10.5px] mt-0.5 opacity-80">
+                Delivered on {fmtDate(order.deliveredAt)}
+              </p>
+            )}
+          </div>
         </div>
       </div>
 

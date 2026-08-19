@@ -12,6 +12,7 @@ const ProductSchema = new mongoose.Schema({
   lowStockThreshold: { type: Number, default: 5 },
   status: { type: String, enum: ['draft', 'published', 'archived'], default: 'draft' },
   tags: [{ type: String }],
+  gender: { type: String, enum: ['men', 'women', 'neutral'], default: 'neutral' },
   featured: { type: Boolean, default: false },
   featuredOrder: { type: Number, default: null, min: 1, max: 6 },
   material: { type: String, default: '' },
@@ -34,6 +35,17 @@ const ProductSchema = new mongoose.Schema({
     price: { type: Number, required: true },
     discountPrice: { type: Number, default: null },
     quantity: { type: Number, default: 0 }
+  }],
+  colors: [{
+    name: { type: String, required: true },
+    mainImage: { type: String, required: true },
+    galleryImages: [{ type: String }],
+    sizes: [{
+      size: { type: String, required: true },
+      price: { type: Number, required: true },
+      discountPrice: { type: Number, default: null },
+      quantity: { type: Number, default: 0 }
+    }]
   }]
 }, { timestamps: true });
 

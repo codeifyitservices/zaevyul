@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation } from "react-router-dom";
 import {
   Search,
   Heart,
@@ -19,10 +19,12 @@ import Navbar from "../components/Navbar";
 import ProductCard from "../components/ProductCard";
 
 import { api, getCategorySlug, getHoverImage } from "../../lib/api";
+import { updateCategorySEO, resetSEO } from "../../lib/seo";
 import { useCart } from "../../context/CartContext";
 import { useCurrency } from "../../context/CurrencyContext";
 
 const FILTER_OPTIONS = {
+  gender: ["Men", "Women", "Neutral"],
   material: ["100% Pashmina", "Silk Pashmina Blend"],
   color: ["Ivory", "Midnight Black", "Sand Beige", "Charcoal"],
   size: ["Standard (200x70cm)", "Large (200x100cm)"],
@@ -43,6 +45,15 @@ const FALLBACK_CATEGORIES = [
 // selection = no restriction). These are reused both to filter the product
 // list and to work out which options in other groups are still reachable.
 const FILTER_MATCHERS = {
+  gender: (p, selected) => {
+    if (!selected || selected.length === 0) return true;
+    const pGender = (p.gender || "neutral").toLowerCase();
+    return selected.some((g) => {
+      const gLower = g.toLowerCase();
+      if (gLower === "neutral") return pGender === "neutral";
+      return pGender === gLower || pGender === "neutral";
+    });
+  },
   categories: (p, selected) => {
     if (selected.length === 0) return true;
     const pCat = p.category;
@@ -169,6 +180,7 @@ export default function CollectionsPage() {
   const [viewMode, setViewMode] = useState("grid"); // grid or list
   const [openFilters, setOpenFilters] = useState({
     categories: true,
+    gender: true,
     material: false,
     color: false,
     size: false,
@@ -178,6 +190,7 @@ export default function CollectionsPage() {
 
   const [selectedFilters, setSelectedFilters] = useState({
     categories: [],
+    gender: [],
     material: [],
     color: [],
     size: [],
@@ -194,7 +207,7 @@ export default function CollectionsPage() {
 
   const handleFilterChange = (filterKey, value) => {
     setSelectedFilters((prev) => {
-      const current = prev[filterKey] || [];
+      const current = Array.isArray(prev[filterKey]) ? prev[filterKey] : [];
       const updated = current.includes(value)
         ? current.filter((item) => item !== value)
         : [...current, value];
@@ -232,6 +245,17 @@ export default function CollectionsPage() {
     };
   }, [mobileFilterOpen]);
 
+  const location = useLocation();
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const genderParam = searchParams.get("gender");
+    if (genderParam && ["men", "women", "neutral"].includes(genderParam.toLowerCase())) {
+      const gLabel = genderParam.toLowerCase() === "men" ? "Men" : genderParam.toLowerCase() === "women" ? "Women" : "Neutral";
+      setSelectedFilters((prev) => ({ ...prev, gender: [gLabel] }));
+    }
+  }, [location.search]);
+
   // Whenever the category, active filters, or sort order change, the result
   // set is effectively new — go back to showing the first page of it.
   useEffect(() => {
@@ -245,16 +269,11 @@ export default function CollectionsPage() {
   const isAllCollections = !category;
 
   useEffect(() => {
-    if (isAllCollections) {
-      document.title = "All Collections | Zaevyul Pashmina";
-    } else {
-      const name = activeCategoryObj?.name || category || "Pashmina & Shawls";
-      document.title = `${name} | Zaevyul Pashmina`;
-    }
+    updateCategorySEO(activeCategoryObj, category);
     return () => {
-      document.title = "Zaevyul Pashmina";
+      resetSEO();
     };
-  }, [isAllCollections, activeCategoryObj, category]);
+  }, [activeCategoryObj, category]);
 
   const filteredProducts = activeCategoryObj
     ? products.filter((p) => {
@@ -270,7 +289,7 @@ export default function CollectionsPage() {
   // group, matching any one selected value is enough (OR within a group).
   const activeFilteredProducts = filteredProducts.filter((p) =>
     Object.keys(FILTER_MATCHERS).every((key) =>
-      FILTER_MATCHERS[key](p, selectedFilters[key]),
+      FILTER_MATCHERS[key](p, selectedFilters[key] || []),
     ),
   );
 
@@ -279,14 +298,15 @@ export default function CollectionsPage() {
   // every *other* currently-selected filter group. Already-selected
   // options are always kept so they can still be unchecked.
   const getAvailableOptions = (key, options) => {
+    const selected = Array.isArray(selectedFilters[key]) ? selectedFilters[key] : [];
     const pool = filteredProducts.filter((p) =>
       Object.keys(FILTER_MATCHERS).every(
-        (k) => k === key || FILTER_MATCHERS[k](p, selectedFilters[k]),
+        (k) => k === key || FILTER_MATCHERS[k](p, selectedFilters[k] || []),
       ),
     );
     return options.filter(
       (opt) =>
-        selectedFilters[key].includes(opt) ||
+        selected.includes(opt) ||
         pool.some((p) => FILTER_MATCHERS[key](p, [opt])),
     );
   };
@@ -351,6 +371,16 @@ export default function CollectionsPage() {
     : activeCategoryObj?.name?.toUpperCase() || "PASHMINA & SHAWLS";
 
   const getBannerHeading = () => {
+    if (selectedFilters.gender && selectedFilters.gender.length === 1) {
+      const g = selectedFilters.gender[0];
+      return (
+        <>
+          {g.toUpperCase()}'S
+          <br />
+          COLLECTION
+        </>
+      );
+    }
     if (isAllCollections) {
       return (
         <>
@@ -406,12 +436,16 @@ export default function CollectionsPage() {
   const resetFilters = () => {
     setSelectedFilters({
       categories: [],
+      gender: [],
       material: [],
       color: [],
       size: [],
       design: [],
       price: [],
     });
+    if (window.location.search) {
+      window.history.replaceState({}, "", window.location.pathname);
+    }
   };
 
   return (
@@ -422,26 +456,26 @@ export default function CollectionsPage() {
       {/* Main Content Area */}
       <main className="pb-24 sm:pb-32">
         {/* 3. Breadcrumbs */}
-        <div className="mx-auto  px-6 sm:px-10 lg:px-16 w-full pt-8 sm:pt-10 pb-4">
+        <div className="mx-auto px-6 sm:px-10 lg:px-16 w-full pt-8 sm:pt-10 pb-4">
           <nav className="text-[9px] sm:text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8A857E]">
-            <a href="/" className="hover:text-[#1C1916] transition-colors">
+            <Link to="/" className="hover:text-[#1C1916] transition-colors">
               HOME
-            </a>
+            </Link>
             <span className="mx-2.5 text-[#E6DED4] sm:mx-3">/</span>
             {isAllCollections ? (
               <span className="text-[#1C1916]">COLLECTIONS</span>
             ) : (
               <>
-                <a
-                  href="/collections"
+                <Link
+                  to="/collections"
                   className="hover:text-[#1C1916] transition-colors"
                 >
                   COLLECTIONS
-                </a>
+                </Link>
                 <span className="mx-2.5 text-[#E6DED4] sm:mx-3">/</span>
                 <span className="text-[#1C1916]">
                   {activeCategoryObj?.name?.toUpperCase() ||
-                    "PASHMINA & SHAWLS"}
+                    (category ? category.toUpperCase() : "PASHMINA & SHAWLS")}
                 </span>
               </>
             )}
@@ -893,7 +927,7 @@ export default function CollectionsPage() {
                     onClick={() => setMobileFilterOpen(false)}
                     className="flex-1 bg-[#1C1916] text-white py-3 text-[10px] font-semibold uppercase tracking-[0.15em] hover:bg-[#B58A5B] transition-colors"
                   >
-                    APPLY
+                    SHOW {filteredProductsCount} {filteredProductsCount === 1 ? "PRODUCT" : "PRODUCTS"}
                   </button>
                 </div>
               </div>
@@ -901,20 +935,82 @@ export default function CollectionsPage() {
 
             {/* 7. Product Grid */}
             <div className="flex-1">
-              {sortedProducts.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-center border border-dashed border-[#ECE7E1] rounded-[2px] bg-[#FAF8F5] px-6">
-                  <span className="font-serif text-[18px] uppercase tracking-[0.15em] text-[#6B6560] mb-2">
-                    No products found
+              {/* Active Filter Chips */}
+              {Object.values(selectedFilters).some((arr) => Array.isArray(arr) && arr.length > 0) && (
+                <div className="flex flex-wrap items-center gap-2 mb-8 pb-4 border-b border-[#ECE7E1]">
+                  <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8A857E] mr-1">
+                    Active Filters:
                   </span>
-                  <p className="font-sans text-[12px] text-[#8A857E] max-w-[320px] leading-relaxed">
-                    We couldn't find any products matching your current filter
-                    selections. Try clearing some filters.
-                  </p>
+                  {Object.entries(selectedFilters).map(([key, valArr]) =>
+                    Array.isArray(valArr) && valArr.map((val) => {
+                      let displayVal = val;
+                      if (key === "categories") {
+                        const c = categories.find(
+                          (cat) => String(cat.id || cat._id) === String(val),
+                        );
+                        displayVal = c ? c.name : val;
+                      }
+                      return (
+                        <span
+                          key={`${key}-${val}`}
+                          className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#F0ECE8] border border-[#E6DED4] text-[#1C1916] font-sans text-[11px] font-medium rounded-[2px] transition-colors hover:bg-[#E6DED4]"
+                        >
+                          <span>{displayVal}</span>
+                          <button
+                            onClick={() => handleFilterChange(key, val)}
+                            className="text-[#8A857E] hover:text-[#1C1916] transition-colors p-0.5 cursor-pointer"
+                            aria-label={`Remove filter ${displayVal}`}
+                          >
+                            <X size={11} />
+                          </button>
+                        </span>
+                      );
+                    }),
+                  )}
                   <button
                     onClick={resetFilters}
-                    className="mt-6 bg-[#1C1916] text-white px-8 py-3 text-[9px] font-semibold uppercase tracking-[0.2em] rounded-[1px] hover:bg-[#B58A5B] transition-colors"
+                    className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#B58A5B] hover:text-[#1C1916] transition-colors ml-2 cursor-pointer"
                   >
-                    Clear Filters
+                    Clear All
+                  </button>
+                </div>
+              )}
+
+              {sortedProducts.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-center border border-dashed border-[#ECE7E1] rounded-[2px] bg-[#FAF8F5] px-6">
+                  <span className="font-serif text-[22px] font-light text-[#1C1916] mb-2">
+                    We couldn't find an exact match
+                  </span>
+                  <p className="font-sans text-[13px] text-[#6B6560] font-light max-w-[420px] leading-relaxed mb-6">
+                    Try broadening your search criteria or exploring these curated collections:
+                  </p>
+
+                  <div className="flex flex-wrap justify-center gap-2 mb-6 max-w-[500px]">
+                    <button
+                      onClick={() => setSearchParams({ gender: "men" })}
+                      className="px-3.5 py-1.5 bg-white border border-[#E6DED4] text-[#1C1916] text-[11px] font-medium rounded-[1px] hover:border-[#1C1916] transition-colors cursor-pointer"
+                    >
+                      Men's Collection
+                    </button>
+                    <button
+                      onClick={() => setSearchParams({ gender: "women" })}
+                      className="px-3.5 py-1.5 bg-white border border-[#E6DED4] text-[#1C1916] text-[11px] font-medium rounded-[1px] hover:border-[#1C1916] transition-colors cursor-pointer"
+                    >
+                      Women's Collection
+                    </button>
+                    <button
+                      onClick={() => setSearchParams({ category: "stoles" })}
+                      className="px-3.5 py-1.5 bg-white border border-[#E6DED4] text-[#1C1916] text-[11px] font-medium rounded-[1px] hover:border-[#1C1916] transition-colors cursor-pointer"
+                    >
+                      Pashmina Stoles
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={resetFilters}
+                    className="bg-[#1C1916] text-white px-8 py-3 text-[9px] font-semibold uppercase tracking-[0.2em] rounded-[1px] hover:bg-[#B58A5B] transition-colors cursor-pointer"
+                  >
+                    Clear All Filters
                   </button>
                 </div>
               ) : (

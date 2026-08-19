@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Trash2 } from 'lucide-react';
+import { Search, Trash2, Download } from 'lucide-react';
 import { formatCurrency, formatDate, ORDER_STATUS } from '../../../lib/mockData';
 import PageHeader from '../../../components/PageHeader';
 import DataTable from '../../../components/DataTable';
@@ -78,8 +78,28 @@ export default function Orders() {
       render: v => <span style={{ fontSize: 12, color: 'var(--color-text-caption)' }}>{formatDate(v)}</span>
     },
     {
-      key: 'id', label: '',
-      render: (val, row) => <Link to={`/admin/orders/${row._id || row.id}`} className="btn btn-ghost btn-sm">View</Link>
+      key: 'id', label: 'Actions',
+      render: (val, row) => {
+        const rowId = row._id || row.id;
+        const invName = row.invoice?.invoiceNumber || `invoice-${row.orderNumber || rowId}`;
+        return (
+          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+            <Link to={`/admin/orders/${rowId}`} className="btn btn-ghost btn-sm">View</Link>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              title="Download Invoice PDF"
+              onClick={(e) => {
+                e.stopPropagation();
+                api.orders.downloadInvoice(rowId, `${invName}.pdf`).catch(err => toast(err.message, 'error'));
+              }}
+              style={{ padding: '4px 6px' }}
+            >
+              <Download size={14} />
+            </button>
+          </div>
+        );
+      }
     },
   ];
 
