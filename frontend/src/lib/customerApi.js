@@ -27,7 +27,16 @@ const request = async (path, options = {}) => {
   }
 
   const res = await fetch(`${CUSTOMER_BASE_URL}${path}`, options);
-  const data = await res.json();
+  const contentType = res.headers.get("content-type") || "";
+  let data = {};
+  if (contentType.includes("application/json")) {
+    data = await res.json().catch(() => ({}));
+  } else {
+    const text = await res.text().catch(() => "");
+    if (!res.ok) {
+      throw new Error(`Server returned status ${res.status}: ${res.statusText || "Request Error"}`);
+    }
+  }
   if (!res.ok) throw new Error(data.message || "Request failed");
   return data;
 };

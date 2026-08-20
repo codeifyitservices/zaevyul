@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Save, Shield, Clock } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { MOCK_ACTIVITY } from '../../lib/mockData';
 import PageHeader from '../../components/PageHeader';
 import { useToast } from '../../context/ToastContext';
 import { api } from '../../lib/api';

@@ -575,10 +575,14 @@ export default function Coupons() {
                   <input
                     className="field-input"
                     type="number"
+                    min="0"
                     value={form.value}
                     placeholder={form.type === "percentage" ? "15" : "2000"}
                     onChange={(e) =>
-                      setForm((f) => ({ ...f, value: e.target.value }))
+                      setForm((f) => ({
+                        ...f,
+                        value: e.target.value === '' ? '' : Math.max(0, Number(e.target.value))
+                      }))
                     }
                   />
                 </div>
@@ -620,9 +624,12 @@ export default function Coupons() {
                     type="number"
                     value={form.usageLimit}
                     placeholder="Unlimited"
-                    min={1}
+                    min="1"
                     onChange={(e) =>
-                      setForm((f) => ({ ...f, usageLimit: e.target.value }))
+                      setForm((f) => ({
+                        ...f,
+                        usageLimit: e.target.value === '' ? '' : Math.max(1, Number(e.target.value))
+                      }))
                     }
                   />
                 </div>
@@ -639,9 +646,12 @@ export default function Coupons() {
                     type="number"
                     value={form.minOrderValue}
                     placeholder="0"
-                    min={0}
+                    min="0"
                     onChange={(e) =>
-                      setForm((f) => ({ ...f, minOrderValue: e.target.value }))
+                      setForm((f) => ({
+                        ...f,
+                        minOrderValue: e.target.value === '' ? '' : Math.max(0, Number(e.target.value))
+                      }))
                     }
                   />
                 </div>

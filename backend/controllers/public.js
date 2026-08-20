@@ -346,9 +346,10 @@ export const getPublicSettings = async (req, res) => {
     const publicSettings = {
       storeName: settings.storeName || "Zaevyul",
       tagline: settings.tagline || "Timeless · Authentic · Handcrafted",
-      storeEmail: settings.email || "concierge@zaevyul.com",
-      phone: settings.phone || "+91 194 123 4567",
-      address: settings.address || "Residency Road, Srinagar, Jammu & Kashmir 190001",
+      email: settings.email || "hello@zaevyul.com",
+      storeEmail: settings.email || "hello@zaevyul.com",
+      phone: settings.phone || "+91 98765 43210",
+      address: settings.address || "ZAEVYUL Pashmina, B-12, Hauz Khas, New Delhi 110016, India",
       socialLinks: settings.socialLinks || {
         instagram: "https://instagram.com/zaevyul",
         facebook: "",

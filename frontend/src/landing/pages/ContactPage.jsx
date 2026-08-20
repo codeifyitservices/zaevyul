@@ -121,7 +121,7 @@ export default function ContactPage() {
       <Navbar />
       <div className="bg-[#FAF8F5] pt-14 text-[#1C1916]">
         {/* Breadcrumb */}
-        <div className="max-w-[1200px] mx-auto px-6 sm:px-10 pt-6">
+        <div className="max-w-[1440px] 2xl:max-w-[1680px] mx-auto px-6 sm:px-10 pt-6">
           <div className="flex items-center gap-1.5 font-sans text-[11px] text-[#8A857E]">
             <Link to="/" className="hover:text-[#1C1916] transition-colors">
               Home
@@ -132,7 +132,7 @@ export default function ContactPage() {
         </div>
 
         {/* Hero */}
-        <div className="max-w-[1200px] mx-auto px-6 sm:px-10 pt-10 pb-16 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        <div className="max-w-[1440px] 2xl:max-w-[1680px] mx-auto px-6 sm:px-10 pt-10 pb-16 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div>
             <p className="font-sans text-[11px] font-semibold tracking-[0.2em] uppercase text-[#B58A5B] mb-4">
               Get in Touch
@@ -158,7 +158,7 @@ export default function ContactPage() {
         </div>
 
         {/* Tabs */}
-        <div className="max-w-[1200px] mx-auto px-6 sm:px-10">
+        <div className="max-w-[1440px] 2xl:max-w-[1680px] mx-auto px-6 sm:px-10">
           <div className="flex items-center justify-center gap-8 border-b border-[#E6DED4]">
             {TABS.map((tab) => (
               <button
@@ -182,7 +182,7 @@ export default function ContactPage() {
         </div>
 
         {/* Tab content */}
-        <div className="max-w-[1200px] mx-auto px-6 sm:px-10 py-12 flex flex-col items-center text-center">
+        <div className="max-w-[1440px] 2xl:max-w-[1680px] mx-auto px-6 sm:px-10 py-12 flex flex-col items-center text-center">
           {activeTab === "form" && (
             <div className="w-full max-w-[640px] text-left">
               <h3 className="font-serif text-[22px] text-[#1C1916] mb-1">

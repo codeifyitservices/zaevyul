@@ -84,7 +84,8 @@ const getProductFields = (body) => {
   const {
     name, slug, sku, category, basePrice, discountPrice, costPrice,
     quantity, lowStockThreshold, status, tags, gender, material, color, size,
-    description, shortDescription, images, seo, sizes, colors
+    description, shortDescription, images, seo, sizes, colors,
+    productDetails, careInstructions, artisanStory
   } = body;
 
   const fields = {};
@@ -92,8 +93,8 @@ const getProductFields = (body) => {
   if (slug !== undefined) fields.slug = slug;
   if (sku !== undefined) fields.sku = sku;
   if (category !== undefined) fields.category = category || null;
-  if (costPrice !== undefined) fields.costPrice = costPrice;
-  if (lowStockThreshold !== undefined) fields.lowStockThreshold = lowStockThreshold;
+  if (costPrice !== undefined) fields.costPrice = costPrice !== null && costPrice !== '' ? Math.max(0, Number(costPrice)) : null;
+  if (lowStockThreshold !== undefined) fields.lowStockThreshold = Math.max(0, Number(lowStockThreshold) || 5);
   if (status !== undefined) fields.status = status;
   if (tags !== undefined) fields.tags = tags;
   if (gender !== undefined) fields.gender = gender;
@@ -102,6 +103,9 @@ const getProductFields = (body) => {
   if (size !== undefined) fields.size = size;
   if (description !== undefined) fields.description = description;
   if (shortDescription !== undefined) fields.shortDescription = shortDescription;
+  if (productDetails !== undefined) fields.productDetails = productDetails;
+  if (careInstructions !== undefined) fields.careInstructions = careInstructions;
+  if (artisanStory !== undefined) fields.artisanStory = artisanStory;
   if (images !== undefined) fields.images = images;
   if (seo !== undefined) fields.seo = seo;
   if (colors !== undefined) {
@@ -116,9 +120,9 @@ const getProductFields = (body) => {
             sizes: Array.isArray(c.sizes)
               ? c.sizes.map((s) => ({
                   size: (s.size || '').trim(),
-                  price: Number(s.price) || 0,
-                  discountPrice: s.discountPrice ? Number(s.discountPrice) : null,
-                  quantity: Number(s.quantity) || 0,
+                  price: Math.max(0, Number(s.price) || 0),
+                  discountPrice: s.discountPrice ? Math.max(0, Number(s.discountPrice)) : null,
+                  quantity: Math.max(0, Number(s.quantity) || 0),
                 })).filter((s) => s.size)
               : [],
           }))

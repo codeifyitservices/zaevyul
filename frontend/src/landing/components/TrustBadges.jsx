@@ -16,7 +16,7 @@ const BADGES = [
 export default function TrustBadges() {
   return (
     <section className="bg-[#FAF8F5] border-y border-[#E6DED4]">
-      <div className="mx-auto max-w-[1200px] px-6 sm:px-10 lg:px-16 w-full py-16 sm:py-24">
+      <div className="mx-auto max-w-[1720px] 2xl:max-w-[1920px] 3xl:max-w-[2200px] px-6 sm:px-10 lg:px-16 w-full py-16 sm:py-24">
         <div className="grid grid-cols-1 gap-12 sm:grid-cols-3 sm:gap-6 lg:gap-12">
           {BADGES.map((badge, idx) => (
             <div

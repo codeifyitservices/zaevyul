@@ -52,14 +52,17 @@ export default function SiteFooter() {
       try {
         const [settingsData, categoriesData] = await Promise.all([
           api.settings.getPublic(),
-          api.categories.list()
+          api.categories.list(),
         ]);
         if (active) {
           setSettings(settingsData);
           setCategories(categoriesData || []);
         }
       } catch (err) {
-        console.error("Error loading footer database settings/categories:", err);
+        console.error(
+          "Error loading footer database settings/categories:",
+          err,
+        );
       }
     };
     loadData();
@@ -89,16 +92,13 @@ export default function SiteFooter() {
   return (
     <footer className="bg-[#FAF8F5] font-sans text-[#1C1916] border-t border-[#ECE7E1]">
       {/* Main E-Commerce Footer Navigation Grid */}
-      <div className="mx-auto max-w-[1280px] px-6 sm:px-10 lg:px-16 pt-16 pb-16">
+      <div className="mx-auto max-w-[1720px] 2xl:max-w-[1920px] 3xl:max-w-[2200px] px-6 sm:px-10 lg:px-16 pt-16 pb-16">
         <div className="grid grid-cols-1 gap-12 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 lg:gap-16">
           {/* Brand Column */}
           <div className="space-y-4">
             <RouterLink to="/" className="block">
               <span className="font-serif text-[22px] tracking-[0.25em] font-light text-[#1C1916] block uppercase whitespace-nowrap">
                 {(settings?.storeName || "ZAEVYUL").toUpperCase()}
-              </span>
-              <span className="block font-sans text-[8px] tracking-[0.4em] uppercase text-[#B58A5B] font-medium mt-1 whitespace-nowrap">
-                PASHMINA
               </span>
             </RouterLink>
             <div className="w-8 border-t border-[#B58A5B]/30 my-3"></div>
@@ -212,7 +212,7 @@ export default function SiteFooter() {
             <ul className="flex flex-col gap-3 text-[13px] font-light text-[#6B6560]">
               <li>
                 <RouterLink
-                  to="/contact"
+                  to="/faq"
                   className="hover:text-[#1C1916] transition-colors"
                 >
                   Shipping & Delivery
@@ -220,7 +220,7 @@ export default function SiteFooter() {
               </li>
               <li>
                 <RouterLink
-                  to="/contact"
+                  to="/faq"
                   className="hover:text-[#1C1916] transition-colors"
                 >
                   Returns & Exchanges
@@ -228,7 +228,7 @@ export default function SiteFooter() {
               </li>
               <li>
                 <RouterLink
-                  to="/contact"
+                  to="/faq"
                   className="hover:text-[#1C1916] transition-colors"
                 >
                   FAQs
@@ -281,7 +281,9 @@ export default function SiteFooter() {
               {/* Social Icons */}
               <div className="flex items-center gap-7 pt-1 text-[#1C1916]">
                 <a
-                  href={settings?.socialLinks?.instagram || "https://instagram.com"}
+                  href={
+                    settings?.socialLinks?.instagram || "https://instagram.com"
+                  }
                   target="_blank"
                   rel="noreferrer"
                   aria-label="Instagram"
@@ -290,7 +292,9 @@ export default function SiteFooter() {
                   <InstagramIcon size={18} />
                 </a>
                 <a
-                  href={settings?.socialLinks?.pinterest || "https://pinterest.com"}
+                  href={
+                    settings?.socialLinks?.pinterest || "https://pinterest.com"
+                  }
                   target="_blank"
                   rel="noreferrer"
                   aria-label="Pinterest"
@@ -313,21 +317,22 @@ export default function SiteFooter() {
 
       {/* Bottom Thin Strip */}
       <div className="border-t border-[#ECE7E1] bg-[#FAF8F5]">
-        <div className="mx-auto max-w-[1280px] px-6 sm:px-10 lg:px-16 py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="mx-auto max-w-[1720px] 2xl:max-w-[1920px] 3xl:max-w-[2200px] px-6 sm:px-10 lg:px-16 py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-[12px] text-[#8A857E] font-light">
-            &copy; {new Date().getFullYear()} {settings?.storeName || "Zaevyul"} Pashmina. All rights reserved.
+            &copy; {new Date().getFullYear()} {settings?.storeName || "Zaevyul"}{" "}
+            Pashmina. All rights reserved.
           </p>
 
           <div className="flex items-center gap-4 text-[12px] text-[#8A857E] font-light">
             <RouterLink
-              to="/contact"
+              to="/privacy"
               className="hover:text-[#1C1916] transition-colors"
             >
               Privacy Policy
             </RouterLink>
             <span className="text-[#ECE7E1]">|</span>
             <RouterLink
-              to="/contact"
+              to="/terms"
               className="hover:text-[#1C1916] transition-colors"
             >
               Terms & Conditions

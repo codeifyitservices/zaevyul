@@ -1,12 +1,13 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Trash2, Download } from 'lucide-react';
+import { Search, Trash2, Download, Eye, FileText } from 'lucide-react';
 import { formatCurrency, formatDate, ORDER_STATUS } from '../../../lib/mockData';
 import PageHeader from '../../../components/PageHeader';
 import DataTable from '../../../components/DataTable';
 import StatusBadge from '../../../components/StatusBadge';
 import { useToast } from '../../../context/ToastContext';
 import { api } from '../../../lib/api';
+import InvoiceModal from './InvoiceModal';
 
 export default function Orders() {
   const toast = useToast();
@@ -15,6 +16,8 @@ export default function Orders() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [selected, setSelected] = useState([]);
+  const [previewOrder, setPreviewOrder] = useState(null);
+  const [downloading, setDownloading] = useState(false);
 
   const fetchOrders = async () => {
     try {
@@ -51,6 +54,21 @@ export default function Orders() {
     }
   };
 
+  const handleDownloadInvoice = async (targetOrder) => {
+    const ord = targetOrder || previewOrder;
+    if (!ord) return;
+    const rowId = ord._id || ord.id;
+    const invName = ord.invoice?.invoiceNumber || `invoice-${ord.orderNumber || rowId}`;
+    setDownloading(true);
+    try {
+      await api.orders.downloadInvoice(rowId, `${invName}.pdf`);
+    } catch (err) {
+      toast(err.message || 'Failed to download invoice', 'error');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   const activeRowKey = orders[0]?._id ? "_id" : "id";
 
   const COLUMNS = [
@@ -81,21 +99,21 @@ export default function Orders() {
       key: 'id', label: 'Actions',
       render: (val, row) => {
         const rowId = row._id || row.id;
-        const invName = row.invoice?.invoiceNumber || `invoice-${row.orderNumber || rowId}`;
         return (
           <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
             <Link to={`/admin/orders/${rowId}`} className="btn btn-ghost btn-sm">View</Link>
             <button
               type="button"
               className="btn btn-ghost btn-sm"
-              title="Download Invoice PDF"
+              title="Open Invoice in New Tab"
               onClick={(e) => {
                 e.stopPropagation();
-                api.orders.downloadInvoice(rowId, `${invName}.pdf`).catch(err => toast(err.message, 'error'));
+                api.orders.viewInvoiceInNewTab(rowId).catch(err => toast(err.message, 'error'));
               }}
-              style={{ padding: '4px 6px' }}
+              style={{ padding: '4px 6px', display: 'flex', alignItems: 'center', gap: 4 }}
             >
-              <Download size={14} />
+              <FileText size={14} className="text-[#B58A5B]" />
+              <span style={{ fontSize: 11 }}>Invoice</span>
             </button>
           </div>
         );
@@ -164,6 +182,15 @@ export default function Orders() {
           emptyDesc="Try adjusting your filters"
         />
       </div>
+
+      {/* Invoice Preview Modal */}
+      <InvoiceModal
+        order={previewOrder}
+        isOpen={!!previewOrder}
+        onClose={() => setPreviewOrder(null)}
+        onDownload={() => handleDownloadInvoice(previewOrder)}
+        downloading={downloading}
+      />
     </div>
   );
 }

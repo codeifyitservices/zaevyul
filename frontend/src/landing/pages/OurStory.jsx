@@ -71,7 +71,7 @@ export default function OurStoryPage() {
 
       <main className="pt-[68px]">
         {/* ===================== SECTION 01 — Woven in Kashmir ===================== */}
-        <section className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 py-16 sm:py-24">
+        <section className="max-w-7xl 2xl:max-w-[1680px] mx-auto px-6 sm:px-10 lg:px-16 py-16 sm:py-24">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
             <div className="max-w-md">
               <SectionEyebrow number="01" />
@@ -98,12 +98,12 @@ export default function OurStoryPage() {
           </div>
         </section>
 
-        <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16">
+        <div className="max-w-7xl 2xl:max-w-[1680px] mx-auto px-6 sm:px-10 lg:px-16">
           <div className="border-t border-[#E6DED4]/60" />
         </div>
 
         {/* ===================== SECTION 02 — Our Roots ===================== */}
-        <section className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 py-16 sm:py-24">
+        <section className="max-w-7xl 2xl:max-w-[1680px] mx-auto px-6 sm:px-10 lg:px-16 py-16 sm:py-24">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
             <div className="w-full aspect-[4/3] sm:aspect-[3/2] lg:aspect-[4/3] bg-[#F3EFE8] rounded-[2px] overflow-hidden order-1 lg:order-1">
               {/* Replace src with the mountain river/house photograph */}
@@ -149,7 +149,7 @@ export default function OurStoryPage() {
 
         {/* ===================== SECTION 03 — The Legacy We Weave ===================== */}
         <section className="bg-[#FAF8F5] py-16 sm:py-24">
-          <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16">
+          <div className="max-w-7xl 2xl:max-w-[1680px] mx-auto px-6 sm:px-10 lg:px-16">
             <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,340px)_1fr] gap-12 lg:gap-16 items-center">
               <div className="max-w-md">
                 <SectionEyebrow number="03" />
@@ -210,7 +210,7 @@ export default function OurStoryPage() {
         </section>
 
         {/* ===================== SECTION 04 — More than Pashmina ===================== */}
-        <section className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 py-16 sm:py-24">
+        <section className="max-w-7xl 2xl:max-w-[1680px] mx-auto px-6 sm:px-10 lg:px-16 py-16 sm:py-24">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
             <div className="w-full aspect-[4/3] sm:aspect-[3/2] lg:aspect-[4/3] bg-[#F3EFE8] rounded-[2px] overflow-hidden order-1">
               {/* Replace src with the folded embroidered shawl photograph */}

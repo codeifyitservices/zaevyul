@@ -510,7 +510,7 @@ export default function CollectionsPage() {
 
         {/* 5. Filter/Sort Bar */}
         <section className="border-b border-[#ECE7E1] bg-[#FAF8F5] sticky top-[68px] z-30">
-          <div className="mx-auto max-w-[1200px] px-6 sm:px-10 lg:px-16 w-full py-4 flex items-center justify-between">
+          <div className="mx-auto max-w-[1720px] 2xl:max-w-[1920px] 3xl:max-w-[2200px] px-6 sm:px-10 lg:px-16 w-full py-4 flex items-center justify-between">
             {/* Left side */}
             <div className="flex items-center">
               <button
@@ -577,7 +577,7 @@ export default function CollectionsPage() {
         </section>
 
         {/* Product Section Grid + Sidebar Layout */}
-        <section className="mx-auto px-6 sm:px-10 lg:px-16 w-full mt-10">
+        <section className="mx-auto max-w-[1720px] 2xl:max-w-[1920px] 3xl:max-w-[2200px] px-6 sm:px-10 lg:px-16 w-full mt-10">
           <div className="flex gap-8 lg:gap-12">
             {/* 6. Sidebar Filters (Desktop only — slides in/out) */}
             <aside
@@ -1017,7 +1017,7 @@ export default function CollectionsPage() {
                 <>
                   <div
                     className={`grid gap-x-6 gap-y-12 sm:gap-x-8 sm:gap-y-16 lg:gap-x-10
-                      ${viewMode === "grid" ? "grid-cols-2 lg:grid-cols-3" : "grid-cols-1"}`}
+                      ${viewMode === "grid" ? "grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5" : "grid-cols-1"}`}
                   >
                     {displayProducts.map((p, idx) => {
                       // Index 6 is the Artisan Spotlight Card

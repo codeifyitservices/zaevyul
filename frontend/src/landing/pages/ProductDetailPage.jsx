@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus,
   Minus,
@@ -13,6 +14,7 @@ import {
   Maximize2,
   X,
   Star,
+  Upload,
 } from "lucide-react";
 import Navbar from "../components/Navbar";
 import SiteFooter from "../components/SiteFooter";
@@ -105,17 +107,88 @@ export default function ProductDetailPage() {
     ratingCounts: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
     fitCounts: { "True to Size": 0, "Runs Small": 0, "Runs Large": 0 }
   });
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user, isAuthenticated } = useCustomerAuth();
+
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [reviewForm, setReviewForm] = useState({
     rating: 5,
     title: "",
     comment: "",
-    name: "",
-    email: "",
     fit: "True to Size",
-    photoUrl: ""
+    photos: []
   });
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [uploadingPhotos, setUploadingPhotos] = useState(false);
+
+  const drawerRef = useRef(null);
+
+  const handleOpenReviewModal = () => {
+    if (!isAuthenticated || !user) {
+      toast("Only logged-in customers who received this product can write a review. Please log in.", "warning");
+      navigate("/login", { state: { from: location.pathname } });
+      return;
+    }
+    setReviewModalOpen(true);
+  };
+
+  const handlePhotoUpload = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    const currentCount = reviewForm.photos ? reviewForm.photos.length : 0;
+    if (currentCount >= 3) {
+      toast("Maximum limit of 3 photos reached per review.", "warning");
+      return;
+    }
+
+    const availableSlots = 3 - currentCount;
+    if (files.length > availableSlots) {
+      toast(`You can only add ${availableSlots} more photo(s). Maximum 3 photos allowed per review.`, "warning");
+    }
+
+    const selectedFiles = files.slice(0, availableSlots);
+    setUploadingPhotos(true);
+    let loaded = 0;
+    const newPhotos = [];
+
+    selectedFiles.forEach((file) => {
+      if (file.size > 5 * 1024 * 1024) {
+        toast(`${file.name} exceeds 5MB limit. Please upload images under 5MB.`, "warning");
+        loaded++;
+        if (loaded === selectedFiles.length) setUploadingPhotos(false);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (reader.result) {
+          newPhotos.push(reader.result);
+        }
+        loaded++;
+        if (loaded === selectedFiles.length) {
+          setReviewForm((prev) => ({
+            ...prev,
+            photos: [...(prev.photos || []), ...newPhotos].slice(0, 3),
+          }));
+          setUploadingPhotos(false);
+        }
+      };
+      reader.onerror = () => {
+        loaded++;
+        if (loaded === selectedFiles.length) setUploadingPhotos(false);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleRemovePhoto = (index) => {
+    setReviewForm((prev) => ({
+      ...prev,
+      photos: prev.photos.filter((_, i) => i !== index),
+    }));
+  };
 
   const { addToCart, isInCart, setIsOpen: setCartOpen } = useCart();
   const { formatPrice } = useCurrency();
@@ -173,25 +246,29 @@ export default function ProductDetailPage() {
 
   const handleReviewSubmit = async (e) => {
     e.preventDefault();
-    if (!reviewForm.name || !reviewForm.email || !reviewForm.comment) {
-      toast("Please complete all required fields", "warning");
+    if (!isAuthenticated || !user) {
+      toast("Please log in to submit a review.", "warning");
+      return;
+    }
+    if (!reviewForm.comment) {
+      toast("Please write your review comment", "warning");
       return;
     }
     setSubmittingReview(true);
     try {
       const payload = {
-        name: reviewForm.name,
-        email: reviewForm.email,
+        name: user.name || user.email || "Verified Buyer",
+        email: user.email || "",
         rating: reviewForm.rating,
         title: reviewForm.title,
         comment: reviewForm.comment,
         fit: reviewForm.fit,
-        photos: reviewForm.photoUrl ? [reviewForm.photoUrl] : []
+        photos: reviewForm.photos || []
       };
       await api.reviews.create(product._id || product.id, payload);
       toast("Thank you! Your review has been published.", "success");
       setReviewModalOpen(false);
-      setReviewForm({ rating: 5, title: "", comment: "", name: "", email: "", fit: "True to Size", photoUrl: "" });
+      setReviewForm({ rating: 5, title: "", comment: "", fit: "True to Size", photos: [] });
       const data = await api.reviews.get(product._id || product.id);
       if (data && data.success) setReviewsData(data);
     } catch (err) {
@@ -480,7 +557,7 @@ export default function ProductDetailPage() {
 
       <main className="pt-20 pb-16 sm:pb-24">
         {/* 3. Breadcrumbs */}
-        <div className="mx-auto max-w-[1200px] px-6 sm:px-10 lg:px-16 w-full pt-6 pb-6 sm:pb-10">
+        <div className="mx-auto max-w-[1720px] 2xl:max-w-[1920px] 3xl:max-w-[2200px] px-6 sm:px-10 lg:px-16 w-full pt-6 pb-6 sm:pb-10">
           <nav className="text-[9px] sm:text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8A857E]">
             <Link to="/" className="hover:text-[#1C1916] transition-colors">
               HOME
@@ -505,7 +582,7 @@ export default function ProductDetailPage() {
         </div>
 
         {/* 4. Product Gallery & Specs Block */}
-        <section className="mx-auto max-w-[1280px] px-6 sm:px-10 lg:px-16 w-full">
+        <section className="mx-auto max-w-[1720px] 2xl:max-w-[1920px] 3xl:max-w-[2200px] px-6 sm:px-10 lg:px-16 w-full">
           <div className="grid grid-cols-1 lg:grid-cols-[1.18fr_0.82fr] gap-10 lg:gap-16 xl:gap-24 items-start">
             {/* Left Side: TOTEME-Style Product Gallery (Full-size photography) */}
             <div>
@@ -808,20 +885,20 @@ export default function ProductDetailPage() {
                   >
                     <div className="overflow-hidden">
                       <div className="mt-3.5 pl-0.5 text-[12.5px] sm:text-[13px] leading-relaxed text-[#6B6560] font-light pb-1">
-                        <p className="mb-2">
-                          100% pure premium cashmere (Pashmina).
-                        </p>
-                        <p className="mb-2">
-                          Authentic hand-spun yarn and hand-loomed weave.
-                        </p>
-                        <p className="mb-2">
-                          Features traditional Sozni fine needle embroidery
-                          along the borders.
-                        </p>
-                        <p>
-                          Dimensions: 70 x 200 cm (approximately 28 x 80
-                          inches).
-                        </p>
+                        {product.productDetails && product.productDetails.trim() ? (
+                          product.productDetails.split("\n").filter(Boolean).map((line, idx, arr) => (
+                            <p key={idx} className={idx < arr.length - 1 ? "mb-2" : ""}>
+                              {line}
+                            </p>
+                          ))
+                        ) : (
+                          <>
+                            <p className="mb-2">100% pure premium cashmere (Pashmina).</p>
+                            <p className="mb-2">Authentic hand-spun yarn and hand-loomed weave.</p>
+                            <p className="mb-2">Features traditional Sozni fine needle embroidery along the borders.</p>
+                            <p>Dimensions: 70 x 200 cm (approximately 28 x 80 inches).</p>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -886,15 +963,23 @@ export default function ProductDetailPage() {
                   >
                     <div className="overflow-hidden">
                       <div className="mt-3.5 pl-0.5 text-[12.5px] sm:text-[13px] leading-relaxed text-[#6B6560] font-light pb-1">
-                        <p className="mb-2">Dry clean only.</p>
-                        <p className="mb-2">
-                          Store in a cool, dry place wrapped in a muslin cloth
-                          to protect from moths.
-                        </p>
-                        <p>
-                          Iron on low heat under a protective cotton sheet if
-                          necessary.
-                        </p>
+                        {product.careInstructions && product.careInstructions.trim() ? (
+                          product.careInstructions.split("\n").filter(Boolean).map((line, idx, arr) => (
+                            <p key={idx} className={idx < arr.length - 1 ? "mb-2" : ""}>
+                              {line}
+                            </p>
+                          ))
+                        ) : (
+                          <>
+                            <p className="mb-2">Dry clean only.</p>
+                            <p className="mb-2">
+                              Store in a cool, dry place wrapped in a muslin cloth to protect from moths.
+                            </p>
+                            <p>
+                              Iron on low heat under a protective cotton sheet if necessary.
+                            </p>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -922,18 +1007,25 @@ export default function ProductDetailPage() {
                   >
                     <div className="overflow-hidden">
                       <div className="mt-3.5 pl-0.5 text-[12.5px] sm:text-[13px] leading-relaxed text-[#6B6560] font-light pb-1">
-                        <p className="mb-2">
-                          Hand-spun by Kashmiri women and hand-woven by local
-                          master weavers.
-                        </p>
-                        <p className="mb-2">
-                          Embroidered by a skilled craftsman in Srinagar over a
-                          span of 120 hours.
-                        </p>
-                        <p>
-                          Supports sustainable fair-trade livelihoods in the
-                          Kashmir valley.
-                        </p>
+                        {product.artisanStory && product.artisanStory.trim() ? (
+                          product.artisanStory.split("\n").filter(Boolean).map((line, idx, arr) => (
+                            <p key={idx} className={idx < arr.length - 1 ? "mb-2" : ""}>
+                              {line}
+                            </p>
+                          ))
+                        ) : (
+                          <>
+                            <p className="mb-2">
+                              Hand-spun by Kashmiri women and hand-woven by local master weavers.
+                            </p>
+                            <p className="mb-2">
+                              Embroidered by a skilled craftsman in Srinagar over a span of 120 hours.
+                            </p>
+                            <p>
+                              Supports sustainable fair-trade livelihoods in the Kashmir valley.
+                            </p>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1010,7 +1102,7 @@ export default function ProductDetailPage() {
       )}
 
       {/* 6. Customer Reviews & Social Proof Section */}
-      <section className="mx-auto max-w-[1200px] px-6 sm:px-10 lg:px-16 w-full py-16 border-t border-[#ECE7E1]">
+      <section className="mx-auto max-w-[1720px] 2xl:max-w-[1920px] 3xl:max-w-[2200px] px-6 sm:px-10 lg:px-16 w-full py-16 border-t border-[#ECE7E1]">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
           <div>
             <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-[#B58A5B] block mb-2">
@@ -1021,7 +1113,7 @@ export default function ProductDetailPage() {
             </h2>
           </div>
           <button
-            onClick={() => setReviewModalOpen(true)}
+            onClick={handleOpenReviewModal}
             className="bg-[#1C1916] text-white px-7 py-3 font-sans text-[10px] font-semibold uppercase tracking-[0.18em] rounded-[1px] hover:bg-[#B58A5B] transition-colors cursor-pointer w-fit"
           >
             Write a Review
@@ -1113,131 +1205,220 @@ export default function ProductDetailPage() {
         </div>
       </section>
 
-      {/* Write a Review Modal */}
-      {reviewModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1C1916]/70 backdrop-blur-sm p-4 animate-fadeIn">
-          <div className="bg-[#FAF8F5] border border-[#E6DED4] rounded-[2px] max-w-[540px] w-full p-6 sm:p-8 max-h-[90vh] overflow-y-auto relative shadow-2xl">
-            <button
+      {/* Write a Review Modal / Mobile Framer Motion Bottom Sheet Drawer */}
+      <AnimatePresence>
+        {reviewModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="fixed inset-0 z-50 flex items-end sm:items-center sm:justify-center"
+          >
+            {/* Backdrop Overlay */}
+            <motion.div
               onClick={() => setReviewModalOpen(false)}
-              className="absolute top-5 right-5 text-[#1C1916]/60 hover:text-[#1C1916] p-1.5 transition-colors cursor-pointer"
-              aria-label="Close modal"
+              className="fixed inset-0 bg-[#1C1916]/70 backdrop-blur-sm"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            />
+
+            {/* Draggable Drawer Sheet Container */}
+            <motion.div
+              ref={drawerRef}
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{
+                type: "spring",
+                damping: 32,
+                stiffness: 350,
+                mass: 0.8,
+              }}
+              drag="y"
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={{ top: 0, bottom: 0.8 }}
+              onDragEnd={(e, info) => {
+                const drawerHeight = drawerRef.current
+                  ? drawerRef.current.offsetHeight
+                  : window.innerHeight * 0.9;
+                const threshold = drawerHeight * 0.20; // 20% down threshold
+
+                // 1. DIRECTION CHECK: If final velocity is moving UP (swiping upward), stay OPEN and snap back UP!
+                if (info.velocity.y < -50) {
+                  return;
+                }
+
+                // 2. DISMISSAL CHECK: If dragged past 20% threshold OR fast downward flick:
+                if (info.offset.y > threshold || info.velocity.y > 250) {
+                  setReviewModalOpen(false);
+                }
+              }}
+              className="relative z-10 bg-[#FAF8F5] border border-[#E6DED4] rounded-t-[24px] sm:rounded-[2px] max-w-[540px] w-full h-[90vh] sm:h-auto sm:max-h-[90vh] p-6 sm:p-8 overflow-y-auto shadow-2xl touch-none"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Write a Review Drawer"
             >
-              <X size={18} />
-            </button>
+              {/* Header Drag Handle Region */}
+              <div
+                className="w-full pt-2 pb-5 -mt-3 -mx-2 px-2 cursor-grab active:cursor-grabbing flex flex-col items-center justify-center sm:hidden select-none"
+                title="Drag down 20% to close"
+              >
+                <div className="w-14 h-1.5 bg-[#B58A5B]/60 hover:bg-[#B58A5B] rounded-full transition-colors pointer-events-none" />
+              </div>
 
-            <h3 className="font-serif text-[24px] font-light text-[#1C1916] mb-1">Write a Review</h3>
-            <p className="font-sans text-[12px] font-light text-[#B58A5B] mb-6">
-              Only verified customers with a delivered order for "{product.name}" can post a review.
-            </p>
+              <button
+                onClick={() => setReviewModalOpen(false)}
+                className="absolute top-5 right-5 text-[#1C1916]/60 hover:text-[#1C1916] p-1.5 transition-colors cursor-pointer"
+                aria-label="Close modal"
+              >
+                <X size={18} />
+              </button>
 
-            <form onSubmit={handleReviewSubmit} className="space-y-4">
-              <div>
-                <label className="block font-sans text-[10px] font-semibold uppercase tracking-[0.15em] text-[#1C1916] mb-2">
-                  Rating *
-                </label>
-                <div className="flex items-center gap-2">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      type="button"
-                      key={star}
-                      onClick={() => setReviewForm((prev) => ({ ...prev, rating: star }))}
-                      className="text-[#B58A5B] p-1 hover:scale-110 transition-transform cursor-pointer"
-                    >
-                      <Star size={22} fill={star <= reviewForm.rating ? "currentColor" : "none"} />
-                    </button>
-                  ))}
+              <h3 className="font-serif text-[24px] font-light text-[#1C1916] mb-1">Write a Review</h3>
+              <p className="font-sans text-[12px] font-light text-[#B58A5B] mb-4">
+                Only verified customers with a delivered order for "{product.name}" can post a review.
+              </p>
+
+              {/* Logged-in Customer info badge */}
+              <div className="bg-[#F5EFE7] p-3.5 rounded-[2px] border border-[#E6DED4] flex items-center justify-between mb-5">
+                <span className="font-sans text-[11px] text-[#6B6560]">Reviewing as:</span>
+                <span className="font-sans text-[12px] font-semibold text-[#1C1916]">
+                  {user?.name || user?.email}
+                </span>
+              </div>
+
+              <form onSubmit={handleReviewSubmit} className="space-y-4">
+                <div>
+                  <label className="block font-sans text-[10px] font-semibold uppercase tracking-[0.15em] text-[#1C1916] mb-2">
+                    Rating *
+                  </label>
+                  <div className="flex items-center gap-2">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        type="button"
+                        key={star}
+                        onClick={() => setReviewForm((prev) => ({ ...prev, rating: star }))}
+                        className="text-[#B58A5B] p-1 hover:scale-110 transition-transform cursor-pointer"
+                      >
+                        <Star size={22} fill={star <= reviewForm.rating ? "currentColor" : "none"} />
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              <div>
-                <label className="block font-sans text-[10px] font-semibold uppercase tracking-[0.15em] text-[#1C1916] mb-1">
-                  Review Title
-                </label>
-                <input
-                  type="text"
-                  value={reviewForm.title}
-                  onChange={(e) => setReviewForm((prev) => ({ ...prev, title: e.target.value }))}
-                  placeholder="e.g. Magnificent quality and touch"
-                  className="w-full border border-[#ECE7E1] bg-white p-3 text-[13px] text-[#1C1916] rounded-[1px] focus:border-[#1C1916] outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block font-sans text-[10px] font-semibold uppercase tracking-[0.15em] text-[#1C1916] mb-1">
-                  Review Comment *
-                </label>
-                <textarea
-                  rows={4}
-                  required
-                  value={reviewForm.comment}
-                  onChange={(e) => setReviewForm((prev) => ({ ...prev, comment: e.target.value }))}
-                  placeholder="Describe the fabric texture, weight, color accuracy, and overall experience..."
-                  className="w-full border border-[#ECE7E1] bg-white p-3 text-[13px] text-[#1C1916] rounded-[1px] focus:border-[#1C1916] outline-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block font-sans text-[10px] font-semibold uppercase tracking-[0.15em] text-[#1C1916] mb-1">
-                    Your Name *
+                    Review Title
                   </label>
                   <input
                     type="text"
-                    required
-                    value={reviewForm.name}
-                    onChange={(e) => setReviewForm((prev) => ({ ...prev, name: e.target.value }))}
-                    placeholder="Full name"
+                    value={reviewForm.title}
+                    onChange={(e) => setReviewForm((prev) => ({ ...prev, title: e.target.value }))}
+                    placeholder="e.g. Magnificent quality and touch"
                     className="w-full border border-[#ECE7E1] bg-white p-3 text-[13px] text-[#1C1916] rounded-[1px] focus:border-[#1C1916] outline-none"
                   />
                 </div>
+
                 <div>
                   <label className="block font-sans text-[10px] font-semibold uppercase tracking-[0.15em] text-[#1C1916] mb-1">
-                    Email Address *
+                    Review Comment *
                   </label>
-                  <input
-                    type="email"
+                  <textarea
+                    rows={4}
                     required
-                    value={reviewForm.email}
-                    onChange={(e) => setReviewForm((prev) => ({ ...prev, email: e.target.value }))}
-                    placeholder="email@example.com"
+                    value={reviewForm.comment}
+                    onChange={(e) => setReviewForm((prev) => ({ ...prev, comment: e.target.value }))}
+                    placeholder="Describe the fabric texture, weight, color accuracy, and overall experience..."
                     className="w-full border border-[#ECE7E1] bg-white p-3 text-[13px] text-[#1C1916] rounded-[1px] focus:border-[#1C1916] outline-none"
                   />
                 </div>
-              </div>
 
-              <div>
-                <label className="block font-sans text-[10px] font-semibold uppercase tracking-[0.15em] text-[#1C1916] mb-1">
-                  Optional Photo URL
-                </label>
-                <input
-                  type="url"
-                  value={reviewForm.photoUrl}
-                  onChange={(e) => setReviewForm((prev) => ({ ...prev, photoUrl: e.target.value }))}
-                  placeholder="https://..."
-                  className="w-full border border-[#ECE7E1] bg-white p-3 text-[13px] text-[#1C1916] rounded-[1px] focus:border-[#1C1916] outline-none"
-                />
-              </div>
+                {/* Click / Drag Image Upload (Up to 3 images, 5MB max each) */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block font-sans text-[10px] font-semibold uppercase tracking-[0.15em] text-[#1C1916]">
+                      Upload Product Photos (Optional)
+                    </label>
+                    <span className="font-sans text-[10px] font-semibold text-[#B58A5B]">
+                      {reviewForm.photos?.length || 0} / 3 photos
+                    </span>
+                  </div>
+                  
+                  {(reviewForm.photos?.length || 0) < 3 ? (
+                    <label className="border border-dashed border-[#B58A5B]/60 bg-white hover:bg-[#FAF8F5] p-5 rounded-[2px] flex flex-col items-center justify-center cursor-pointer transition-colors text-center group">
+                      <Upload size={22} className="text-[#B58A5B] mb-1.5 group-hover:scale-110 transition-transform" />
+                      <span className="font-sans text-[12px] font-medium text-[#1C1916]">
+                        Click or drag photos here to upload
+                      </span>
+                      <span className="font-sans text-[10px] text-[#8A857E] mt-0.5">
+                        Up to 3 images allowed (Max 5MB each)
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handlePhotoUpload}
+                        className="hidden"
+                      />
+                    </label>
+                  ) : (
+                    <div className="bg-[#F5EFE7] p-3 rounded-[2px] border border-[#E6DED4] text-center">
+                      <p className="font-sans text-[11px] text-[#B58A5B] font-medium">
+                        Maximum limit of 3 photos reached. Remove a photo below to upload a different one.
+                      </p>
+                    </div>
+                  )}
 
-              <div className="mt-6 pt-4 border-t border-[#ECE7E1] flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setReviewModalOpen(false)}
-                  className="px-5 py-2.5 border border-[#1C1916]/30 font-sans text-[10px] font-semibold uppercase tracking-[0.15em] text-[#1C1916] rounded-[1px] hover:bg-[#1C1916]/5 transition-colors cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submittingReview}
-                  className="bg-[#1C1916] text-white px-7 py-2.5 font-sans text-[10px] font-semibold uppercase tracking-[0.18em] rounded-[1px] hover:bg-[#B58A5B] transition-colors cursor-pointer"
-                >
-                  {submittingReview ? "Submitting..." : "Submit Review"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+                  {uploadingPhotos && (
+                    <div className="flex items-center gap-2 mt-2 font-sans text-[11px] text-[#B58A5B]">
+                      <div className="w-3.5 h-3.5 border-2 border-[#B58A5B] border-t-transparent rounded-full animate-spin" />
+                      Uploading photos...
+                    </div>
+                  )}
+
+                  {/* Uploaded Thumbnails Preview */}
+                  {reviewForm.photos && reviewForm.photos.length > 0 && (
+                    <div className="flex flex-wrap gap-2.5 mt-3">
+                      {reviewForm.photos.map((photo, idx) => (
+                        <div key={idx} className="relative w-16 h-16 rounded-[2px] overflow-hidden border border-[#E6DED4] group">
+                          <img src={photo} alt={`Upload ${idx + 1}`} className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => handleRemovePhoto(idx)}
+                            className="absolute top-1 right-1 bg-[#1C1916]/80 text-white p-0.5 rounded-full hover:bg-red-600 transition-colors"
+                            title="Remove photo"
+                          >
+                            <X size={10} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-[#ECE7E1] flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setReviewModalOpen(false)}
+                    className="px-5 py-2.5 border border-[#1C1916]/30 font-sans text-[10px] font-semibold uppercase tracking-[0.15em] text-[#1C1916] rounded-[1px] hover:bg-[#1C1916]/5 transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submittingReview || uploadingPhotos}
+                    className="bg-[#1C1916] text-white px-7 py-2.5 font-sans text-[10px] font-semibold uppercase tracking-[0.18em] rounded-[1px] hover:bg-[#B58A5B] transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    {submittingReview ? "Submitting..." : "Submit Review"}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Size & Dimensions Right-Side Drawer */}
       <div

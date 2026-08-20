@@ -3,7 +3,7 @@ import { ArrowRight } from "lucide-react";
 export default function CraftSection() {
   return (
     <section className="overflow-hidden bg-[#FAF8F5] py-20 sm:py-28 lg:py-36">
-      <div className="mx-auto max-w-[1200px] px-6 sm:px-10 lg:px-16 w-full grid grid-cols-1 items-center gap-14 sm:gap-18 lg:grid-cols-[1.05fr_0.95fr] lg:gap-24 xl:gap-32">
+      <div className="mx-auto max-w-[1720px] 2xl:max-w-[1920px] 3xl:max-w-[2200px] px-6 sm:px-10 lg:px-16 w-full grid grid-cols-1 items-center gap-14 sm:gap-18 lg:grid-cols-[1.05fr_0.95fr] lg:gap-24 xl:gap-32">
         <div className="relative w-full">
           <div
             className="relative w-full overflow-hidden rounded-[2px]"

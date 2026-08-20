@@ -5,11 +5,11 @@ const ProductSchema = new mongoose.Schema({
   slug: { type: String, required: true, unique: true },
   sku: { type: String, required: true, unique: true },
   category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', default: null },
-  basePrice: { type: Number, required: true },
-  discountPrice: { type: Number, default: null },
-  costPrice: { type: Number, default: null },
-  quantity: { type: Number, default: 0 },
-  lowStockThreshold: { type: Number, default: 5 },
+  basePrice: { type: Number, required: true, min: 0 },
+  discountPrice: { type: Number, default: null, min: 0 },
+  costPrice: { type: Number, default: null, min: 0 },
+  quantity: { type: Number, default: 0, min: 0 },
+  lowStockThreshold: { type: Number, default: 5, min: 0 },
   status: { type: String, enum: ['draft', 'published', 'archived'], default: 'draft' },
   tags: [{ type: String }],
   gender: { type: String, enum: ['men', 'women', 'neutral'], default: 'neutral' },
@@ -20,6 +20,9 @@ const ProductSchema = new mongoose.Schema({
   size: { type: String, default: '' },
   description: { type: String, default: '' },
   shortDescription: { type: String, default: '' },
+  productDetails: { type: String, default: '' },
+  careInstructions: { type: String, default: '' },
+  artisanStory: { type: String, default: '' },
   images: [{
     id: { type: String },
     name: { type: String },
@@ -32,9 +35,9 @@ const ProductSchema = new mongoose.Schema({
   },
   sizes: [{
     size: { type: String, required: true },
-    price: { type: Number, required: true },
-    discountPrice: { type: Number, default: null },
-    quantity: { type: Number, default: 0 }
+    price: { type: Number, required: true, min: 0 },
+    discountPrice: { type: Number, default: null, min: 0 },
+    quantity: { type: Number, default: 0, min: 0 }
   }],
   colors: [{
     name: { type: String, required: true },
@@ -42,9 +45,9 @@ const ProductSchema = new mongoose.Schema({
     galleryImages: [{ type: String }],
     sizes: [{
       size: { type: String, required: true },
-      price: { type: Number, required: true },
-      discountPrice: { type: Number, default: null },
-      quantity: { type: Number, default: 0 }
+      price: { type: Number, required: true, min: 0 },
+      discountPrice: { type: Number, default: null, min: 0 },
+      quantity: { type: Number, default: 0, min: 0 }
     }]
   }]
 }, { timestamps: true });

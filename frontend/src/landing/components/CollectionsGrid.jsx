@@ -74,7 +74,7 @@ export default function CollectionsGrid() {
 
     return (
       <section id="collections" className="overflow-hidden bg-[#F3ECE3] py-20 sm:py-28 lg:py-36">
-        <div className="mx-auto max-w-[1200px] px-6 sm:px-10 lg:px-16 w-full">
+      <div className="mx-auto max-w-[1720px] 2xl:max-w-[1920px] 3xl:max-w-[2200px] px-6 sm:px-10 lg:px-16 w-full">
           <div className="text-center mb-16 sm:mb-20">
             <p className="mb-3 font-sans text-[10px] font-semibold uppercase tracking-[0.3em] text-[#B58A5B] sm:mb-4">
               Collections

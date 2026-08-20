@@ -51,7 +51,7 @@ const RELATED = [
 export default function RelatedProducts() {
   return (
     <section className="bg-[#FAF8F5] py-16 sm:py-20 lg:py-24 border-t border-[#ECE7E1]">
-      <div className="mx-auto max-w-[1200px] px-6 sm:px-10 lg:px-16 w-full">
+      <div className="mx-auto max-w-[1440px] 2xl:max-w-[1720px] px-6 sm:px-10 lg:px-16 w-full">
         
         {/* Section Title */}
         <h2 className="text-center font-sans text-[10px] sm:text-[11px] font-semibold tracking-[0.25em] uppercase text-[#8A857E] mb-12">
@@ -59,8 +59,8 @@ export default function RelatedProducts() {
         </h2>
 
         {/* Product Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 lg:gap-6 xl:gap-8">
-          {RELATED.slice(0, 4).map((p) => (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 sm:gap-8 lg:gap-8">
+          {RELATED.slice(0, 5).map((p) => (
             <ProductCard
               key={p.id}
               p={p}

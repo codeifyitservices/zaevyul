@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Printer, CheckCircle, Download, RotateCw } from 'lucide-react';
+import { ArrowLeft, Printer, CheckCircle, Download, RotateCw, Eye, FileText } from 'lucide-react';
 import { formatCurrency, formatDate, ORDER_STATUS } from '../../../lib/mockData';
 import PageHeader from '../../../components/PageHeader';
 import StatusBadge from '../../../components/StatusBadge';
 import { useToast } from '../../../context/ToastContext';
 import { api } from '../../../lib/api';
+import InvoiceModal from './InvoiceModal';
 
 const STATUS_FLOW = ['pending', 'processing', 'packed', 'shipped', 'delivered'];
 
@@ -19,6 +20,17 @@ export default function OrderDetail() {
   const [trackingInput, setTrackingInput] = useState('');
   const [downloadingInvoice, setDownloadingInvoice] = useState(false);
   const [regeneratingInvoice, setRegeneratingInvoice] = useState(false);
+  const [invoiceModalOpen, setInvoiceModalOpen] = useState(false);
+
+  const handleViewInvoice = async () => {
+    if (!order?._id && !order?.id) return;
+    try {
+      const orderId = order._id || order.id;
+      await api.orders.viewInvoiceInNewTab(orderId);
+    } catch (err) {
+      toast(err.message || 'Failed to open invoice', 'error');
+    }
+  };
 
   const handleDownloadInvoice = async () => {
     if (!order?._id && !order?.id) return;
@@ -118,6 +130,25 @@ export default function OrderDetail() {
   const customerId = customer?._id || order.customer;
   const currentStep = STATUS_FLOW.indexOf(order.status);
 
+  // Exact Order Summary Math Calculation
+  const subtotal = order.subtotal || 0;
+  const shipping = order.shipping || 0;
+  const discount = order.discount || 0;
+  const total = order.total || 0;
+  const calculatedTax = order.taxAmount ?? Math.max(0, total - (subtotal + shipping - discount));
+  const taxLabel = order.taxName
+    ? `${order.taxName}${order.taxRate ? ` (${order.taxRate}%)` : ''}`
+    : order.taxRate
+    ? `GST / Tax (${order.taxRate}%)`
+    : 'GST / Tax';
+
+  const summaryRows = [
+    ['Subtotal', formatCurrency(subtotal)],
+    discount > 0 ? ['Discount', `−${formatCurrency(discount)}`] : null,
+    calculatedTax > 0 ? [taxLabel, formatCurrency(calculatedTax)] : null,
+    ['Shipping', shipping > 0 ? formatCurrency(shipping) : 'Free'],
+  ].filter(Boolean);
+
   return (
     <div className="page page-enter">
       <PageHeader
@@ -129,6 +160,15 @@ export default function OrderDetail() {
             <button
               type="button"
               className="btn btn-secondary btn-sm"
+              onClick={handleViewInvoice}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}
+            >
+              <Eye size={14} />
+              View Invoice
+            </button>
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
               disabled={downloadingInvoice}
               onClick={handleDownloadInvoice}
               style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}
@@ -215,7 +255,14 @@ export default function OrderDetail() {
               <tbody>
                 {order.items.map((item, i) => (
                   <tr key={i}>
-                    <td style={{ fontSize: 13, fontWeight: 500 }}>{item.name}</td>
+                    <td style={{ fontSize: 13, fontWeight: 500 }}>
+                      {item.name}
+                      {(item.color || item.size) && (
+                        <span style={{ display: 'block', fontSize: 11, color: 'var(--color-text-caption)', marginTop: 2 }}>
+                          {item.color ? `Color: ${item.color}` : ''} {item.size ? `| Size: ${item.size}` : ''}
+                        </span>
+                      )}
+                    </td>
                     <td style={{ fontSize: 13 }}>{item.qty}</td>
                     <td style={{ fontSize: 13 }}>{formatCurrency(item.price)}</td>
                     <td style={{ fontSize: 13, fontWeight: 500 }}>{formatCurrency(item.price * item.qty)}</td>
@@ -223,19 +270,18 @@ export default function OrderDetail() {
                 ))}
               </tbody>
             </table>
-            {/* Totals */}
-            <div style={{ padding: '12px 16px', borderTop: '1px solid var(--color-border)' }}>
-              {[
-                ['Subtotal', formatCurrency(order.subtotal)],
-                ['Shipping', formatCurrency(order.shipping)],
-                order.discount ? ['Discount', `−${formatCurrency(order.discount)}`] : null,
-              ].filter(Boolean).map(([k, v]) => (
-                <div key={k} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--color-text-secondary)', marginBottom: 4 }}>
-                  <span>{k}</span><span>{v}</span>
+
+            {/* Totals Breakdown — Mathematically Exact with Tax Row */}
+            <div style={{ padding: '16px 20px', borderTop: '1px solid var(--color-border)' }}>
+              {summaryRows.map(([k, v]) => (
+                <div key={k} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 6 }}>
+                  <span>{k}</span>
+                  <span style={{ fontWeight: 500, color: 'var(--color-text-primary)' }}>{v}</span>
                 </div>
               ))}
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 600, marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--color-border)' }}>
-                <span>Total</span><span>{formatCurrency(order.total)}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 15, fontWeight: 700, marginTop: 10, paddingTop: 10, borderTop: '2px solid var(--color-border)', color: 'var(--color-text-primary)' }}>
+                <span>Total</span>
+                <span>{formatCurrency(total)}</span>
               </div>
             </div>
           </div>
@@ -321,6 +367,15 @@ export default function OrderDetail() {
           </div>
         </div>
       </div>
+
+      {/* Invoice Preview Modal */}
+      <InvoiceModal
+        order={order}
+        isOpen={invoiceModalOpen}
+        onClose={() => setInvoiceModalOpen(false)}
+        onDownload={handleDownloadInvoice}
+        downloading={downloadingInvoice}
+      />
     </div>
   );
 }

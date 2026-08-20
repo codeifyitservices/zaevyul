@@ -15,8 +15,12 @@ import {
   getProductReviews,
   createProductReview,
 } from "../controllers/public.js";
+import { uploadImage } from "../controllers/upload.js";
 
 const router = express.Router();
+
+// Upload
+router.post("/upload", uploadImage);
 
 // Orders
 router.get("/orders/:identifier", getPublicOrderById);

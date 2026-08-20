@@ -12,7 +12,7 @@ export default function StoryBanner() {
         <div className="absolute inset-0 bg-black/60" />
       </div>
 
-      <div className="absolute inset-0 mx-auto flex max-w-[1200px] flex-col items-center justify-center px-6 text-center sm:px-10 lg:px-16">
+      <div className="absolute inset-0 mx-auto flex max-w-[1720px] 2xl:max-w-[1920px] 3xl:max-w-[2200px] flex-col items-center justify-center px-6 text-center sm:px-10 lg:px-16">
         <p className="mb-5 font-sans text-[9px] font-semibold uppercase tracking-[0.3em] text-white/70 sm:mb-6 sm:text-[10px] sm:tracking-[0.35em]">
           The House of Zaevyul
         </p>

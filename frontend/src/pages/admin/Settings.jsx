@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Save, Plus, Edit2, Trash2, X, AlertTriangle } from 'lucide-react';
-import { MOCK_SETTINGS } from '../../lib/mockData';
 import PageHeader from '../../components/PageHeader';
 import { useToast } from '../../context/ToastContext';
 import { api } from '../../lib/api';
@@ -15,10 +14,20 @@ const COUNTRIES_LIST = [
   { code: 'AU', name: 'Australia' }
 ];
 
+const DEFAULT_SETTINGS_STATE = {
+  storeName: 'ZAEVYUL',
+  tagline: 'Timeless elegance, crafted for you.',
+  contactEmail: 'care@zaevyul.com',
+  contactPhone: '+91 98765 43210',
+  currency: 'INR',
+  currencySymbol: '₹',
+  socialLinks: {},
+  paymentGateways: {}
+};
 
 export default function Settings() {
   const toast = useToast();
-  const [settings, setSettings] = useState(MOCK_SETTINGS);
+  const [settings, setSettings] = useState(DEFAULT_SETTINGS_STATE);
   const [activeSection, setActiveSection] = useState('General');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -37,8 +46,8 @@ export default function Settings() {
   });
 
   const set = (k, v) => setSettings(s => ({ ...s, [k]: v }));
-  const setSocial = (k, v) => setSettings(s => ({ ...s, socialLinks: { ...s.socialLinks, [k]: v } }));
-  const setPayment = (gw, k, v) => setSettings(s => ({ ...s, paymentGateways: { ...s.paymentGateways, [gw]: { ...s.paymentGateways[gw], [k]: v } } }));
+  const setSocial = (k, v) => setSettings(s => ({ ...s, socialLinks: { ...(s.socialLinks || {}), [k]: v } }));
+  const setPayment = (gw, k, v) => setSettings(s => ({ ...s, paymentGateways: { ...(s.paymentGateways || {}), [gw]: { ...((s.paymentGateways || {})[gw] || {}), [k]: v } } }));
 
   useEffect(() => {
     let active = true;
@@ -47,7 +56,7 @@ export default function Settings() {
         setLoading(true);
         const data = await api.settings.get();
         if (active) {
-          setSettings(data || MOCK_SETTINGS);
+          setSettings(data || DEFAULT_SETTINGS_STATE);
         }
       } catch (err) {
         toast(err.message || 'Failed to load settings', 'error');
@@ -332,7 +341,13 @@ export default function Settings() {
             {activeSection === 'Shipping' && (
               <div className="field-group" style={{ maxWidth: 220 }}>
                 <label className="field-label">Free Shipping Above (₹)</label>
-                <input className="field-input" type="number" value={settings.freeShippingAbove} onChange={e => set('freeShippingAbove', +e.target.value)} />
+                <input
+                  className="field-input"
+                  type="number"
+                  min="0"
+                  value={settings.freeShippingAbove}
+                  onChange={e => set('freeShippingAbove', Math.max(0, +e.target.value || 0))}
+                />
                 <span className="field-hint">Set to 0 to disable free shipping threshold</span>
               </div>
             )}
@@ -429,7 +444,16 @@ export default function Settings() {
 
                 <div className="field-group">
                   <label className="field-label">Rate (%) *</label>
-                  <input className="field-input" type="number" step="0.01" value={ruleForm.rate} onChange={e => setRuleForm(f => ({ ...f, rate: +e.target.value }))} placeholder="18" required />
+                  <input
+                    className="field-input"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={ruleForm.rate}
+                    onChange={e => setRuleForm(f => ({ ...f, rate: Math.max(0, +e.target.value || 0) }))}
+                    placeholder="18"
+                    required
+                  />
                 </div>
 
                 <div className="field-group" style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8 }}>

@@ -26,21 +26,6 @@ import { formatCurrency, formatDate } from "../../lib/mockData";
 import StatusBadge from "../../components/StatusBadge";
 import { useToast } from "../../context/ToastContext";
 
-const CHANNEL_DATA = [
-  { name: "Website", value: 59.8, amount: 745850, color: "#B58A5B" },
-  { name: "Mobile", value: 26.1, amount: 325640, color: "#D9C2A7" },
-  { name: "Instagram", value: 10.0, amount: 124360, color: "#E8DED1" },
-  { name: "Others", value: 4.1, amount: 50000, color: "#FAF8F5" },
-];
-
-const TOP_PRODUCTS = [
-  { name: "Kashmir Ivory Pashmina Shawl", sold: 152, revenue: 228000 },
-  { name: "Heritage Weave Stole", sold: 98, revenue: 147000 },
-  { name: "Cashmere Blend Wrap", sold: 86, revenue: 112000 },
-  { name: "Embroidered Pashmina Shawl", sold: 72, revenue: 98500 },
-  { name: "Classic Pashmina Stole", sold: 65, revenue: 82000 },
-];
-
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
@@ -103,8 +88,8 @@ export default function Dashboard() {
   const kpis = [
     {
       title: "Total Revenue",
-      value: formatCurrency(data?.stats?.totalRevenue || 1245850),
-      change: "+18.6%",
+      value: formatCurrency(data?.stats?.totalRevenue ?? 0),
+      change: "Live Store Revenue",
       trend: "up",
       icon: ShoppingBag,
       color: "#B58A5B",
@@ -112,8 +97,8 @@ export default function Dashboard() {
     },
     {
       title: "Total Orders",
-      value: data?.stats?.totalOrders || 256,
-      change: "+12.4%",
+      value: data?.stats?.totalOrders ?? 0,
+      change: "Active Store Orders",
       trend: "up",
       icon: ShoppingCart,
       color: "#2A4A6A",
@@ -121,8 +106,8 @@ export default function Dashboard() {
     },
     {
       title: "New Customers",
-      value: data?.stats?.totalCustomers || 92,
-      change: "+16.3%",
+      value: data?.stats?.totalCustomers ?? 0,
+      change: "Registered Customers",
       trend: "up",
       icon: Users,
       color: "#4A6FA5",
@@ -130,8 +115,8 @@ export default function Dashboard() {
     },
     {
       title: "Low Stock Alert",
-      value: data?.stats?.lowStockCount || 24,
-      change: "View details",
+      value: data?.stats?.lowStockCount ?? 0,
+      change: "Items Needing Restock",
       trend: "link",
       icon: AlertTriangle,
       color: "#C94C4C",
@@ -494,7 +479,8 @@ export default function Dashboard() {
               justifyContent: "space-around",
             }}
           >
-            {(data?.topProducts?.length ? data.topProducts : TOP_PRODUCTS).map((prod, idx) => (
+            {data?.topProducts && data.topProducts.length > 0 ? (
+              data.topProducts.map((prod, idx) => (
               <div
                 key={prod.name + idx}
                 style={{ display: "flex", alignItems: "center", gap: 12 }}
@@ -545,10 +531,14 @@ export default function Dashboard() {
                     color: "var(--color-text-primary)",
                   }}
                 >
-                  {formatCurrency(prod.revenue)}
                 </div>
               </div>
-            ))}
+            ))
+          ) : (
+            <div style={{ textAlign: "center", padding: "20px 0", color: "var(--color-text-caption)", fontSize: 12 }}>
+              No sales records yet
+            </div>
+          )}
           </div>
         </div>
 

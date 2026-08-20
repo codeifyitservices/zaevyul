@@ -307,7 +307,7 @@ export default function CartPage() {
       <main className="flex-1 pt-[68px]">
         {/* Dedicated Minimal Cart Header */}
         <div className="border-b border-[#E6DED4]/60 bg-[#FAF8F5]">
-          <div className="mx-auto max-w-[1280px] w-full px-4 sm:px-10 lg:px-16 py-4 flex items-center justify-between">
+          <div className="mx-auto max-w-[1440px] 2xl:max-w-[1680px] w-full px-4 sm:px-10 lg:px-16 py-4 flex items-center justify-between">
             <button
               onClick={() => navigate(-1)}
               className="group flex items-center gap-2 text-[10px] font-semibold tracking-[0.25em] uppercase text-[#1C1916]/70 hover:text-[#1C1916] cursor-pointer transition-colors duration-200"
@@ -346,7 +346,7 @@ export default function CartPage() {
         </div>
 
         {/* Cart Contents Section */}
-        <div className="mx-auto max-w-[1280px] w-full px-4 sm:px-10 lg:px-16 py-8 sm:py-12">
+        <div className="mx-auto max-w-[1440px] 2xl:max-w-[1680px] w-full px-4 sm:px-10 lg:px-16 py-8 sm:py-12">
           {/* Title Area */}
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-10 pb-6 border-b border-[#E6DED4]/60">
             <div>

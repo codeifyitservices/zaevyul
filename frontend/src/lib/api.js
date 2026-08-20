@@ -13,7 +13,16 @@ const publicRequest = async (url, options = {}) => {
     ...options.headers,
   };
   const res = await fetch(`${PUBLIC_BASE_URL}${url}`, options);
-  const data = await res.json();
+  const contentType = res.headers.get("content-type") || "";
+  let data = {};
+  if (contentType.includes("application/json")) {
+    data = await res.json().catch(() => ({}));
+  } else {
+    const text = await res.text().catch(() => "");
+    if (!res.ok) {
+      throw new Error(`Server returned status ${res.status}: ${res.statusText || "Not Found"}`);
+    }
+  }
   if (!res.ok) throw new Error(data.message || "Public API request failed");
   return data;
 };
@@ -91,7 +100,16 @@ const request = async (url, options = {}) => {
   }
 
   const res = await fetch(`${BASE_URL}${url}`, options);
-  const data = await res.json();
+  const contentType = res.headers.get("content-type") || "";
+  let data = {};
+  if (contentType.includes("application/json")) {
+    data = await res.json().catch(() => ({}));
+  } else {
+    const text = await res.text().catch(() => "");
+    if (!res.ok) {
+      throw new Error(`Server returned status ${res.status}: ${res.statusText || "API Error"}`);
+    }
+  }
   if (!res.ok) throw new Error(data.message || "API request failed");
   return data;
 };
@@ -648,6 +666,41 @@ export const api = {
       a.click();
       window.URL.revokeObjectURL(url);
       a.remove();
+    },
+    viewInvoiceInNewTab: async (orderId) => {
+      const win = window.open("", "_blank");
+      if (win) {
+        win.document.write(
+          "<!DOCTYPE html><html><head><title>Loading Invoice...</title></head><body style='font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#FAF8F5;color:#1C1916;'><p style='font-size:14px;letter-spacing:0.05em;'>Loading Invoice, please wait...</p></body></html>"
+        );
+      }
+      try {
+        const token = sessionStorage.getItem("zae_jwt");
+        const headers = {};
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+
+        const res = await fetch(`${BASE_URL}/orders/${orderId}/invoice`, {
+          headers,
+          credentials: "include",
+        });
+
+        if (!res.ok) {
+          if (win && !win.closed) win.close();
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData.message || "Failed to load invoice PDF.");
+        }
+
+        const blob = await res.blob();
+        const pdfUrl = window.URL.createObjectURL(blob);
+        if (win && !win.closed) {
+          win.location.href = pdfUrl;
+        } else {
+          window.open(pdfUrl, "_blank");
+        }
+      } catch (err) {
+        if (win && !win.closed) win.close();
+        throw err;
+      }
     },
     regenerateInvoice: async (orderId) => {
       const res = await request(`/orders/${orderId}/invoice/regenerate`, {

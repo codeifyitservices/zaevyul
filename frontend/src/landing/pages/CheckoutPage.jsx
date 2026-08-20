@@ -524,7 +524,7 @@ export default function CheckoutPage() {
         </header>
 
         {/* Main Content Area */}
-        <main className="max-w-[1280px] mx-auto px-4 sm:px-10 lg:px-14 pt-6 sm:pt-8 pb-16 sm:pb-20">
+        <main className="max-w-[1440px] 2xl:max-w-[1680px] mx-auto px-4 sm:px-10 lg:px-14 pt-6 sm:pt-8 pb-16 sm:pb-20">
           {/* Checkout Title & Stepper Navigation */}
           <div className="text-center mb-8 sm:mb-10">
             <h1 className="font-serif text-[28px] sm:text-[42px] font-normal text-[#1C1916] mb-4 sm:mb-6">

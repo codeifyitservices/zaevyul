@@ -11,6 +11,7 @@ import { api } from '../../../lib/api';
 
 const BLANK = {
   name: '', slug: '', sku: '', description: '', shortDescription: '',
+  productDetails: '', careInstructions: '', artisanStory: '',
   basePrice: '', discountPrice: '',
   quantity: '', lowStockThreshold: 5, status: 'draft',
   category: '', gender: 'neutral', material: '', color: '', size: '',
@@ -201,9 +202,9 @@ export default function ProductForm() {
 
   const TABS = [
     { id: 'basic',    label: 'Basic Info' },
-    { id: 'pricing',  label: 'Pricing & Stock' },
+    { id: 'variants', label: 'Pricing, Color & Size Variants' },
     { id: 'media',    label: 'Media' },
-    { id: 'variants', label: 'Color & Size Variants' },
+    { id: 'details',  label: 'Product Accordions' },
     { id: 'seo',      label: 'SEO' },
   ];
 
@@ -312,23 +313,6 @@ export default function ProductForm() {
             </div>
           )}
 
-          {activeTab === 'pricing' && (
-            <div className="card">
-              <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <div className="form-section">
-                  <p className="form-section-title">Inventory Alerts</p>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    <div className="field-group">
-                      <label className="field-label">Low Stock Threshold</label>
-                      <input className="field-input" type="number" value={form.lowStockThreshold} placeholder="5"
-                        onChange={e => set('lowStockThreshold', e.target.value)} />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
           {activeTab === 'media' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
@@ -385,6 +369,76 @@ export default function ProductForm() {
 
           {activeTab === 'variants' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {/* Base Pricing & Inventory Alerts */}
+              <div className="card">
+                <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <p className="form-section-title">Base Pricing & Inventory Alerts</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <div className="form-row">
+                      <div className="field-group">
+                        <label className="field-label">Base Price (₹)</label>
+                        <input
+                          className="field-input"
+                          type="number"
+                          min="0"
+                          value={form.basePrice || ''}
+                          placeholder="e.g. 32000"
+                          onChange={e => {
+                            const val = e.target.value === '' ? '' : Math.max(0, Number(e.target.value));
+                            set('basePrice', val);
+                          }}
+                        />
+                      </div>
+                      <div className="field-group">
+                        <label className="field-label">Discount / Sale Price (₹)</label>
+                        <input
+                          className="field-input"
+                          type="number"
+                          min="0"
+                          value={form.discountPrice || ''}
+                          placeholder="Optional sale price"
+                          onChange={e => {
+                            const val = e.target.value === '' ? '' : Math.max(0, Number(e.target.value));
+                            set('discountPrice', val);
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-row">
+                      <div className="field-group">
+                        <label className="field-label">Cost Price (₹)</label>
+                        <input
+                          className="field-input"
+                          type="number"
+                          min="0"
+                          value={form.costPrice || ''}
+                          placeholder="Optional cost for profit reporting"
+                          onChange={e => {
+                            const val = e.target.value === '' ? '' : Math.max(0, Number(e.target.value));
+                            set('costPrice', val);
+                          }}
+                        />
+                      </div>
+                      <div className="field-group">
+                        <label className="field-label">Low Stock Alert Threshold</label>
+                        <input
+                          className="field-input"
+                          type="number"
+                          min="0"
+                          value={form.lowStockThreshold || 5}
+                          placeholder="5"
+                          onChange={e => {
+                            const val = e.target.value === '' ? '' : Math.max(0, Number(e.target.value));
+                            set('lowStockThreshold', val);
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Product Attributes card */}
               <div className="card">
                 <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -613,9 +667,10 @@ export default function ProductForm() {
                                           className="field-input"
                                           style={{ height: 32, fontSize: 12 }}
                                           type="number"
+                                          min="0"
                                           value={cs.price}
                                           placeholder="Price"
-                                          onChange={e => updateColorSize(sIdx, 'price', e.target.value)}
+                                          onChange={e => updateColorSize(sIdx, 'price', e.target.value === '' ? '' : Math.max(0, Number(e.target.value)))}
                                         />
                                       </div>
                                       <div className="field-group">
@@ -624,9 +679,10 @@ export default function ProductForm() {
                                           className="field-input"
                                           style={{ height: 32, fontSize: 12 }}
                                           type="number"
+                                          min="0"
                                           value={cs.discountPrice || ''}
                                           placeholder="Optional"
-                                          onChange={e => updateColorSize(sIdx, 'discountPrice', e.target.value ? Number(e.target.value) : null)}
+                                          onChange={e => updateColorSize(sIdx, 'discountPrice', e.target.value ? Math.max(0, Number(e.target.value)) : null)}
                                         />
                                       </div>
                                       <div className="field-group">
@@ -635,9 +691,10 @@ export default function ProductForm() {
                                           className="field-input"
                                           style={{ height: 32, fontSize: 12 }}
                                           type="number"
+                                          min="0"
                                           value={cs.quantity}
                                           placeholder="0"
-                                          onChange={e => updateColorSize(sIdx, 'quantity', Number(e.target.value) || 0)}
+                                          onChange={e => updateColorSize(sIdx, 'quantity', e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)))}
                                         />
                                       </div>
                                       <button
@@ -666,6 +723,56 @@ export default function ProductForm() {
                       })}
                     </div>
                   )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'details' && (
+            <div className="card">
+              <div className="card-header">
+                <div>
+                  <span className="card-title">Product Specific Accordions</span>
+                  <p style={{ fontSize: 12, color: 'var(--color-text-caption)', marginTop: 2 }}>
+                    Customise the 3 product-specific accordion sections displayed on the storefront (Product Details, Care Instructions, Artisan Story).
+                  </p>
+                </div>
+              </div>
+              <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+                <div className="field-group">
+                  <label className="field-label">1. Product Details</label>
+                  <textarea
+                    className="field-textarea"
+                    rows={4}
+                    value={form.productDetails || ''}
+                    placeholder={`100% pure premium cashmere (Pashmina).\nAuthentic hand-spun yarn and hand-loomed weave.\nFeatures traditional Sozni fine needle embroidery along borders.\nDimensions: 70 x 200 cm (approximately 28 x 80 inches).`}
+                    onChange={e => set('productDetails', e.target.value)}
+                  />
+                  <span className="field-hint">Specify exact fabric, weave, embroidery type, and dimensions. Separate points with newlines.</span>
+                </div>
+
+                <div className="field-group">
+                  <label className="field-label">2. Care Instructions</label>
+                  <textarea
+                    className="field-textarea"
+                    rows={4}
+                    value={form.careInstructions || ''}
+                    placeholder={`Dry clean only.\nStore in a cool, dry place wrapped in a muslin cloth to protect from moths.\nIron on low heat under a protective cotton sheet if necessary.`}
+                    onChange={e => set('careInstructions', e.target.value)}
+                  />
+                  <span className="field-hint">Specific washing, ironing, and preservation instructions. Separate points with newlines.</span>
+                </div>
+
+                <div className="field-group">
+                  <label className="field-label">3. Artisan Story</label>
+                  <textarea
+                    className="field-textarea"
+                    rows={4}
+                    value={form.artisanStory || ''}
+                    placeholder={`Hand-spun by Kashmiri women and hand-woven by local master weavers.\nEmbroidered by a skilled craftsman in Srinagar over a span of 120 hours.\nSupports sustainable fair-trade livelihoods in the Kashmir valley.`}
+                    onChange={e => set('artisanStory', e.target.value)}
+                  />
+                  <span className="field-hint">Origin story, craft hours, heritage technique, and artisan impact. Separate points with newlines.</span>
                 </div>
               </div>
             </div>

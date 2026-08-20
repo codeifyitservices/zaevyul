@@ -16,6 +16,7 @@ export const getReports = async (req, res) => {
       categoryAgg,
       monthlyReportAgg,
       topProductsAgg,
+      paymentMethodAgg,
     ] = await Promise.all([
       // 1. Count customers
       Customer.countDocuments(),
@@ -44,13 +45,13 @@ export const getReports = async (req, res) => {
 
       // 7. Revenue aggregation
       Order.aggregate([
-        { $match: { status: 'delivered' } },
+        { $match: { status: { $ne: 'cancelled' } } },
         { $group: { _id: null, totalRevenue: { $sum: '$total' } } }
       ]),
 
       // 8. Category sales breakdown via aggregation
       Order.aggregate([
-        { $match: { status: 'delivered' } },
+        { $match: { status: { $ne: 'cancelled' } } },
         { $unwind: '$items' },
         {
           $lookup: {
@@ -64,7 +65,8 @@ export const getReports = async (req, res) => {
         {
           $group: {
             _id: '$productDoc.category',
-            qtySold: { $sum: '$items.qty' }
+            qtySold: { $sum: '$items.qty' },
+            revenue: { $sum: { $multiply: ['$items.price', '$items.qty'] } }
           }
         },
         {
@@ -79,7 +81,8 @@ export const getReports = async (req, res) => {
         {
           $project: {
             name: { $ifNull: ['$categoryDoc.name', 'Uncategorised'] },
-            qtySold: 1
+            qtySold: 1,
+            revenue: 1
           }
         }
       ]),
@@ -88,7 +91,7 @@ export const getReports = async (req, res) => {
       Order.aggregate([
         {
           $match: {
-            status: 'delivered',
+            status: { $ne: 'cancelled' },
             createdAt: { $gte: new Date(new Date().setFullYear(new Date().getFullYear() - 1)) }
           }
         },
@@ -118,28 +121,46 @@ export const getReports = async (req, res) => {
         },
         { $sort: { sold: -1 } },
         { $limit: 5 }
+      ]),
+
+      // 11. Payment method / Channel breakdown aggregate
+      Order.aggregate([
+        { $match: { status: { $ne: 'cancelled' } } },
+        {
+          $group: {
+            _id: '$paymentMethod',
+            amount: { $sum: '$total' },
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { amount: -1 } }
       ])
     ]);
 
     const totalRevenue = revenueAgg[0]?.totalRevenue ?? 0;
     const inStockCount = Math.max(0, totalProducts - outOfStockCount - lowStockCount);
 
-    // Calculate category percentage breakdown
+    // Calculate category percentage breakdown directly from database
     const totalQtySold = categoryAgg.reduce((sum, c) => sum + c.qtySold, 0);
-    let categoryBreakdown = categoryAgg
+    const categoryBreakdown = categoryAgg
       .map(c => ({
         name: c.name,
-        value: totalQtySold > 0 ? Math.round((c.qtySold / totalQtySold) * 100) : 0
+        value: totalQtySold > 0 ? Math.round((c.qtySold / totalQtySold) * 100) : 0,
+        qtySold: c.qtySold,
+        revenue: c.revenue || 0
       }))
       .filter(c => c.value > 0);
 
-    if (categoryBreakdown.length === 0) {
-      categoryBreakdown = [
-        { name: 'Shawls', value: 60 },
-        { name: 'Stoles', value: 25 },
-        { name: 'Blankets', value: 15 }
-      ];
-    }
+    // Calculate Payment Method / Channel breakdown directly from database
+    const totalChannelAmount = paymentMethodAgg.reduce((sum, pm) => sum + pm.amount, 0);
+    const channelColors = ['#B58A5B', '#D9C2A7', '#E8DED1', '#825433', '#A6741E'];
+    const channelBreakdown = paymentMethodAgg.map((pm, idx) => ({
+      name: pm._id || 'Direct',
+      amount: pm.amount,
+      count: pm.count,
+      value: totalChannelAmount > 0 ? Math.round((pm.amount / totalChannelAmount) * 1000) / 10 : 0,
+      color: channelColors[idx % channelColors.length]
+    }));
 
     const monthsLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const monthlyReportMap = {};
@@ -182,6 +203,7 @@ export const getReports = async (req, res) => {
         outOfStockCount
       },
       categoryBreakdown,
+      channelBreakdown,
       monthlyReport,
       topProducts
     });

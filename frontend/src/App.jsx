@@ -22,8 +22,11 @@ import ScrollToTop from "./landing/components/ScrollToTop";
 import CartDrawer from "./landing/components/CartDrawer";
 import WishlistDrawer from "./landing/components/WishlistDrawer";
 import ContactPage from "./landing/pages/ContactPage";
+import TermsPage from "./landing/pages/TermsPage";
+import PrivacyPolicyPage from "./landing/pages/PrivacyPolicyPage";
 import { PersonalizationProvider } from "./context/PersonalizationContext";
 import TrackOrderPage from "./landing/pages/TrackOrderPage";
+import FAQPage from "./landing/pages/FAQPage";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
@@ -78,7 +81,13 @@ export default function App() {
                       {/* Customer auth */}
                       <Route path="/login" element={<CustomerLoginPage />} />
                       <Route path="/contact" element={<ContactPage />} />
+                      <Route path="/terms" element={<TermsPage />} />
+                      <Route path="/terms-and-conditions" element={<TermsPage />} />
+                      <Route path="/privacy" element={<PrivacyPolicyPage />} />
+                      <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
                       <Route path="/track-order" element={<TrackOrderPage />} />
+                      <Route path="/faq" element={<FAQPage />} />
+                      <Route path="/faqs" element={<FAQPage />} />
 
                       {/* Admin panel — separate auth context */}
                       <Route path="/admin/*" element={<AdminRouter />} />

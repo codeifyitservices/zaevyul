@@ -62,7 +62,7 @@ export default function FeaturedProducts() {
 
   return (
     <section className="overflow-hidden bg-[#FAF8F5] py-20 sm:py-28 lg:py-36">
-      <div className="mx-auto max-w-[1200px] px-6 sm:px-10 lg:px-16 w-full">
+      <div className="mx-auto max-w-[1720px] 2xl:max-w-[1920px] 3xl:max-w-[2200px] px-6 sm:px-10 lg:px-16 w-full">
         <div className="flex flex-col items-start justify-between gap-5 mb-12 sm:mb-16 sm:flex-row sm:items-end sm:gap-8">
           <h2
             className="font-serif font-normal text-[#1C1916]"
@@ -101,7 +101,7 @@ export default function FeaturedProducts() {
                 p={p}
                 imageRef={i === 0 ? firstImageRef : undefined}
                 showMeta={true}
-                className="w-[78%] min-w-[240px] sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-24px)] xl:w-[calc(33.333%-28px)] shrink-0 snap-start"
+                className="w-[78%] min-w-[240px] sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-24px)] 2xl:w-[calc(25%-24px)] shrink-0 snap-start"
               />
             ))}
           </div>
