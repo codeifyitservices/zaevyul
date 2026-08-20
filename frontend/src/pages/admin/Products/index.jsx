@@ -19,6 +19,7 @@ export default function Products() {
   const [categoryFilter, setCategoryFilter] = useState('');
   const [selected, setSelected] = useState([]);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [togglingId, setTogglingId] = useState(null);
 
@@ -71,6 +72,7 @@ export default function Products() {
   };
 
   const handleBulkDelete = async () => {
+    setDeleteLoading(true);
     try {
       await api.products.bulkDelete(selected);
       setProducts(ps => ps.filter(p => !selected.includes(p._id || p.id)));
@@ -79,6 +81,8 @@ export default function Products() {
       toast('Failed to delete selected products', 'error');
     } finally {
       setSelected([]);
+      setBulkDeleteConfirm(false);
+      setDeleteLoading(false);
     }
   };
 
@@ -282,7 +286,7 @@ export default function Products() {
       {selected.length > 0 && (
         <div className="bulk-bar">
           <span>{selected.length} selected</span>
-          <button className="btn btn-sm" style={{ background: 'rgba(255,255,255,0.15)', color: 'white', marginLeft: 'auto' }} onClick={handleBulkDelete}>
+          <button className="btn btn-sm" style={{ background: 'rgba(255,255,255,0.15)', color: 'white', marginLeft: 'auto' }} onClick={() => setBulkDeleteConfirm(true)}>
             <Trash2 size={12} /> Delete
           </button>
           <button className="btn btn-sm" style={{ background: 'rgba(255,255,255,0.1)', color: 'white' }} onClick={() => setSelected([])}>
@@ -343,6 +347,15 @@ export default function Products() {
         loading={deleteLoading}
         title="Delete product"
         desc="This product will be permanently removed. Any orders referencing it will retain the order history."
+      />
+
+      <DeleteDialog
+        open={bulkDeleteConfirm}
+        onClose={() => setBulkDeleteConfirm(false)}
+        onConfirm={handleBulkDelete}
+        loading={deleteLoading}
+        title="Delete selected products"
+        desc={`Are you sure you want to delete ${selected.length} selected product(s)? This action cannot be undone.`}
       />
     </div>
   );

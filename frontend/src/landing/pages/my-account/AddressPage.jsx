@@ -1,4 +1,5 @@
-import { Pencil, Trash2, Plus, MapPin } from "lucide-react";
+import { useState } from "react";
+import { Pencil, Trash2, Plus, MapPin, AlertCircle, X } from "lucide-react";
 
 export const INITIAL_ADDRESSES = [
   {
@@ -43,10 +44,13 @@ export default function AddressesSection({
   onEditAddress,
   onSetDefault,
 }) {
-  const handleDelete = (id) => {
-    if (onDeleteAddress) {
-      onDeleteAddress(id);
+  const [addressToDelete, setAddressToDelete] = useState(null);
+
+  const confirmDelete = () => {
+    if (addressToDelete && onDeleteAddress) {
+      onDeleteAddress(addressToDelete);
     }
+    setAddressToDelete(null);
   };
 
   const handleSetDefault = (id) => {
@@ -93,7 +97,7 @@ export default function AddressesSection({
                   <Pencil size={15} strokeWidth={1.5} />
                 </button>
                 <button
-                  onClick={() => handleDelete(addr._id || addr.id)}
+                  onClick={() => setAddressToDelete(addr._id || addr.id)}
                   className="hover:text-[#C0554A] transition-colors cursor-pointer"
                   aria-label="Delete address"
                 >
@@ -158,6 +162,43 @@ export default function AddressesSection({
           </span>
         </button>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {addressToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px] p-4">
+          <div className="bg-[#FAF8F5] border border-[#ECE7E1] p-6 sm:p-8 rounded-[2px] max-w-sm w-full shadow-[0_20px_50px_rgba(28,25,22,0.12)]">
+            <div className="flex items-center justify-between pb-3 border-b border-[#ECE7E1] mb-4">
+              <h4 className="font-serif text-[18px] text-[#1C1916] font-medium flex items-center gap-2">
+                <AlertCircle size={17} className="text-[#C0554A]" />
+                Remove Address
+              </h4>
+              <button
+                onClick={() => setAddressToDelete(null)}
+                className="text-[#8A857E] hover:text-[#1C1916] cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <p className="text-[13px] text-[#6B6560] leading-relaxed mb-6 font-sans font-light">
+              Are you sure you want to delete this address? This action cannot be undone.
+            </p>
+            <div className="flex items-center justify-end gap-3 font-sans">
+              <button
+                onClick={() => setAddressToDelete(null)}
+                className="px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-[#6B6560] hover:text-[#1C1916] cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-5 py-2 bg-[#C0554A] hover:bg-[#a84439] text-white text-[11px] font-semibold uppercase tracking-wider rounded-[1px] transition-colors cursor-pointer"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

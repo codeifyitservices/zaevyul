@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 
 export default function StoryBanner() {
@@ -28,15 +29,15 @@ export default function StoryBanner() {
           Explore our enduring edit of hand-finished pashmina, made for the
           moments you keep.
         </p>
-        <a
-          href="/collections"
-          className="inline-flex items-center justify-center gap-3 rounded-[1px] bg-[#FAF8F5] px-10 py-4 transition-colors duration-300 hover:bg-white sm:px-12 sm:py-5"
+        <Link
+          to="/collections"
+          className="inline-flex items-center justify-center gap-3 rounded-[1px] bg-[#FAF8F5] px-10 py-4 transition-colors duration-300 hover:bg-white sm:px-12 sm:py-5 cursor-pointer"
         >
           <span className="font-sans text-[9px] font-semibold uppercase tracking-[0.2em] text-[#1C1916] sm:text-[10px] sm:tracking-[0.25em]">
             Explore the Collection
           </span>
           <ArrowRight size={13} strokeWidth={1.5} className="text-[#1C1916]" />
-        </a>
+        </Link>
       </div>
     </section>
   );

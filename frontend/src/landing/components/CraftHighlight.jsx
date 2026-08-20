@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 
 export default function CraftHighlight({
@@ -6,7 +7,7 @@ export default function CraftHighlight({
   description = "Sozni embroidery is a centuries-old Kashmiri technique known for its intricate fine-needlework. Each motif is meticulously hand-stitched by skilled artisans, preserving a legacy of patience, precision and pride.",
   image = "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124716/zaevyul/storefront/prod-2.jpg",
   linkText = "Discover The Craft",
-  linkUrl = "#"
+  linkUrl = "/about"
 }) {
   return (
     <section className="bg-[#FAF8F5] py-16 sm:py-20 lg:py-24 border-t border-[#ECE7E1]">
@@ -33,9 +34,9 @@ export default function CraftHighlight({
             <p className="font-sans text-[13px] sm:text-[14px] text-[#6B6560] font-light leading-relaxed mb-8">
               {description}
             </p>
-            <a
-              href={linkUrl}
-              className="group inline-flex items-center gap-2 font-sans text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.2em] text-[#1C1916] border-b border-[#1C1916]/20 pb-1.5 w-fit hover:border-[#1C1916] transition-all"
+            <Link
+              to={linkUrl === "#" ? "/about" : linkUrl}
+              className="group inline-flex items-center gap-2 font-sans text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.2em] text-[#1C1916] border-b border-[#1C1916]/20 pb-1.5 w-fit hover:border-[#1C1916] transition-all cursor-pointer"
             >
               <span>{linkText}</span>
               <ArrowRight
@@ -43,7 +44,7 @@ export default function CraftHighlight({
                 strokeWidth={1.5}
                 className="transition-transform duration-300 group-hover:translate-x-1"
               />
-            </a>
+            </Link>
           </div>
 
         </div>

@@ -56,17 +56,21 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  a,
   button,
   [type='button'],
   [type='reset'],
-  [type='submit'] {
+  [type='submit'],
+  [role='button'],
+  label[for] {
     cursor: pointer;
   }
 
   button:disabled,
   [type='button']:disabled,
   [type='reset']:disabled,
-  [type='submit']:disabled {
+  [type='submit']:disabled,
+  [role='button'][aria-disabled='true'] {
     cursor: not-allowed;
   }
 

@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 
 export default function CraftSection() {
@@ -50,9 +51,9 @@ export default function CraftSection() {
             heirloom.
           </p>
 
-          <a
-            href="#"
-            className="group inline-flex items-center gap-3 font-sans text-[10px] font-semibold uppercase tracking-[0.25em] text-[#1C1916]"
+          <Link
+            to="/about"
+            className="group inline-flex items-center gap-3 font-sans text-[10px] font-semibold uppercase tracking-[0.25em] text-[#1C1916] cursor-pointer"
           >
             <span className="border-b border-[#1C1916]/40 pb-0.5 transition-colors duration-300 group-hover:border-[#B58A5B] group-hover:text-[#B58A5B]">
               Discover the Journey
@@ -61,7 +62,7 @@ export default function CraftSection() {
               size={12}
               className="transition-transform duration-300 group-hover:translate-x-1 group-hover:text-[#B58A5B]"
             />
-          </a>
+          </Link>
         </div>
       </div>
     </section>

@@ -5,6 +5,7 @@ import { formatCurrency, formatDate, ORDER_STATUS } from '../../../lib/mockData'
 import PageHeader from '../../../components/PageHeader';
 import DataTable from '../../../components/DataTable';
 import StatusBadge from '../../../components/StatusBadge';
+import { DeleteDialog } from '../../../components/Modal';
 import { useToast } from '../../../context/ToastContext';
 import { api } from '../../../lib/api';
 import InvoiceModal from './InvoiceModal';
@@ -18,6 +19,8 @@ export default function Orders() {
   const [selected, setSelected] = useState([]);
   const [previewOrder, setPreviewOrder] = useState(null);
   const [downloading, setDownloading] = useState(false);
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const fetchOrders = async () => {
     try {
@@ -43,6 +46,7 @@ export default function Orders() {
   }), [orders, search, statusFilter]);
 
   const handleBulkDelete = async () => {
+    setDeleteLoading(true);
     try {
       await api.orders.bulkDelete(selected);
       setOrders(ps => ps.filter(o => !selected.includes(o._id || o.id)));
@@ -51,6 +55,8 @@ export default function Orders() {
       toast('Failed to delete selected orders', 'error');
     } finally {
       setSelected([]);
+      setBulkDeleteConfirm(false);
+      setDeleteLoading(false);
     }
   };
 
@@ -143,7 +149,7 @@ export default function Orders() {
       {selected.length > 0 && (
         <div className="bulk-bar">
           <span>{selected.length} selected</span>
-          <button className="btn btn-sm" style={{ background: 'rgba(255,255,255,0.15)', color: 'white', marginLeft: 'auto' }} onClick={handleBulkDelete}>
+          <button className="btn btn-sm" style={{ background: 'rgba(255,255,255,0.15)', color: 'white', marginLeft: 'auto' }} onClick={() => setBulkDeleteConfirm(true)}>
             <Trash2 size={12} /> Delete
           </button>
           <button className="btn btn-sm" style={{ background: 'rgba(255,255,255,0.1)', color: 'white' }} onClick={() => setSelected([])}>
@@ -190,6 +196,15 @@ export default function Orders() {
         onClose={() => setPreviewOrder(null)}
         onDownload={() => handleDownloadInvoice(previewOrder)}
         downloading={downloading}
+      />
+
+      <DeleteDialog
+        open={bulkDeleteConfirm}
+        onClose={() => setBulkDeleteConfirm(false)}
+        onConfirm={handleBulkDelete}
+        loading={deleteLoading}
+        title="Delete selected orders"
+        desc={`Are you sure you want to delete ${selected.length} selected order(s)? This action cannot be undone.`}
       />
     </div>
   );

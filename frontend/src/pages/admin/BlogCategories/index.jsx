@@ -14,6 +14,7 @@ export default function BlogCategoriesList() {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState([]);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
@@ -56,6 +57,7 @@ export default function BlogCategoriesList() {
   };
 
   const handleBulkDelete = async () => {
+    setDeleteLoading(true);
     try {
       await Promise.all(selected.map(id => api.blogCategories.delete(id)));
       setCategories(cs => cs.filter(c => !selected.includes(c._id || c.id)));
@@ -64,6 +66,8 @@ export default function BlogCategoriesList() {
       toast('Failed to delete selected categories', 'error');
     } finally {
       setSelected([]);
+      setBulkDeleteConfirm(false);
+      setDeleteLoading(false);
     }
   };
 
@@ -131,7 +135,7 @@ export default function BlogCategoriesList() {
       {selected.length > 0 && (
         <div className="bulk-bar">
           <span>{selected.length} selected</span>
-          <button className="btn btn-sm" style={{ background: 'rgba(255,255,255,0.15)', color: 'white', marginLeft: 'auto' }} onClick={handleBulkDelete}>
+          <button className="btn btn-sm" style={{ background: 'rgba(255,255,255,0.15)', color: 'white', marginLeft: 'auto' }} onClick={() => setBulkDeleteConfirm(true)}>
             <Trash2 size={12} /> Delete
           </button>
           <button className="btn btn-sm" style={{ background: 'rgba(255,255,255,0.1)', color: 'white' }} onClick={() => setSelected([])}>
@@ -182,6 +186,15 @@ export default function BlogCategoriesList() {
         loading={deleteLoading}
         title="Delete blog category"
         desc="This blog category will be permanently removed. Blogs associated with this category will be updated to be uncategorised."
+      />
+
+      <DeleteDialog
+        open={bulkDeleteConfirm}
+        onClose={() => setBulkDeleteConfirm(false)}
+        onConfirm={handleBulkDelete}
+        loading={deleteLoading}
+        title="Delete selected blog categories"
+        desc={`Are you sure you want to delete ${selected.length} selected blog category(ies)? This action cannot be undone.`}
       />
     </div>
   );

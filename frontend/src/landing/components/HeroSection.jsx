@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 
 export default function HeroSection() {
@@ -26,9 +27,9 @@ export default function HeroSection() {
             Preserved for Us.
           </p>
 
-          <a
-            href="#collections"
-            className="group inline-flex items-center gap-3 border-b border-white/48 pb-2 font-sans text-[11px] font-semibold uppercase tracking-[0.2em] text-white transition-colors duration-300 hover:border-white"
+          <Link
+            to="/collections"
+            className="group inline-flex items-center gap-3 border-b border-white/48 pb-2 font-sans text-[11px] font-semibold uppercase tracking-[0.2em] text-white transition-colors duration-300 hover:border-white cursor-pointer"
           >
             Explore Collection
             <ArrowRight
@@ -36,7 +37,7 @@ export default function HeroSection() {
               strokeWidth={1.4}
               className="transition-transform duration-300 group-hover:translate-x-1.5"
             />
-          </a>
+          </Link>
         </div>
       </div>
     </section>

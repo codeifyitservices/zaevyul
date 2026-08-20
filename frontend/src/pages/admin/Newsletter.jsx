@@ -76,6 +76,8 @@ export default function Newsletter() {
 
   const getItemId = s => s._id || s.id;
 
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
+
   const allOnPageSelected = paginated.length > 0 && paginated.every(s => selected.includes(getItemId(s)));
   const toggleAll = () => {
     if (allOnPageSelected) setSelected(s => s.filter(id => !paginated.some(item => getItemId(item) === id)));
@@ -100,6 +102,7 @@ export default function Newsletter() {
   };
 
   const handleBulkDelete = async () => {
+    setDeleteLoading(true);
     try {
       await api.newsletter.bulkDelete(selected);
       setSubs(ss => ss.filter(s => !selected.includes(getItemId(s))));
@@ -108,6 +111,8 @@ export default function Newsletter() {
       toast('Failed to delete selected subscribers', 'error');
     } finally {
       setSelected([]);
+      setBulkDeleteConfirm(false);
+      setDeleteLoading(false);
     }
   };
 
@@ -153,7 +158,7 @@ export default function Newsletter() {
       {selected.length > 0 && (
         <div className="bulk-bar">
           <span>{selected.length} selected</span>
-          <button className="btn btn-sm" style={{ background: 'rgba(255,255,255,0.15)', color: 'white', marginLeft: 'auto' }} onClick={handleBulkDelete}>
+          <button className="btn btn-sm" style={{ background: 'rgba(255,255,255,0.15)', color: 'white', marginLeft: 'auto' }} onClick={() => setBulkDeleteConfirm(true)}>
             <Trash2 size={12} /> Remove
           </button>
           <button className="btn btn-sm" style={{ background: 'rgba(255,255,255,0.1)', color: 'white' }} onClick={() => setSelected([])}>Clear</button>
@@ -235,7 +240,10 @@ export default function Newsletter() {
       </div>
 
       <DeleteDialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={handleDelete}
-        title="Remove subscriber" desc="This subscriber will be permanently removed from the list." />
+        loading={deleteLoading} title="Remove subscriber" desc="This subscriber will be permanently removed from the list." />
+
+      <DeleteDialog open={bulkDeleteConfirm} onClose={() => setBulkDeleteConfirm(false)} onConfirm={handleBulkDelete}
+        loading={deleteLoading} title="Remove selected subscribers" desc={`Are you sure you want to remove ${selected.length} selected subscriber(s) from the list?`} />
     </div>
   );
 }

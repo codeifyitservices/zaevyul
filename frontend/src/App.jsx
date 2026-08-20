@@ -27,6 +27,7 @@ import PrivacyPolicyPage from "./landing/pages/PrivacyPolicyPage";
 import { PersonalizationProvider } from "./context/PersonalizationContext";
 import TrackOrderPage from "./landing/pages/TrackOrderPage";
 import FAQPage from "./landing/pages/FAQPage";
+import UnderMaintenancePage from "./landing/pages/UnderMaintenancePage";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
@@ -77,6 +78,7 @@ export default function App() {
                         element={<JournalDetailPage />}
                       />
                       <Route path="/about" element={<OurStoryPage />} />
+                      <Route path="/our-story" element={<OurStoryPage />} />
 
                       {/* Customer auth */}
                       <Route path="/login" element={<CustomerLoginPage />} />
@@ -88,6 +90,8 @@ export default function App() {
                       <Route path="/track-order" element={<TrackOrderPage />} />
                       <Route path="/faq" element={<FAQPage />} />
                       <Route path="/faqs" element={<FAQPage />} />
+                      <Route path="/maintenance" element={<UnderMaintenancePage />} />
+                      <Route path="/under-maintenance" element={<UnderMaintenancePage />} />
 
                       {/* Admin panel — separate auth context */}
                       <Route path="/admin/*" element={<AdminRouter />} />

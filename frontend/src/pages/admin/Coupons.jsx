@@ -43,6 +43,8 @@ export default function Coupons() {
   const [form, setForm] = useState(BLANK);
   const [editId, setEditId] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selected, setSelected] = useState([]);
   const [page, setPage] = useState(1);
@@ -143,23 +145,30 @@ export default function Coupons() {
 
   const handleDelete = async () => {
     try {
+      setDeleteLoading(true);
       await api.coupons.delete(deleteTarget);
       setCoupons((cs) => cs.filter((c) => c.id !== deleteTarget));
       setDeleteTarget(null);
       toast("Coupon deleted", "success");
     } catch (err) {
       toast("Failed to delete coupon", "error");
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
   const handleBulkDelete = async () => {
     try {
+      setDeleteLoading(true);
       await api.coupons.bulkDelete(selected);
       setCoupons((cs) => cs.filter((c) => !selected.includes(c.id)));
       setSelected([]);
       toast(`${selected.length} coupon(s) deleted`, "success");
     } catch (err) {
       toast("Bulk delete failed", "error");
+    } finally {
+      setBulkDeleteConfirm(false);
+      setDeleteLoading(false);
     }
   };
 
@@ -248,7 +257,7 @@ export default function Coupons() {
               color: "white",
               marginLeft: "auto",
             }}
-            onClick={handleBulkDelete}
+            onClick={() => setBulkDeleteConfirm(true)}
           >
             <Trash2 size={12} /> Delete
           </button>
@@ -688,12 +697,22 @@ export default function Coupons() {
         open={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDelete}
+        loading={deleteLoading}
         title="Delete coupon"
         desc={
           couponToDelete
             ? `“${couponToDelete.code}” will be permanently removed and can no longer be redeemed at checkout.`
             : "This coupon will be permanently removed."
         }
+      />
+
+      <DeleteDialog
+        open={bulkDeleteConfirm}
+        onClose={() => setBulkDeleteConfirm(false)}
+        onConfirm={handleBulkDelete}
+        loading={deleteLoading}
+        title="Delete selected coupons"
+        desc={`Are you sure you want to delete ${selected.length} selected coupon(s)? This action cannot be undone.`}
       />
     </div>
   );

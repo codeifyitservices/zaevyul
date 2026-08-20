@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   Truck,
   ShieldCheck,
@@ -242,8 +242,18 @@ const FAQ_DATA = {
 };
 
 export default function FAQPage() {
-  const [activeCategory, setActiveCategory] = useState("orders-shipping");
+  const [searchParams] = useSearchParams();
+  const catParam = searchParams.get("category");
+  const [activeCategory, setActiveCategory] = useState(
+    catParam && FAQ_DATA[catParam] ? catParam : "orders-shipping",
+  );
   const [openIndex, setOpenIndex] = useState(0); // First item open by default like reference image
+
+  useEffect(() => {
+    if (catParam && FAQ_DATA[catParam]) {
+      setActiveCategory(catParam);
+    }
+  }, [catParam]);
 
   const currentQuestions = FAQ_DATA[activeCategory] || [];
 
@@ -477,14 +487,14 @@ export default function FAQPage() {
                     <button
                       type="button"
                       onClick={() => toggleAccordion(idx)}
-                      className="w-full px-4 py-4 sm:px-6 sm:py-5 flex items-center justify-between gap-3 sm:gap-4 text-left cursor-pointer transition-colors hover:bg-[#FAF8F5]/50 group"
+                      className="w-full px-4 py-4 sm:px-6 sm:py-5 flex items-center justify-between gap-3 sm:gap-4 text-left cursor-pointer transition-colors bg-[#FAF8F5] group"
                     >
                       <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                         {/* Minus / Plus Round Icon Badge with smooth rotation */}
                         <div
                           className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center shrink-0 transition-all duration-300 transform ${
                             isOpen
-                              ? "bg-[#D9C2A7] text-[#1C1916] rotate-180"
+                              ? "bg-[#FAF8F5] text-[#1C1916] rotate-180"
                               : "bg-[#E6DED4]/60 text-[#1C1916] group-hover:bg-[#D9C2A7] rotate-0"
                           }`}
                         >
@@ -509,15 +519,15 @@ export default function FAQPage() {
 
                     {/* Smooth Expand/Collapse Container using CSS Grid Height Transition */}
                     <div
-                      className={`grid transition-[grid-template-rows] duration-350 ease-in-out ${
+                      className={`grid bg-[#FAF8F5] transition-[grid-template-rows] duration-350 ease-in-out ${
                         isOpen
-                          ? "grid-rows-[1fr] opacity-100"
-                          : "grid-rows-[0fr] opacity-0"
+                          ? "grid-rows-[1fr] bg-[#FAF8F5] opacity-100"
+                          : "grid-rows-[0fr] bg-[#FAF8F5] opacity-0"
                       }`}
                     >
                       <div className="overflow-hidden">
                         <div className="px-4 pb-5 pt-2 sm:px-6 sm:pb-6 sm:pt-1 border-t border-[#ECE7E1]/60">
-                          <p className="font-sans text-[13px] sm:text-[14.5px] text-[#3D3833] font-light leading-[1.75] pl-0 sm:pl-12">
+                          <p className="font-sans  text-[13px] sm:text-[14.5px] text-[#3D3833] font-light leading-[1.75] pl-0 sm:pl-12">
                             {item.a}
                           </p>
                         </div>

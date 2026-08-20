@@ -15,6 +15,7 @@ export default function Blogs() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState([]);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [filter, setFilter] = useState('');
 
@@ -55,6 +56,7 @@ export default function Blogs() {
   };
 
   const handleBulkDelete = async () => {
+    setDeleteLoading(true);
     try {
       await Promise.all(selected.map(id => api.blogs.delete(id)));
       setBlogs(bs => bs.filter(b => !selected.includes(b._id || b.id)));
@@ -63,6 +65,8 @@ export default function Blogs() {
       toast('Failed to delete selected posts', 'error');
     } finally {
       setSelected([]);
+      setBulkDeleteConfirm(false);
+      setDeleteLoading(false);
     }
   };
 
@@ -134,7 +138,7 @@ export default function Blogs() {
       {selected.length > 0 && (
         <div className="bulk-bar">
           <span>{selected.length} selected</span>
-          <button className="btn btn-sm" style={{ background: 'rgba(255,255,255,0.15)', color: 'white', marginLeft: 'auto' }} onClick={handleBulkDelete}>
+          <button className="btn btn-sm" style={{ background: 'rgba(255,255,255,0.15)', color: 'white', marginLeft: 'auto' }} onClick={() => setBulkDeleteConfirm(true)}>
             <Trash2 size={12} /> Delete
           </button>
           <button className="btn btn-sm" style={{ background: 'rgba(255,255,255,0.1)', color: 'white' }} onClick={() => setSelected([])}>
@@ -178,6 +182,15 @@ export default function Blogs() {
         loading={deleteLoading}
         title="Delete post"
         desc="This post will be permanently deleted. This cannot be undone."
+      />
+
+      <DeleteDialog
+        open={bulkDeleteConfirm}
+        onClose={() => setBulkDeleteConfirm(false)}
+        onConfirm={handleBulkDelete}
+        loading={deleteLoading}
+        title="Delete selected posts"
+        desc={`Are you sure you want to delete ${selected.length} selected post(s)? This action cannot be undone.`}
       />
     </div>
   );

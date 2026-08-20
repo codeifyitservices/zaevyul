@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Save, Plus, Edit2, Trash2, X, AlertTriangle } from 'lucide-react';
 import PageHeader from '../../components/PageHeader';
+import { DeleteDialog } from '../../components/Modal';
 import { useToast } from '../../context/ToastContext';
 import { api } from '../../lib/api';
 
@@ -36,6 +37,8 @@ export default function Settings() {
   const [rulesLoading, setRulesLoading] = useState(false);
   const [ruleModalOpen, setRuleModalOpen] = useState(false);
   const [editingRule, setEditingRule] = useState(null);
+  const [deleteRuleTarget, setDeleteRuleTarget] = useState(null);
+  const [deleteRuleLoading, setDeleteRuleLoading] = useState(false);
   const [ruleForm, setRuleForm] = useState({
     countryCode: 'IN',
     countryName: 'India',
@@ -135,14 +138,22 @@ export default function Settings() {
     setRuleModalOpen(true);
   };
 
-  const handleDeleteRuleClick = async (ruleId) => {
-    if (!window.confirm('Are you sure you want to delete this tax rule?')) return;
+  const handleDeleteRuleClick = (ruleId) => {
+    setDeleteRuleTarget(ruleId);
+  };
+
+  const handleConfirmDeleteRule = async () => {
+    if (!deleteRuleTarget) return;
+    setDeleteRuleLoading(true);
     try {
-      await api.taxRules.delete(ruleId);
-      setTaxRules(prev => prev.filter(r => r._id !== ruleId));
+      await api.taxRules.delete(deleteRuleTarget);
+      setTaxRules(prev => prev.filter(r => r._id !== deleteRuleTarget));
       toast('Tax rule deleted successfully', 'success');
     } catch (err) {
       toast(err.message || 'Failed to delete tax rule', 'error');
+    } finally {
+      setDeleteRuleTarget(null);
+      setDeleteRuleLoading(false);
     }
   };
 
@@ -472,6 +483,15 @@ export default function Settings() {
           </div>
         </div>
       )}
+
+      <DeleteDialog
+        open={!!deleteRuleTarget}
+        onClose={() => setDeleteRuleTarget(null)}
+        onConfirm={handleConfirmDeleteRule}
+        loading={deleteRuleLoading}
+        title="Delete tax rule"
+        desc="Are you sure you want to delete this tax rule? This action cannot be undone."
+      />
     </div>
   );
 }

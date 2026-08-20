@@ -136,24 +136,24 @@ export default function SiteFooter() {
                 <>
                   <li>
                     <RouterLink
-                      to="/collections"
-                      className="hover:text-[#1C1916] transition-colors"
+                      to="/collections/shawls"
+                      className="hover:text-[#1C1916] transition-colors cursor-pointer"
                     >
                       Shawls
                     </RouterLink>
                   </li>
                   <li>
                     <RouterLink
-                      to="/collections"
-                      className="hover:text-[#1C1916] transition-colors"
+                      to="/collections/scarves"
+                      className="hover:text-[#1C1916] transition-colors cursor-pointer"
                     >
                       Scarves
                     </RouterLink>
                   </li>
                   <li>
                     <RouterLink
-                      to="/collections"
-                      className="hover:text-[#1C1916] transition-colors"
+                      to="/collections/accessories"
+                      className="hover:text-[#1C1916] transition-colors cursor-pointer"
                     >
                       Accessories
                     </RouterLink>
@@ -172,7 +172,7 @@ export default function SiteFooter() {
               <li>
                 <RouterLink
                   to="/our-story"
-                  className="hover:text-[#1C1916] transition-colors"
+                  className="hover:text-[#1C1916] transition-colors cursor-pointer"
                 >
                   Our Story
                 </RouterLink>
@@ -180,7 +180,7 @@ export default function SiteFooter() {
               <li>
                 <RouterLink
                   to="/our-story"
-                  className="hover:text-[#1C1916] transition-colors"
+                  className="hover:text-[#1C1916] transition-colors cursor-pointer"
                 >
                   Our Craft
                 </RouterLink>
@@ -188,7 +188,7 @@ export default function SiteFooter() {
               <li>
                 <RouterLink
                   to="/our-story"
-                  className="hover:text-[#1C1916] transition-colors"
+                  className="hover:text-[#1C1916] transition-colors cursor-pointer"
                 >
                   Sustainability
                 </RouterLink>
@@ -196,7 +196,7 @@ export default function SiteFooter() {
               <li>
                 <RouterLink
                   to="/journal"
-                  className="hover:text-[#1C1916] transition-colors"
+                  className="hover:text-[#1C1916] transition-colors cursor-pointer"
                 >
                   Journal
                 </RouterLink>
@@ -212,16 +212,16 @@ export default function SiteFooter() {
             <ul className="flex flex-col gap-3 text-[13px] font-light text-[#6B6560]">
               <li>
                 <RouterLink
-                  to="/faq"
-                  className="hover:text-[#1C1916] transition-colors"
+                  to="/faq?category=orders-shipping"
+                  className="hover:text-[#1C1916] transition-colors cursor-pointer"
                 >
                   Shipping & Delivery
                 </RouterLink>
               </li>
               <li>
                 <RouterLink
-                  to="/faq"
-                  className="hover:text-[#1C1916] transition-colors"
+                  to="/faq?category=returns-exchanges"
+                  className="hover:text-[#1C1916] transition-colors cursor-pointer"
                 >
                   Returns & Exchanges
                 </RouterLink>
@@ -229,7 +229,7 @@ export default function SiteFooter() {
               <li>
                 <RouterLink
                   to="/faq"
-                  className="hover:text-[#1C1916] transition-colors"
+                  className="hover:text-[#1C1916] transition-colors cursor-pointer"
                 >
                   FAQs
                 </RouterLink>
@@ -237,7 +237,7 @@ export default function SiteFooter() {
               <li>
                 <RouterLink
                   to="/contact"
-                  className="hover:text-[#1C1916] transition-colors"
+                  className="hover:text-[#1C1916] transition-colors cursor-pointer"
                 >
                   Contact Us
                 </RouterLink>

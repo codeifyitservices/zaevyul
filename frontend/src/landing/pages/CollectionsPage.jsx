@@ -1053,9 +1053,9 @@ export default function CollectionsPage() {
                                   loom.
                                 </p>
                               </div>
-                              <a
-                                href="#"
-                                className="group inline-flex items-center gap-1.5 font-sans text-[9px] sm:text-[10px] font-semibold tracking-[0.15em] uppercase text-[#1C1916] border-b border-[#1C1916]/20 pb-0.5 w-fit mt-5 hover:border-[#1C1916] transition-all"
+                              <Link
+                                to="/journal"
+                                className="group inline-flex items-center gap-1.5 font-sans text-[9px] sm:text-[10px] font-semibold tracking-[0.15em] uppercase text-[#1C1916] border-b border-[#1C1916]/20 pb-0.5 w-fit mt-5 hover:border-[#1C1916] transition-all cursor-pointer"
                               >
                                 <span>The Loom (Journal)</span>
                                 <ArrowRight
@@ -1063,7 +1063,7 @@ export default function CollectionsPage() {
                                   strokeWidth={1.5}
                                   className="transition-transform duration-300 group-hover:translate-x-1"
                                 />
-                              </a>
+                              </Link>
                             </div>
                           </div>
                         );

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { api } from "../../lib/api";
 
@@ -20,9 +21,9 @@ const getCategoryImage = (cat) => {
 function ColCard({ cat, className = "" }) {
   const heightClass = className.includes("h-") ? "" : "h-full";
   return (
-    <a
-      href={`/collections/${cat.slug || cat.id}`}
-      className={`group relative block w-full overflow-hidden rounded-[2px] ${heightClass} ${className}`}
+    <Link
+      to={`/collections/${cat.slug || cat.id}`}
+      className={`group relative block w-full overflow-hidden rounded-[2px] cursor-pointer ${heightClass} ${className}`}
     >
       <img
         src={getCategoryImage(cat)}
@@ -38,7 +39,7 @@ function ColCard({ cat, className = "" }) {
           Explore <ArrowRight size={11} strokeWidth={1.5} />
         </span>
       </div>
-    </a>
+    </Link>
   );
 }
 

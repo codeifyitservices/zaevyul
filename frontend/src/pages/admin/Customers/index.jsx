@@ -4,7 +4,7 @@ import { Search, Trash2 } from 'lucide-react';
 import { formatCurrency, formatDate } from '../../../lib/mockData';
 import PageHeader from '../../../components/PageHeader';
 import DataTable from '../../../components/DataTable';
-import StatusBadge from '../../../components/StatusBadge';
+import { DeleteDialog } from '../../../components/Modal';
 import { useToast } from '../../../context/ToastContext';
 import { api } from '../../../lib/api';
 
@@ -15,6 +15,9 @@ export default function Customers() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [selected, setSelected] = useState([]);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const fetchCustomers = async () => {
     try {
@@ -45,7 +48,24 @@ export default function Customers() {
     return true;
   }), [customers, search, statusFilter]);
 
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
+    try {
+      await api.customers.delete(deleteTarget);
+      setCustomers(cs => cs.filter(c => (c._id || c.id) !== deleteTarget));
+      setSelected(s => s.filter(id => id !== deleteTarget));
+      toast('Customer deleted', 'success');
+    } catch (err) {
+      toast('Failed to delete customer', 'error');
+    } finally {
+      setDeleteTarget(null);
+      setDeleteLoading(false);
+    }
+  };
+
   const handleBulkDelete = async () => {
+    setDeleteLoading(true);
     try {
       await api.customers.bulkDelete(selected);
       setCustomers(cs => cs.filter(c => !selected.includes(c._id || c.id)));
@@ -54,6 +74,8 @@ export default function Customers() {
       toast('Failed to delete selected customers', 'error');
     } finally {
       setSelected([]);
+      setBulkDeleteConfirm(false);
+      setDeleteLoading(false);
     }
   };
 
@@ -86,7 +108,17 @@ export default function Customers() {
     { key: 'status', label: 'Status', render: v => <StatusBadge status={v || 'active'} /> },
     {
       key: 'id', label: '',
-      render: (v, row) => <Link to={`/admin/customers/${row._id || row.id}`} className="btn btn-ghost btn-sm">View</Link>
+      render: (v, row) => {
+        const rowId = row._id || row.id;
+        return (
+          <div style={{ display: 'flex', gap: 4, alignItems: 'center', justifyContent: 'flex-end' }}>
+            <Link to={`/admin/customers/${rowId}`} className="btn btn-ghost btn-sm">View</Link>
+            <button className="btn btn-ghost btn-sm" style={{ color: 'var(--color-error)' }} onClick={() => setDeleteTarget(rowId)} title="Delete">
+              <Trash2 size={13} />
+            </button>
+          </div>
+        );
+      }
     },
   ];
 
@@ -110,7 +142,7 @@ export default function Customers() {
       {selected.length > 0 && (
         <div className="bulk-bar">
           <span>{selected.length} selected</span>
-          <button className="btn btn-sm" style={{ background: 'rgba(255,255,255,0.15)', color: 'white', marginLeft: 'auto' }} onClick={handleBulkDelete}>
+          <button className="btn btn-sm" style={{ background: 'rgba(255,255,255,0.15)', color: 'white', marginLeft: 'auto' }} onClick={() => setBulkDeleteConfirm(true)}>
             <Trash2 size={12} /> Delete
           </button>
           <button className="btn btn-sm" style={{ background: 'rgba(255,255,255,0.1)', color: 'white' }} onClick={() => setSelected([])}>
@@ -148,6 +180,24 @@ export default function Customers() {
           emptyTitle="No customers found"
         />
       </div>
+
+      <DeleteDialog
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+        loading={deleteLoading}
+        title="Delete customer"
+        desc="This customer record will be permanently removed. Order history will remain intact."
+      />
+
+      <DeleteDialog
+        open={bulkDeleteConfirm}
+        onClose={() => setBulkDeleteConfirm(false)}
+        onConfirm={handleBulkDelete}
+        loading={deleteLoading}
+        title="Delete selected customers"
+        desc={`Are you sure you want to delete ${selected.length} selected customer(s)? This action cannot be undone.`}
+      />
     </div>
   );
 }
