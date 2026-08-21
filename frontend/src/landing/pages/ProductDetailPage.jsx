@@ -105,7 +105,7 @@ export default function ProductDetailPage() {
     totalCount: 0,
     avgRating: 5.0,
     ratingCounts: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
-    fitCounts: { "True to Size": 0, "Runs Small": 0, "Runs Large": 0 }
+    fitCounts: { "True to Size": 0, "Runs Small": 0, "Runs Large": 0 },
   });
   const navigate = useNavigate();
   const location = useLocation();
@@ -117,7 +117,7 @@ export default function ProductDetailPage() {
     title: "",
     comment: "",
     fit: "True to Size",
-    photos: []
+    photos: [],
   });
   const [submittingReview, setSubmittingReview] = useState(false);
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
@@ -126,7 +126,10 @@ export default function ProductDetailPage() {
 
   const handleOpenReviewModal = () => {
     if (!isAuthenticated || !user) {
-      toast("Only logged-in customers who received this product can write a review. Please log in.", "warning");
+      toast(
+        "Only logged-in customers who received this product can write a review. Please log in.",
+        "warning",
+      );
       navigate("/login", { state: { from: location.pathname } });
       return;
     }
@@ -145,7 +148,10 @@ export default function ProductDetailPage() {
 
     const availableSlots = 3 - currentCount;
     if (files.length > availableSlots) {
-      toast(`You can only add ${availableSlots} more photo(s). Maximum 3 photos allowed per review.`, "warning");
+      toast(
+        `You can only add ${availableSlots} more photo(s). Maximum 3 photos allowed per review.`,
+        "warning",
+      );
     }
 
     const selectedFiles = files.slice(0, availableSlots);
@@ -155,7 +161,10 @@ export default function ProductDetailPage() {
 
     selectedFiles.forEach((file) => {
       if (file.size > 5 * 1024 * 1024) {
-        toast(`${file.name} exceeds 5MB limit. Please upload images under 5MB.`, "warning");
+        toast(
+          `${file.name} exceeds 5MB limit. Please upload images under 5MB.`,
+          "warning",
+        );
         loaded++;
         if (loaded === selectedFiles.length) setUploadingPhotos(false);
         return;
@@ -217,15 +226,21 @@ export default function ProductDetailPage() {
       if (!product || !product.category) return;
       try {
         const allCats = await api.categories.list();
-        const catIdOrName = typeof product.category === "object"
-          ? (product.category._id || product.category.id || product.category.name)
-          : product.category;
+        const catIdOrName =
+          typeof product.category === "object"
+            ? product.category._id ||
+              product.category.id ||
+              product.category.name
+            : product.category;
 
-        const matched = allCats.find((c) =>
-          c._id === catIdOrName ||
-          c.id === catIdOrName ||
-          c.slug === catIdOrName ||
-          (c.name && String(c.name).toLowerCase() === String(catIdOrName).toLowerCase())
+        const matched = allCats.find(
+          (c) =>
+            c._id === catIdOrName ||
+            c.id === catIdOrName ||
+            c.slug === catIdOrName ||
+            (c.name &&
+              String(c.name).toLowerCase() ===
+                String(catIdOrName).toLowerCase()),
         );
 
         if (matched) {
@@ -263,12 +278,18 @@ export default function ProductDetailPage() {
         title: reviewForm.title,
         comment: reviewForm.comment,
         fit: reviewForm.fit,
-        photos: reviewForm.photos || []
+        photos: reviewForm.photos || [],
       };
       await api.reviews.create(product._id || product.id, payload);
       toast("Thank you! Your review has been published.", "success");
       setReviewModalOpen(false);
-      setReviewForm({ rating: 5, title: "", comment: "", fit: "True to Size", photos: [] });
+      setReviewForm({
+        rating: 5,
+        title: "",
+        comment: "",
+        fit: "True to Size",
+        photos: [],
+      });
       const data = await api.reviews.get(product._id || product.id);
       if (data && data.success) setReviewsData(data);
     } catch (err) {
@@ -286,7 +307,11 @@ export default function ProductDetailPage() {
   };
 
   const availableSizes = useMemo(() => {
-    if (selectedColorObj && selectedColorObj.sizes && selectedColorObj.sizes.length > 0) {
+    if (
+      selectedColorObj &&
+      selectedColorObj.sizes &&
+      selectedColorObj.sizes.length > 0
+    ) {
       return selectedColorObj.sizes;
     }
     if (product && product.sizes && product.sizes.length > 0) {
@@ -296,8 +321,14 @@ export default function ProductDetailPage() {
   }, [selectedColorObj, product]);
 
   useEffect(() => {
-    if (selectedColorObj && selectedColorObj.sizes && selectedColorObj.sizes.length > 0) {
-      const defaultSize = selectedColorObj.sizes.find((s) => s.quantity > 0) || selectedColorObj.sizes[0];
+    if (
+      selectedColorObj &&
+      selectedColorObj.sizes &&
+      selectedColorObj.sizes.length > 0
+    ) {
+      const defaultSize =
+        selectedColorObj.sizes.find((s) => s.quantity > 0) ||
+        selectedColorObj.sizes[0];
       if (defaultSize) {
         setSelectedSize(defaultSize.size);
       }
@@ -310,8 +341,14 @@ export default function ProductDetailPage() {
 
   const getProductPrice = (p) => {
     if (!p) return "";
-    if (selectedColorObj && selectedColorObj.sizes && selectedColorObj.sizes.length > 0) {
-      const matchedSize = selectedColorObj.sizes.find((s) => s.size === selectedSize) || selectedColorObj.sizes[0];
+    if (
+      selectedColorObj &&
+      selectedColorObj.sizes &&
+      selectedColorObj.sizes.length > 0
+    ) {
+      const matchedSize =
+        selectedColorObj.sizes.find((s) => s.size === selectedSize) ||
+        selectedColorObj.sizes[0];
       if (matchedSize) {
         return formatPrice(matchedSize.discountPrice || matchedSize.price);
       }
@@ -503,7 +540,9 @@ export default function ProductDetailPage() {
     }
     setAdding(true);
     setTimeout(() => {
-      const finalColor = selectedColorObj ? selectedColorObj.name : (product.color || "");
+      const finalColor = selectedColorObj
+        ? selectedColorObj.name
+        : product.color || "";
       addToCart(product, quantity, selectedSize, finalColor);
       setAdding(false);
     }, 600);
@@ -666,7 +705,10 @@ export default function ProductDetailPage() {
               {/* Color Swatch / Selector */}
               <div className="mb-6">
                 <span className="block font-sans text-[10px] font-semibold tracking-[0.16em] uppercase text-[#1C1916] mb-3">
-                  COLOR: {selectedColorObj ? selectedColorObj.name : (product.color || "IVORY")}
+                  COLOR:{" "}
+                  {selectedColorObj
+                    ? selectedColorObj.name
+                    : product.color || "IVORY"}
                 </span>
                 {product.colors && product.colors.length > 0 ? (
                   <div className="flex flex-wrap items-center gap-2.5">
@@ -686,7 +728,11 @@ export default function ProductDetailPage() {
                           }`}
                         >
                           {c.mainImage && (
-                            <img src={c.mainImage} alt={c.name} className="w-3.5 h-3.5 rounded-full object-cover shrink-0" />
+                            <img
+                              src={c.mainImage}
+                              alt={c.name}
+                              className="w-3.5 h-3.5 rounded-full object-cover shrink-0"
+                            />
                           )}
                           <span>{c.name}</span>
                         </button>
@@ -709,13 +755,13 @@ export default function ProductDetailPage() {
                   <span className="font-sans text-[10px] font-semibold tracking-[0.16em] uppercase text-[#1C1916]">
                     SIZE: {selectedSize || product.size || "70 X 200 CM"}
                   </span>
-                  <button
+                  {/* <button
                     onClick={() => setSizeGuideOpen(true)}
                     className="inline-flex items-center gap-1.5 font-sans text-[11px] font-medium text-[#B58A5B] hover:text-[#1C1916] transition-colors cursor-pointer"
                   >
                     <Ruler size={13} />
                     <span className="underline underline-offset-2">Size & Dimensions Guide</span>
-                  </button>
+                  </button> */}
                 </div>
                 {availableSizes && availableSizes.length > 0 ? (
                   <div className="flex flex-wrap gap-2.5">
@@ -885,18 +931,35 @@ export default function ProductDetailPage() {
                   >
                     <div className="overflow-hidden">
                       <div className="mt-3.5 pl-0.5 text-[12.5px] sm:text-[13px] leading-relaxed text-[#6B6560] font-light pb-1">
-                        {product.productDetails && product.productDetails.trim() ? (
-                          product.productDetails.split("\n").filter(Boolean).map((line, idx, arr) => (
-                            <p key={idx} className={idx < arr.length - 1 ? "mb-2" : ""}>
-                              {line}
-                            </p>
-                          ))
+                        {product.productDetails &&
+                        product.productDetails.trim() ? (
+                          product.productDetails
+                            .split("\n")
+                            .filter(Boolean)
+                            .map((line, idx, arr) => (
+                              <p
+                                key={idx}
+                                className={idx < arr.length - 1 ? "mb-2" : ""}
+                              >
+                                {line}
+                              </p>
+                            ))
                         ) : (
                           <>
-                            <p className="mb-2">100% pure premium cashmere (Pashmina).</p>
-                            <p className="mb-2">Authentic hand-spun yarn and hand-loomed weave.</p>
-                            <p className="mb-2">Features traditional Sozni fine needle embroidery along the borders.</p>
-                            <p>Dimensions: 70 x 200 cm (approximately 28 x 80 inches).</p>
+                            <p className="mb-2">
+                              100% pure premium cashmere (Pashmina).
+                            </p>
+                            <p className="mb-2">
+                              Authentic hand-spun yarn and hand-loomed weave.
+                            </p>
+                            <p className="mb-2">
+                              Features traditional Sozni fine needle embroidery
+                              along the borders.
+                            </p>
+                            <p>
+                              Dimensions: 70 x 200 cm (approximately 28 x 80
+                              inches).
+                            </p>
                           </>
                         )}
                       </div>
@@ -963,20 +1026,29 @@ export default function ProductDetailPage() {
                   >
                     <div className="overflow-hidden">
                       <div className="mt-3.5 pl-0.5 text-[12.5px] sm:text-[13px] leading-relaxed text-[#6B6560] font-light pb-1">
-                        {product.careInstructions && product.careInstructions.trim() ? (
-                          product.careInstructions.split("\n").filter(Boolean).map((line, idx, arr) => (
-                            <p key={idx} className={idx < arr.length - 1 ? "mb-2" : ""}>
-                              {line}
-                            </p>
-                          ))
+                        {product.careInstructions &&
+                        product.careInstructions.trim() ? (
+                          product.careInstructions
+                            .split("\n")
+                            .filter(Boolean)
+                            .map((line, idx, arr) => (
+                              <p
+                                key={idx}
+                                className={idx < arr.length - 1 ? "mb-2" : ""}
+                              >
+                                {line}
+                              </p>
+                            ))
                         ) : (
                           <>
                             <p className="mb-2">Dry clean only.</p>
                             <p className="mb-2">
-                              Store in a cool, dry place wrapped in a muslin cloth to protect from moths.
+                              Store in a cool, dry place wrapped in a muslin
+                              cloth to protect from moths.
                             </p>
                             <p>
-                              Iron on low heat under a protective cotton sheet if necessary.
+                              Iron on low heat under a protective cotton sheet
+                              if necessary.
                             </p>
                           </>
                         )}
@@ -1008,21 +1080,30 @@ export default function ProductDetailPage() {
                     <div className="overflow-hidden">
                       <div className="mt-3.5 pl-0.5 text-[12.5px] sm:text-[13px] leading-relaxed text-[#6B6560] font-light pb-1">
                         {product.artisanStory && product.artisanStory.trim() ? (
-                          product.artisanStory.split("\n").filter(Boolean).map((line, idx, arr) => (
-                            <p key={idx} className={idx < arr.length - 1 ? "mb-2" : ""}>
-                              {line}
-                            </p>
-                          ))
+                          product.artisanStory
+                            .split("\n")
+                            .filter(Boolean)
+                            .map((line, idx, arr) => (
+                              <p
+                                key={idx}
+                                className={idx < arr.length - 1 ? "mb-2" : ""}
+                              >
+                                {line}
+                              </p>
+                            ))
                         ) : (
                           <>
                             <p className="mb-2">
-                              Hand-spun by Kashmiri women and hand-woven by local master weavers.
+                              Hand-spun by Kashmiri women and hand-woven by
+                              local master weavers.
                             </p>
                             <p className="mb-2">
-                              Embroidered by a skilled craftsman in Srinagar over a span of 120 hours.
+                              Embroidered by a skilled craftsman in Srinagar
+                              over a span of 120 hours.
                             </p>
                             <p>
-                              Supports sustainable fair-trade livelihoods in the Kashmir valley.
+                              Supports sustainable fair-trade livelihoods in the
+                              Kashmir valley.
                             </p>
                           </>
                         )}
@@ -1062,7 +1143,11 @@ export default function ProductDetailPage() {
           {/* Center Viewer */}
           <div className="relative flex-1 flex items-center justify-center my-4 overflow-hidden">
             <button
-              onClick={() => setLightboxIndex((prev) => (prev > 0 ? prev - 1 : galleryImages.length - 1))}
+              onClick={() =>
+                setLightboxIndex((prev) =>
+                  prev > 0 ? prev - 1 : galleryImages.length - 1,
+                )
+              }
               className="absolute left-2 sm:left-6 z-10 bg-[#1C1916]/60 hover:bg-[#1C1916] text-white p-3 rounded-full transition-all border border-white/20 cursor-pointer"
               aria-label="Previous photo"
             >
@@ -1076,7 +1161,11 @@ export default function ProductDetailPage() {
             />
 
             <button
-              onClick={() => setLightboxIndex((prev) => (prev < galleryImages.length - 1 ? prev + 1 : 0))}
+              onClick={() =>
+                setLightboxIndex((prev) =>
+                  prev < galleryImages.length - 1 ? prev + 1 : 0,
+                )
+              }
               className="absolute right-2 sm:right-6 z-10 bg-[#1C1916]/60 hover:bg-[#1C1916] text-white p-3 rounded-full transition-all border border-white/20 cursor-pointer"
               aria-label="Next photo"
             >
@@ -1091,10 +1180,16 @@ export default function ProductDetailPage() {
                 key={i}
                 onClick={() => setLightboxIndex(i)}
                 className={`w-12 h-14 sm:w-14 sm:h-16 rounded-[2px] overflow-hidden border-2 transition-all shrink-0 cursor-pointer ${
-                  lightboxIndex === i ? "border-[#B58A5B] scale-105" : "border-transparent opacity-50 hover:opacity-100"
+                  lightboxIndex === i
+                    ? "border-[#B58A5B] scale-105"
+                    : "border-transparent opacity-50 hover:opacity-100"
                 }`}
               >
-                <img src={img} alt={`Thumb ${i + 1}`} className="w-full h-full object-cover" />
+                <img
+                  src={img}
+                  alt={`Thumb ${i + 1}`}
+                  className="w-full h-full object-cover"
+                />
               </button>
             ))}
           </div>
@@ -1141,12 +1236,23 @@ export default function ProductDetailPage() {
             <div className="space-y-2 pt-4 border-t border-[#E6DED4]">
               {[5, 4, 3, 2, 1].map((ratingNum) => {
                 const count = reviewsData.ratingCounts?.[ratingNum] || 0;
-                const pct = reviewsData.totalCount > 0 ? (count / reviewsData.totalCount) * 100 : ratingNum === 5 ? 100 : 0;
+                const pct =
+                  reviewsData.totalCount > 0
+                    ? (count / reviewsData.totalCount) * 100
+                    : ratingNum === 5
+                      ? 100
+                      : 0;
                 return (
-                  <div key={ratingNum} className="flex items-center gap-3 font-sans text-[11px] text-[#6B6560]">
+                  <div
+                    key={ratingNum}
+                    className="flex items-center gap-3 font-sans text-[11px] text-[#6B6560]"
+                  >
                     <span className="w-8">{ratingNum} star</span>
                     <div className="flex-1 h-1.5 bg-[#E6DED4] rounded-full overflow-hidden">
-                      <div className="h-full bg-[#B58A5B]" style={{ width: `${pct}%` }} />
+                      <div
+                        className="h-full bg-[#B58A5B]"
+                        style={{ width: `${pct}%` }}
+                      />
                     </div>
                     <span className="w-8 text-right font-medium">{count}</span>
                   </div>
@@ -1159,15 +1265,24 @@ export default function ProductDetailPage() {
           <div className="space-y-6">
             {reviewsData.reviews && reviewsData.reviews.length > 0 ? (
               reviewsData.reviews.map((rev) => (
-                <div key={rev._id || rev.id} className="p-6 bg-[#FAF8F5] border border-[#E6DED4] rounded-[2px]">
+                <div
+                  key={rev._id || rev.id}
+                  className="p-6 bg-[#FAF8F5] border border-[#E6DED4] rounded-[2px]"
+                >
                   <div className="flex items-center justify-between gap-4 mb-3">
                     <div className="flex items-center gap-3">
                       <div className="flex items-center text-[#B58A5B] gap-0.5">
                         {[1, 2, 3, 4, 5].map((star) => (
-                          <Star key={star} size={14} fill={star <= rev.rating ? "currentColor" : "none"} />
+                          <Star
+                            key={star}
+                            size={14}
+                            fill={star <= rev.rating ? "currentColor" : "none"}
+                          />
                         ))}
                       </div>
-                      <span className="font-sans text-[13px] font-semibold text-[#1C1916]">{rev.name}</span>
+                      <span className="font-sans text-[13px] font-semibold text-[#1C1916]">
+                        {rev.name}
+                      </span>
                       {rev.verified && (
                         <span className="font-sans text-[9.5px] font-semibold uppercase tracking-[0.1em] text-[#2E7D32] bg-[#EAF5EB] px-2 py-0.5 border border-[#C8E6C9] rounded-[2px]">
                           Verified Buyer
@@ -1175,12 +1290,17 @@ export default function ProductDetailPage() {
                       )}
                     </div>
                     <span className="font-sans text-[11px] text-[#8A857E]">
-                      {new Date(rev.createdAt || Date.now()).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      {new Date(rev.createdAt || Date.now()).toLocaleDateString(
+                        "en-US",
+                        { month: "short", day: "numeric", year: "numeric" },
+                      )}
                     </span>
                   </div>
 
                   {rev.title && (
-                    <h4 className="font-serif text-[16px] font-medium text-[#1C1916] mb-2">{rev.title}</h4>
+                    <h4 className="font-serif text-[16px] font-medium text-[#1C1916] mb-2">
+                      {rev.title}
+                    </h4>
                   )}
                   <p className="font-sans text-[13px] text-[#6B6560] font-light leading-relaxed mb-3">
                     {rev.comment}
@@ -1189,7 +1309,12 @@ export default function ProductDetailPage() {
                   {rev.photos && rev.photos.length > 0 && (
                     <div className="flex gap-2 mt-3">
                       {rev.photos.map((photo, i) => (
-                        <img key={i} src={photo} alt="Customer Review" className="w-16 h-16 object-cover rounded-[2px] border border-[#E6DED4]" />
+                        <img
+                          key={i}
+                          src={photo}
+                          alt="Customer Review"
+                          className="w-16 h-16 object-cover rounded-[2px] border border-[#E6DED4]"
+                        />
                       ))}
                     </div>
                   )}
@@ -1197,8 +1322,13 @@ export default function ProductDetailPage() {
               ))
             ) : (
               <div className="py-12 text-center border border-dashed border-[#ECE7E1] p-6 rounded-[2px]">
-                <p className="font-serif text-[16px] font-light text-[#6B6560]">No reviews yet.</p>
-                <p className="font-sans text-[12px] text-[#8A857E] mt-1">Be the first to share your experience with this Kashmiri piece.</p>
+                <p className="font-serif text-[16px] font-light text-[#6B6560]">
+                  No reviews yet.
+                </p>
+                <p className="font-sans text-[12px] text-[#8A857E] mt-1">
+                  Be the first to share your experience with this Kashmiri
+                  piece.
+                </p>
               </div>
             )}
           </div>
@@ -1243,7 +1373,7 @@ export default function ProductDetailPage() {
                 const drawerHeight = drawerRef.current
                   ? drawerRef.current.offsetHeight
                   : window.innerHeight * 0.9;
-                const threshold = drawerHeight * 0.20; // 20% down threshold
+                const threshold = drawerHeight * 0.2; // 20% down threshold
 
                 // 1. DIRECTION CHECK: If final velocity is moving UP (swiping upward), stay OPEN and snap back UP!
                 if (info.velocity.y < -50) {
@@ -1276,14 +1406,19 @@ export default function ProductDetailPage() {
                 <X size={18} />
               </button>
 
-              <h3 className="font-serif text-[24px] font-light text-[#1C1916] mb-1">Write a Review</h3>
+              <h3 className="font-serif text-[24px] font-light text-[#1C1916] mb-1">
+                Write a Review
+              </h3>
               <p className="font-sans text-[12px] font-light text-[#B58A5B] mb-4">
-                Only verified customers with a delivered order for "{product.name}" can post a review.
+                Only verified customers with a delivered order for "
+                {product.name}" can post a review.
               </p>
 
               {/* Logged-in Customer info badge */}
               <div className="bg-[#F5EFE7] p-3.5 rounded-[2px] border border-[#E6DED4] flex items-center justify-between mb-5">
-                <span className="font-sans text-[11px] text-[#6B6560]">Reviewing as:</span>
+                <span className="font-sans text-[11px] text-[#6B6560]">
+                  Reviewing as:
+                </span>
                 <span className="font-sans text-[12px] font-semibold text-[#1C1916]">
                   {user?.name || user?.email}
                 </span>
@@ -1299,10 +1434,17 @@ export default function ProductDetailPage() {
                       <button
                         type="button"
                         key={star}
-                        onClick={() => setReviewForm((prev) => ({ ...prev, rating: star }))}
+                        onClick={() =>
+                          setReviewForm((prev) => ({ ...prev, rating: star }))
+                        }
                         className="text-[#B58A5B] p-1 hover:scale-110 transition-transform cursor-pointer"
                       >
-                        <Star size={22} fill={star <= reviewForm.rating ? "currentColor" : "none"} />
+                        <Star
+                          size={22}
+                          fill={
+                            star <= reviewForm.rating ? "currentColor" : "none"
+                          }
+                        />
                       </button>
                     ))}
                   </div>
@@ -1315,7 +1457,12 @@ export default function ProductDetailPage() {
                   <input
                     type="text"
                     value={reviewForm.title}
-                    onChange={(e) => setReviewForm((prev) => ({ ...prev, title: e.target.value }))}
+                    onChange={(e) =>
+                      setReviewForm((prev) => ({
+                        ...prev,
+                        title: e.target.value,
+                      }))
+                    }
                     placeholder="e.g. Magnificent quality and touch"
                     className="w-full border border-[#ECE7E1] bg-white p-3 text-[13px] text-[#1C1916] rounded-[1px] focus:border-[#1C1916] outline-none"
                   />
@@ -1329,7 +1476,12 @@ export default function ProductDetailPage() {
                     rows={4}
                     required
                     value={reviewForm.comment}
-                    onChange={(e) => setReviewForm((prev) => ({ ...prev, comment: e.target.value }))}
+                    onChange={(e) =>
+                      setReviewForm((prev) => ({
+                        ...prev,
+                        comment: e.target.value,
+                      }))
+                    }
                     placeholder="Describe the fabric texture, weight, color accuracy, and overall experience..."
                     className="w-full border border-[#ECE7E1] bg-white p-3 text-[13px] text-[#1C1916] rounded-[1px] focus:border-[#1C1916] outline-none"
                   />
@@ -1345,10 +1497,13 @@ export default function ProductDetailPage() {
                       {reviewForm.photos?.length || 0} / 3 photos
                     </span>
                   </div>
-                  
+
                   {(reviewForm.photos?.length || 0) < 3 ? (
                     <label className="border border-dashed border-[#B58A5B]/60 bg-white hover:bg-[#FAF8F5] p-5 rounded-[2px] flex flex-col items-center justify-center cursor-pointer transition-colors text-center group">
-                      <Upload size={22} className="text-[#B58A5B] mb-1.5 group-hover:scale-110 transition-transform" />
+                      <Upload
+                        size={22}
+                        className="text-[#B58A5B] mb-1.5 group-hover:scale-110 transition-transform"
+                      />
                       <span className="font-sans text-[12px] font-medium text-[#1C1916]">
                         Click or drag photos here to upload
                       </span>
@@ -1366,7 +1521,8 @@ export default function ProductDetailPage() {
                   ) : (
                     <div className="bg-[#F5EFE7] p-3 rounded-[2px] border border-[#E6DED4] text-center">
                       <p className="font-sans text-[11px] text-[#B58A5B] font-medium">
-                        Maximum limit of 3 photos reached. Remove a photo below to upload a different one.
+                        Maximum limit of 3 photos reached. Remove a photo below
+                        to upload a different one.
                       </p>
                     </div>
                   )}
@@ -1382,8 +1538,15 @@ export default function ProductDetailPage() {
                   {reviewForm.photos && reviewForm.photos.length > 0 && (
                     <div className="flex flex-wrap gap-2.5 mt-3">
                       {reviewForm.photos.map((photo, idx) => (
-                        <div key={idx} className="relative w-16 h-16 rounded-[2px] overflow-hidden border border-[#E6DED4] group">
-                          <img src={photo} alt={`Upload ${idx + 1}`} className="w-full h-full object-cover" />
+                        <div
+                          key={idx}
+                          className="relative w-16 h-16 rounded-[2px] overflow-hidden border border-[#E6DED4] group"
+                        >
+                          <img
+                            src={photo}
+                            alt={`Upload ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                          />
                           <button
                             type="button"
                             onClick={() => handleRemovePhoto(idx)}
@@ -1423,7 +1586,9 @@ export default function ProductDetailPage() {
       {/* Size & Dimensions Right-Side Drawer */}
       <div
         className={`fixed inset-0 z-50 flex justify-end transition-[visibility] duration-[350ms] ${
-          sizeGuideOpen ? "visible pointer-events-auto" : "invisible pointer-events-none"
+          sizeGuideOpen
+            ? "visible pointer-events-auto"
+            : "invisible pointer-events-none"
         }`}
       >
         {/* Backdrop Overlay */}
@@ -1449,7 +1614,9 @@ export default function ProductDetailPage() {
             <div className="flex items-center gap-2 text-[#1C1916]">
               <Ruler size={18} strokeWidth={1.5} />
               <h2 className="font-serif text-[16px] sm:text-[18px] uppercase tracking-[0.15em] text-[#1C1916]">
-                {categoryInfo?.name ? `${categoryInfo.name} Size Guide` : "Size & Dimensions Guide"}
+                {categoryInfo?.name
+                  ? `${categoryInfo.name} Size Guide`
+                  : "Size & Dimensions Guide"}
               </h2>
             </div>
             <button
@@ -1465,10 +1632,14 @@ export default function ProductDetailPage() {
           <div className="flex-1 overflow-y-auto px-6 py-6 sm:px-8 space-y-6">
             <div className="bg-[#F5EFE7] p-4 border border-[#E6DED4] rounded-[2px]">
               <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.18em] text-[#B58A5B] block mb-1">
-                {categoryInfo?.name ? `${categoryInfo.name} Dimensions` : "Handwoven Kashmiri Heritage"}
+                {categoryInfo?.name
+                  ? `${categoryInfo.name} Dimensions`
+                  : "Handwoven Kashmiri Heritage"}
               </span>
               <p className="font-sans text-[12px] text-[#6B6560] font-light leading-relaxed">
-                Every Zaevyul piece is handcrafted by master artisans. Minor dimension variances (± 2 cm) reflect authentic handloom craftsmanship.
+                Every Zaevyul piece is handcrafted by master artisans. Minor
+                dimension variances (± 2 cm) reflect authentic handloom
+                craftsmanship.
               </p>
             </div>
 
@@ -1480,7 +1651,9 @@ export default function ProductDetailPage() {
                     src={categoryInfo.sizeChartImage}
                     alt={`${categoryInfo.name} Size Chart`}
                     className="w-full h-auto object-contain rounded-[1px] hover:scale-[1.01] transition-transform duration-300 cursor-pointer"
-                    onClick={() => window.open(categoryInfo.sizeChartImage, '_blank')}
+                    onClick={() =>
+                      window.open(categoryInfo.sizeChartImage, "_blank")
+                    }
                     title="Click to view full resolution size chart image"
                   />
                 </div>
@@ -1494,33 +1667,48 @@ export default function ProductDetailPage() {
                 {/* Stole */}
                 <div className="border border-[#ECE7E1] bg-white p-5 rounded-[2px] space-y-2">
                   <div className="flex items-center justify-between">
-                    <h4 className="font-serif text-[16px] font-normal text-[#1C1916]">Pashmina Stole</h4>
-                    <span className="font-sans text-[11px] font-semibold text-[#B58A5B]">70 × 200 cm (28 × 78 in)</span>
+                    <h4 className="font-serif text-[16px] font-normal text-[#1C1916]">
+                      Pashmina Stole
+                    </h4>
+                    <span className="font-sans text-[11px] font-semibold text-[#B58A5B]">
+                      70 × 200 cm (28 × 78 in)
+                    </span>
                   </div>
                   <p className="font-sans text-[12px] text-[#6B6560] font-light leading-relaxed">
-                    Lightweight, versatile drape ideal for evening wear, neck wraps, and transitional seasons.
+                    Lightweight, versatile drape ideal for evening wear, neck
+                    wraps, and transitional seasons.
                   </p>
                 </div>
 
                 {/* Classic Shawl */}
                 <div className="border border-[#ECE7E1] bg-white p-5 rounded-[2px] space-y-2">
                   <div className="flex items-center justify-between">
-                    <h4 className="font-serif text-[16px] font-normal text-[#1C1916]">Classic Shawl</h4>
-                    <span className="font-sans text-[11px] font-semibold text-[#B58A5B]">100 × 200 cm (40 × 78 in)</span>
+                    <h4 className="font-serif text-[16px] font-normal text-[#1C1916]">
+                      Classic Shawl
+                    </h4>
+                    <span className="font-sans text-[11px] font-semibold text-[#B58A5B]">
+                      100 × 200 cm (40 × 78 in)
+                    </span>
                   </div>
                   <p className="font-sans text-[12px] text-[#6B6560] font-light leading-relaxed">
-                    Generous shoulder wrap coverage. The quintessential traditional Kashmiri size for weddings and formal elegance.
+                    Generous shoulder wrap coverage. The quintessential
+                    traditional Kashmiri size for weddings and formal elegance.
                   </p>
                 </div>
 
                 {/* Grand Wrap */}
                 <div className="border border-[#ECE7E1] bg-white p-5 rounded-[2px] space-y-2">
                   <div className="flex items-center justify-between">
-                    <h4 className="font-serif text-[16px] font-normal text-[#1C1916]">Grand Wrap / Blanket</h4>
-                    <span className="font-sans text-[11px] font-semibold text-[#B58A5B]">135 × 240 cm (54 × 94 in)</span>
+                    <h4 className="font-serif text-[16px] font-normal text-[#1C1916]">
+                      Grand Wrap / Blanket
+                    </h4>
+                    <span className="font-sans text-[11px] font-semibold text-[#B58A5B]">
+                      135 × 240 cm (54 × 94 in)
+                    </span>
                   </div>
                   <p className="font-sans text-[12px] text-[#6B6560] font-light leading-relaxed">
-                    Sublime full-body cocoon wrap providing ultimate warmth, luxury travel comfort, and heirloom presence.
+                    Sublime full-body cocoon wrap providing ultimate warmth,
+                    luxury travel comfort, and heirloom presence.
                   </p>
                 </div>
               </div>
@@ -1532,8 +1720,12 @@ export default function ProductDetailPage() {
       {/* Sticky Mobile Add to Bag Bar */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#FAF8F5] border-t border-[#E6DED4] p-3 px-5 flex items-center justify-between shadow-lg">
         <div className="min-w-0 pr-3">
-          <p className="font-serif text-[13px] font-normal text-[#1C1916] truncate">{product.name}</p>
-          <span className="font-sans text-[12px] font-semibold text-[#B58A5B]">{getProductPrice(product)}</span>
+          <p className="font-serif text-[13px] font-normal text-[#1C1916] truncate">
+            {product.name}
+          </p>
+          <span className="font-sans text-[12px] font-semibold text-[#B58A5B]">
+            {getProductPrice(product)}
+          </span>
         </div>
         <button
           onClick={() => {

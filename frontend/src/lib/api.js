@@ -40,6 +40,19 @@ const loadCollection = (key, defaultData) => {
       ) {
         localStorage.removeItem(`zae_db_${key}`);
         stored = null;
+      } else if (key === "categories" && Array.isArray(parsed) && Array.isArray(defaultData)) {
+        const existingSlugs = new Set(parsed.map((c) => c.slug || c.id));
+        let updated = false;
+        defaultData.forEach((defItem) => {
+          if (!existingSlugs.has(defItem.slug || defItem.id)) {
+            parsed.push(defItem);
+            updated = true;
+          }
+        });
+        if (updated) {
+          localStorage.setItem(`zae_db_${key}`, JSON.stringify(parsed));
+        }
+        return parsed;
       } else {
         return parsed;
       }
@@ -484,7 +497,16 @@ export const api = {
     list: async () => {
       try {
         const res = await publicRequest("/categories");
-        return res.categories;
+        let list = res.categories || [];
+        if (Array.isArray(list)) {
+          const existingSlugs = new Set(list.map((c) => c.slug || (c.name || "").toLowerCase()));
+          mock.MOCK_CATEGORIES.forEach((mCat) => {
+            if (!existingSlugs.has(mCat.slug)) {
+              list.push(mCat);
+            }
+          });
+        }
+        return list;
       } catch (err) {
         await sleep(200);
         return db.categories.map((c) => ({

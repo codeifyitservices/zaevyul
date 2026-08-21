@@ -73,9 +73,9 @@ export default function CategoryForm() {
 
     const categoryData = {
       ...form,
-      mainImage: mainImageUrl,
+      mainImage: mainImageUrl ? (typeof form.mainImage === 'object' && form.mainImage?.url ? form.mainImage : { url: mainImageUrl }) : null,
       image: mainImageUrl,
-      sizeChartImage: sizeChartUrl,
+      sizeChartImage: sizeChartUrl ? (typeof form.sizeChartImage === 'object' && form.sizeChartImage?.url ? form.sizeChartImage : { url: sizeChartUrl }) : null,
       status
     };
 

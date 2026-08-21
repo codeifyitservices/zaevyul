@@ -9,6 +9,7 @@ import {
   X,
   LogOut,
   Globe,
+  ChevronDown,
 } from "lucide-react";
 import { api, getCategorySlug } from "../../lib/api";
 import { useCart } from "../../context/CartContext";
@@ -18,12 +19,12 @@ import CurrencySelector from "../../components/CurrencySelector";
 import { useCurrency } from "../../context/CurrencyContext";
 
 const NAV_LINKS = [
-  { label: "New Arrivals", href: "/collections" },
+  { label: "Home", href: "/" },
+  { label: "Shop", href: "/collections", hasDropdown: true },
   { label: "Men", href: "/collections?gender=men" },
   { label: "Women", href: "/collections?gender=women" },
-  { label: "Tailoring", href: "/collections/stoles" },
-  { label: "About", href: "/about" },
-  { label: "Shop All", href: "/collections" },
+  { label: "About Us", href: "/about" },
+  { label: "Journal", href: "/journal" },
 ];
 
 const DEFAULT_STORE_NAME = "Zaevyul";
@@ -42,6 +43,8 @@ export default function Navbar() {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loadingData, setLoadingData] = useState(false);
+  const [shopDropdownOpen, setShopDropdownOpen] = useState(false);
+  const [mobileShopExpand, setMobileShopExpand] = useState(false);
 
   // Load products and categories when search is opened
   const openSearchPanel = async () => {
@@ -163,6 +166,30 @@ export default function Navbar() {
   const results = getSearchResults();
   const storeName = (settings?.storeName || DEFAULT_STORE_NAME).trim();
   const displayStoreName = (storeName || DEFAULT_STORE_NAME).toUpperCase();
+
+  const activeCategories = categories.filter((c) => c.status !== "inactive");
+  const categoryColumns = [];
+  for (let i = 0; i < activeCategories.length; i += 10) {
+    categoryColumns.push(activeCategories.slice(i, i + 10));
+  }
+
+  useEffect(() => {
+    let active = true;
+    const fetchInitialData = async () => {
+      try {
+        const catData = await api.categories.list();
+        if (active && Array.isArray(catData)) {
+          setCategories(catData);
+        }
+      } catch (err) {
+        console.error("Error loading categories in Navbar:", err);
+      }
+    };
+    fetchInitialData();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -356,16 +383,103 @@ export default function Navbar() {
           </div>
         )}
 
-        <div className="hidden items-center lg:flex gap-6">
-          {NAV_LINKS.map((link) => (
-            <Link
-              key={link.label}
-              to={link.href}
-              className="font-sans text-[10px] font-semibold uppercase tracking-[0.16em] text-[#1C1916]/64 transition-colors duration-200 hover:text-[#1C1916]"
-            >
-              {link.label}
-            </Link>
-          ))}
+        <div className="hidden items-center lg:flex gap-7">
+          {NAV_LINKS.map((link) => {
+            if (link.hasDropdown) {
+              return (
+                <div
+                  key={link.label}
+                  className="relative flex items-center"
+                  onMouseEnter={() => setShopDropdownOpen(true)}
+                  onMouseLeave={() => setShopDropdownOpen(false)}
+                >
+                  <div className="flex items-center gap-1 py-4 cursor-pointer">
+                    <Link
+                      to={link.href}
+                      className="font-sans text-[10px] font-semibold uppercase tracking-[0.16em] text-[#1C1916]/64 transition-colors duration-200 hover:text-[#1C1916]"
+                      onClick={() => setShopDropdownOpen(false)}
+                    >
+                      {link.label}
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setShopDropdownOpen((prev) => !prev);
+                      }}
+                      className="text-[#1C1916]/64 hover:text-[#1C1916] transition-colors p-0.5"
+                      aria-label="Toggle Shop categories menu"
+                    >
+                      <ChevronDown
+                        size={12}
+                        className={`transition-transform duration-200 ${
+                          shopDropdownOpen ? "rotate-180 text-[#1C1916]" : ""
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {/* Mega Dropdown Panel for Categories (10 items per column, filling column first) */}
+                  {shopDropdownOpen && (
+                    <div
+                      className="absolute top-full left-0 z-50 mt-0 min-w-[260px] max-w-[85vw] border border-[#E7DED3] bg-[#FAF8F5]/98 p-6 shadow-[0_20px_40px_rgba(28,25,22,0.12)] backdrop-blur-xl rounded-[2px] transition-all animate-fade-in"
+                      onMouseEnter={() => setShopDropdownOpen(true)}
+                      onMouseLeave={() => setShopDropdownOpen(false)}
+                    >
+                      <div className="mb-3.5 flex items-center justify-between border-b border-[#E7DED3]/60 pb-2">
+                        <span className="font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-[#1C1916]/45">
+                          Categories
+                        </span>
+                        <Link
+                          to="/collections"
+                          onClick={() => setShopDropdownOpen(false)}
+                          className="font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-[#B58A5B] hover:underline"
+                        >
+                          Shop All →
+                        </Link>
+                      </div>
+
+                      {activeCategories.length === 0 ? (
+                        <div className="py-3 text-[12px] text-[#8A857E] italic">
+                          Loading categories...
+                        </div>
+                      ) : (
+                        <div className="flex gap-8 lg:gap-10">
+                          {categoryColumns.map((col, colIdx) => (
+                            <div
+                              key={colIdx}
+                              className="flex min-w-[130px] flex-col gap-2"
+                            >
+                              {col.map((cat) => (
+                                <Link
+                                  key={cat.id || cat.slug}
+                                  to={`/collections/${cat.slug}`}
+                                  onClick={() => setShopDropdownOpen(false)}
+                                  className="font-sans text-[12px] font-medium text-[#1C1916]/80 transition-colors hover:text-[#B58A5B] py-0.5 truncate"
+                                >
+                                  {cat.name}
+                                </Link>
+                              ))}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            return (
+              <Link
+                key={link.label}
+                to={link.href}
+                className="font-sans text-[10px] font-semibold uppercase tracking-[0.16em] text-[#1C1916]/64 transition-colors duration-200 hover:text-[#1C1916]"
+              >
+                {link.label}
+              </Link>
+            );
+          })}
         </div>
 
         <button
@@ -487,21 +601,81 @@ export default function Navbar() {
             <X size={20} strokeWidth={1.4} />
           </button>
         </div>
-        <nav className="flex flex-col px-6 pt-10 sm:px-8">
-          {NAV_LINKS.map((link, idx) => (
-            <Link
-              key={link.label}
-              to={link.href}
-              onClick={() => setMobileOpen(false)}
-              style={{
-                transitionDelay: mobileOpen ? `${idx * 70}ms` : "0ms",
-              }}
-              className={`border-b border-[#E8E1D9] py-5 font-serif text-[27px] font-light text-[#1C1916] transition-all duration-[750ms] [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] first:border-t hover:pl-3
-                ${mobileOpen ? "translate-x-0 opacity-100" : "-translate-x-12 opacity-0"}`}
-            >
-              {link.label}
-            </Link>
-          ))}
+        <nav className="flex flex-col px-6 pt-6 sm:px-8 max-h-[calc(100vh-170px)] overflow-y-auto">
+          {NAV_LINKS.map((link, idx) => {
+            if (link.hasDropdown) {
+              return (
+                <div
+                  key={link.label}
+                  style={{
+                    transitionDelay: mobileOpen ? `${idx * 70}ms` : "0ms",
+                  }}
+                  className={`border-b border-[#E8E1D9] py-4 transition-all duration-[750ms] [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] first:border-t
+                    ${mobileOpen ? "translate-x-0 opacity-100" : "-translate-x-12 opacity-0"}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <Link
+                      to={link.href}
+                      onClick={() => setMobileOpen(false)}
+                      className="font-serif text-[27px] font-light text-[#1C1916] transition-colors hover:text-[#B58A5B]"
+                    >
+                      {link.label}
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => setMobileShopExpand((prev) => !prev)}
+                      className="p-2 text-[#1C1916]/70 hover:text-[#1C1916]"
+                      aria-label="Toggle categories"
+                    >
+                      <ChevronDown
+                        size={20}
+                        className={`transition-transform duration-200 ${
+                          mobileShopExpand ? "rotate-180 text-[#B58A5B]" : ""
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {mobileShopExpand && (
+                    <div className="mt-3 flex flex-col gap-2 pl-4 border-l border-[#B58A5B]/30 my-2">
+                      <Link
+                        to="/collections"
+                        onClick={() => setMobileOpen(false)}
+                        className="font-sans text-[11px] font-bold uppercase tracking-[0.16em] text-[#B58A5B] py-1"
+                      >
+                        Shop All Products →
+                      </Link>
+                      {activeCategories.map((cat) => (
+                        <Link
+                          key={cat.id || cat.slug}
+                          to={`/collections/${cat.slug}`}
+                          onClick={() => setMobileOpen(false)}
+                          className="font-sans text-[13.5px] font-medium text-[#1C1916]/80 hover:text-[#B58A5B] transition-colors py-0.5"
+                        >
+                          {cat.name}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            return (
+              <Link
+                key={link.label}
+                to={link.href}
+                onClick={() => setMobileOpen(false)}
+                style={{
+                  transitionDelay: mobileOpen ? `${idx * 70}ms` : "0ms",
+                }}
+                className={`border-b border-[#E8E1D9] py-5 font-serif text-[27px] font-light text-[#1C1916] transition-all duration-[750ms] [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] first:border-t hover:pl-3
+                  ${mobileOpen ? "translate-x-0 opacity-100" : "-translate-x-12 opacity-0"}`}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
         </nav>
 
         {/* Mobile Drawer Footer */}

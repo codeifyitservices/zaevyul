@@ -1,5 +1,6 @@
 import BlogCategory from "../model/BlogCategory.js";
 import Blog from "../model/Blog.js";
+import Category from "../model/Category.js";
 
 const categoriesData = [
   { name: "Heritage" },
@@ -7,6 +8,28 @@ const categoriesData = [
   { name: "Culture" },
   { name: "Stories" },
   { name: "Care" }
+];
+
+const productCategoriesData = [
+  { name: "Shawls", slug: "shawls", description: "Handwoven Kashmiri shawls in pure Pashmina", sortOrder: 1, mainImage: { url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124709/zaevyul/storefront/cat-shawls.jpg" } },
+  { name: "Stoles", slug: "stoles", description: "Lightweight Pashmina stoles for everyday elegance", sortOrder: 2, mainImage: { url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124710/zaevyul/storefront/cat-stoles.jpg" } },
+  { name: "Scarves", slug: "scarves", description: "Fine Pashmina scarves in seasonal tones", sortOrder: 3, mainImage: { url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124708/zaevyul/storefront/cat-scarves.jpg" } },
+  { name: "Pashmina caps", slug: "pashmina-caps", description: "Warm, handcrafted Pashmina caps", sortOrder: 4, mainImage: { url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124717/zaevyul/storefront/prod-3.jpg" } },
+  { name: "Pashmina skill caps", slug: "pashmina-skill-caps", description: "Traditional handcrafted Pashmina skill caps", sortOrder: 5, mainImage: { url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124718/zaevyul/storefront/prod-stack.jpg" } },
+  { name: "British flat hats", slug: "british-flat-hats", description: "Classic British flat hats in fine wool and Pashmina", sortOrder: 6, mainImage: { url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124712/zaevyul/storefront/hero.png" } },
+  { name: "Woollen beanies", slug: "woollen-beanies", description: "Cozy knitted woollen beanies", sortOrder: 7, mainImage: { url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124711/zaevyul/storefront/color-palette.png" } },
+  { name: "Woollen caps", slug: "woollen-caps", description: "Premium woollen caps for cold seasons", sortOrder: 8, mainImage: { url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124715/zaevyul/storefront/prod-1.jpg" } },
+  { name: "Tailoring section : Jackets", slug: "jackets", description: "Tailored Kashmiri jackets with fine embroidery", sortOrder: 9, mainImage: { url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124707/zaevyul/storefront/cat-embroidered.jpg" } },
+  { name: "Coats", slug: "coats", description: "Luxurious long coats in Pashmina and fine wool blends", sortOrder: 10, mainImage: { url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124719/zaevyul/storefront/story-bg.jpg" } },
+  { name: "Male trousers", slug: "male-trousers", description: "Tailored male trousers in premium wool", sortOrder: 11, mainImage: { url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124706/zaevyul/storefront/artisan.jpg" } },
+  { name: "Male shirts", slug: "male-shirts", description: "Custom-tailored men's shirts", sortOrder: 12, mainImage: { url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124714/zaevyul/storefront/craft-process.jpg" } },
+  { name: "Kashmiri male pherans", slug: "kashmiri-male-pherans", description: "Traditional Kashmiri male pherans", sortOrder: 13, mainImage: { url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124713/zaevyul/storefront/craft-grid-1.jpg" } },
+  { name: "Kashmiri female pherans", slug: "kashmiri-female-pherans", description: "Elegant Kashmiri female pherans with Tilla embroidery", sortOrder: 14, mainImage: { url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124716/zaevyul/storefront/craft-grid-2.jpg" } },
+  { name: "Ladies dresses", slug: "ladies-dresses", description: "Designer ladies dresses and ethnic ensembles", sortOrder: 15, mainImage: { url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124709/zaevyul/storefront/cat-shawls.jpg" } },
+  { name: "Ladies shirts", slug: "ladies-shirts", description: "Tailored ladies shirts and tops", sortOrder: 16, mainImage: { url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124710/zaevyul/storefront/cat-stoles.jpg" } },
+  { name: "Kaftans", slug: "kaftans", description: "Flowing, luxurious Kaftans", sortOrder: 17, mainImage: { url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124707/zaevyul/storefront/cat-embroidered.jpg" } },
+  { name: "Abaayaa", slug: "abaayaa", description: "Modest and elegant Abaayaa collections", sortOrder: 18, mainImage: { url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124719/zaevyul/storefront/story-bg.jpg" } },
+  { name: "Ladies headscarves", slug: "ladies-headscarves", description: "Soft, lightweight ladies headscarves", sortOrder: 19, mainImage: { url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124708/zaevyul/storefront/cat-scarves.jpg" } },
 ];
 
 const blogsData = [
@@ -91,6 +114,15 @@ export const seedDatabase = async () => {
       await BlogCategory.insertMany(categoriesData);
       console.log("Blog categories seeded successfully!");
     }
+
+    for (const cat of productCategoriesData) {
+      await Category.updateOne(
+        { slug: cat.slug },
+        { $set: cat },
+        { upsert: true }
+      );
+    }
+    console.log("Product categories seeded/synced successfully!");
 
     const blogCount = await Blog.countDocuments();
     if (blogCount === 0) {
