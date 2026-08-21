@@ -534,6 +534,7 @@ export const api = {
         });
         return res.category;
       } catch (err) {
+        if (!shouldUseMockFallback(err)) throw err;
         await sleep(400);
         const category = { ...data, id: `cat-${Date.now()}`, productCount: 0 };
         db.categories = [...db.categories, category];
@@ -549,6 +550,7 @@ export const api = {
         });
         return res.category;
       } catch (err) {
+        if (!shouldUseMockFallback(err)) throw err;
         await sleep(300);
         db.categories = db.categories.map((c) =>
           c.id === id ? { ...c, ...data } : c,

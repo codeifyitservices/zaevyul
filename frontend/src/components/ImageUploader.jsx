@@ -24,26 +24,16 @@ export default function ImageUploader({
     setUploading(true);
     try {
       const uploadPromises = validFiles.map(async (f) => {
-        try {
-          const res = await api.upload.image(f, folder);
-          if (res && res.url) {
-            return {
-              id: res.public_id || `${f.name}-${Date.now()}`,
-              url: res.url,
-              name: f.name,
-              cloudinary: true,
-            };
-          }
-        } catch (err) {
-          console.warn("Cloudinary upload fallback to blob URL:", err);
+        const res = await api.upload.image(f, folder);
+        if (res && res.url) {
+          return {
+            id: res.public_id || `${f.name}-${Date.now()}`,
+            url: res.url,
+            name: f.name,
+            cloudinary: true,
+          };
         }
-        // Fallback to local Blob URL if offline/upload error
-        return {
-          id: `${f.name}-${Date.now()}`,
-          url: URL.createObjectURL(f),
-          name: f.name,
-          file: f,
-        };
+        throw new Error("Upload did not return a valid URL.");
       });
 
       const uploadedImgs = await Promise.all(uploadPromises);
