@@ -59,9 +59,10 @@ app.use(
       }
     },
     credentials: true,
-  }),
+  })
 );
-app.use(express.json());
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use(cookieParser());
 
 // ── Public endpoints — accessible without auth headers (AUD-002, AUD-012, AUD-013, AUD-018, AUD-019) ──
