@@ -115,14 +115,11 @@ export const seedDatabase = async () => {
       console.log("Blog categories seeded successfully!");
     }
 
-    for (const cat of productCategoriesData) {
-      await Category.updateOne(
-        { slug: cat.slug },
-        { $set: cat },
-        { upsert: true }
-      );
+    const productCategoryCount = await Category.countDocuments();
+    if (productCategoryCount === 0) {
+      await Category.insertMany(productCategoriesData);
+      console.log("Product categories seeded successfully!");
     }
-    console.log("Product categories seeded/synced successfully!");
 
     const blogCount = await Blog.countDocuments();
     if (blogCount === 0) {
