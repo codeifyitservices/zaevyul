@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import { ArrowRight, Mail } from "lucide-react";
 import { useToast } from "../../context/ToastContext";
+import { useFavorite } from "../../context/FavoritesContext";
 import { api } from "../../lib/api";
 import Logo from "../../components/Logo";
 
@@ -41,6 +42,7 @@ function PinterestIcon({ size = 18, className = "" }) {
 
 export default function SiteFooter() {
   const toast = useToast();
+  const { setIsOpen: setWishlistOpen } = useFavorite();
   const [email, setEmail] = useState("");
   const [subscribing, setSubscribing] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
@@ -106,63 +108,7 @@ export default function SiteFooter() {
             </p>
           </div>
 
-          {/* Column 2: SHOP */}
-          <div>
-            <h5 className="mb-4 font-sans text-[11px] font-semibold uppercase tracking-[0.2em] text-[#1C1916]">
-              SHOP
-            </h5>
-            <ul className="flex flex-col gap-3 text-[13px] font-light text-[#6B6560]">
-              <li>
-                <RouterLink
-                  to="/collections"
-                  className="hover:text-[#1C1916] transition-colors"
-                >
-                  All Products
-                </RouterLink>
-              </li>
-              {categories && categories.length > 0 ? (
-                categories.map((cat) => (
-                  <li key={cat.id || cat.slug}>
-                    <RouterLink
-                      to={`/collections/${cat.slug}`}
-                      className="hover:text-[#1C1916] transition-colors"
-                    >
-                      {cat.name}
-                    </RouterLink>
-                  </li>
-                ))
-              ) : (
-                <>
-                  <li>
-                    <RouterLink
-                      to="/collections/shawls"
-                      className="hover:text-[#1C1916] transition-colors cursor-pointer"
-                    >
-                      Shawls
-                    </RouterLink>
-                  </li>
-                  <li>
-                    <RouterLink
-                      to="/collections/scarves"
-                      className="hover:text-[#1C1916] transition-colors cursor-pointer"
-                    >
-                      Scarves
-                    </RouterLink>
-                  </li>
-                  <li>
-                    <RouterLink
-                      to="/collections/accessories"
-                      className="hover:text-[#1C1916] transition-colors cursor-pointer"
-                    >
-                      Accessories
-                    </RouterLink>
-                  </li>
-                </>
-              )}
-            </ul>
-          </div>
-
-          {/* Column 3: OUR STORY */}
+          {/* Column 2: OUR STORY */}
           <div>
             <h5 className="mb-4 font-sans text-[11px] font-semibold uppercase tracking-[0.2em] text-[#1C1916]">
               OUR STORY
@@ -203,6 +149,8 @@ export default function SiteFooter() {
             </ul>
           </div>
 
+          {/* Column 3: ACCOUNT */}
+
           {/* Column 4: HELP */}
           <div>
             <h5 className="mb-4 font-sans text-[11px] font-semibold uppercase tracking-[0.2em] text-[#1C1916]">
@@ -240,6 +188,38 @@ export default function SiteFooter() {
                 >
                   Contact Us
                 </RouterLink>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h5 className="mb-4 font-sans text-[11px] font-semibold uppercase tracking-[0.2em] text-[#1C1916]">
+              ACCOUNT
+            </h5>
+            <ul className="flex flex-col gap-3 text-[13px] font-light text-[#6B6560]">
+              <li>
+                <RouterLink
+                  to="/my-account"
+                  className="hover:text-[#1C1916] transition-colors cursor-pointer"
+                >
+                  My Account
+                </RouterLink>
+              </li>
+              <li>
+                <RouterLink
+                  to="/my-account/orders"
+                  className="hover:text-[#1C1916] transition-colors cursor-pointer"
+                >
+                  My Orders
+                </RouterLink>
+              </li>
+              <li>
+                <button
+                  onClick={() => setWishlistOpen(true)}
+                  className="hover:text-[#1C1916] transition-colors cursor-pointer text-left"
+                >
+                  My Wishlist
+                </button>
               </li>
             </ul>
           </div>

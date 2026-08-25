@@ -98,8 +98,8 @@ const FAQ_DATA = {
       a: "Store your clean Pashmina in a breathable cotton or linen bag in a cool, dry place. Avoid sealed plastic bags, and place natural cedarwood blocks or lavender sachets inside to prevent moth damage.",
     },
     {
-      q: "What is the difference between Pashmina and Cashmere?",
-      a: "Pashmina is a premium grade of fine cashmere produced exclusively by the Capra Hircus goats living at altitudes over 14,000 feet in Ladakh. Pashmina fibers are finer (12–15 microns) and warmer than standard commercial cashmere.",
+      q: "What is the difference between Pashmina and Kashmiri?",
+      a: "Pashmina is a premium grade of fine Kashmiri produced exclusively by the Capra Hircus goats living at altitudes over 14,000 feet in Ladakh. Pashmina fibers are finer (12–15 microns) and warmer than standard commercial Kashmiri.",
     },
     {
       q: "What are the dimensions of your shawls, stoles, and scarves?",

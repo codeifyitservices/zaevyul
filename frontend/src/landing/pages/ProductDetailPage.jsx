@@ -947,7 +947,7 @@ export default function ProductDetailPage() {
                         ) : (
                           <>
                             <p className="mb-2">
-                              100% pure premium cashmere (Pashmina).
+                              100% pure premium Kashmiri (Pashmina).
                             </p>
                             <p className="mb-2">
                               Authentic hand-spun yarn and hand-loomed weave.

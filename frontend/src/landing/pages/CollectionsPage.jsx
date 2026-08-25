@@ -169,6 +169,32 @@ const getProductImage = (p) =>
   p.img || (p.images && p.images[0]?.url) || "/storefront/prod-1.png";
 // getProductPrice is now defined inside the component via useCurrency
 
+const getCategoryHeroImage = (catObj, fallbackProducts, isAllCollections) => {
+  if (isAllCollections) return "/storefront/pashmina-banner.png";
+  if (!catObj) return null;
+  if (catObj.mainImage) {
+    const url = typeof catObj.mainImage === "string" ? catObj.mainImage : catObj.mainImage.url;
+    if (url) return url;
+  }
+  if (catObj.image) {
+    const url = typeof catObj.image === "string" ? catObj.image : catObj.image.url;
+    if (url) return url;
+  }
+  if (catObj.banner) {
+    const url = typeof catObj.banner === "string" ? catObj.banner : catObj.banner.url;
+    if (url) return url;
+  }
+  if (catObj.img) {
+    const url = typeof catObj.img === "string" ? catObj.img : catObj.img.url;
+    if (url) return url;
+  }
+  if (fallbackProducts && fallbackProducts.length > 0) {
+    const firstProdImg = getProductImage(fallbackProducts[0]);
+    if (firstProdImg) return firstProdImg;
+  }
+  return null;
+};
+
 export default function CollectionsPage() {
   const { category } = useParams();
   const [products, setProducts] = useState([]);
@@ -261,9 +287,11 @@ export default function CollectionsPage() {
   useEffect(() => {
     setVisibleCount(11);
   }, [category, selectedFilters, sortBy]);
+
   const activeCategoryObj = categories.find(
     (c) =>
-      (c.slug || c.id || "").toLowerCase() === (category || "").toLowerCase(),
+      category &&
+      (c.slug || c.id || c._id || "").toLowerCase() === (category || "").toLowerCase(),
   );
 
   const isAllCollections = !category;
@@ -429,6 +457,12 @@ export default function CollectionsPage() {
     : activeCategoryObj?.description ||
       "Timeless weaves. Thoughtful details. Each piece carries the warmth of Kashmir.";
 
+  const heroImage = getCategoryHeroImage(
+    activeCategoryObj,
+    filteredProducts,
+    isAllCollections,
+  );
+
   const toggleFilter = (key) => {
     setOpenFilters((prev) => ({ ...prev, [key]: !prev[key] }));
   };
@@ -498,12 +532,16 @@ export default function CollectionsPage() {
             </div>
 
             {/* Right Side Full-Bleed Image (touches the right edge of browser) */}
-            <div className="w-full h-[280px] sm:h-[360px] lg:h-auto min-h-[300px] lg:min-h-[450px] overflow-hidden">
-              <img
-                src="/storefront/pashmina-banner.png"
-                alt="Luxurious folded pashmina fabrics with delicate fringes"
-                className="w-full h-full object-cover"
-              />
+            <div className="w-full h-[100vh] overflow-hidden bg-[#E8E1D9]">
+              {heroImage ? (
+                <img
+                  src={heroImage}
+                  alt={activeCategoryObj?.name || "Luxurious folded pashmina fabrics"}
+                  className="w-full h-[100vh] object-cover"
+                />
+              ) : (
+                <div className="w-full h-[100vh] animate-pulse bg-[#E8E1D9]" />
+              )}
             </div>
           </div>
         </section>

@@ -1,5 +1,4 @@
 import { NavLink } from "react-router-dom";
-import Logo from "../components/Logo";
 import {
   LayoutDashboard,
   Package,
@@ -95,12 +94,41 @@ export default function Sidebar({
       <aside
         className={`sidebar ${collapsed ? "collapsed" : ""} ${mobileOpen ? "mobile-open" : ""}`}
       >
-        {/* Logo */}
+        {/* Admin Title */}
         <div className="sidebar-logo">
           {!collapsed ? (
-            <Logo variant="sidebar" />
+            <span
+              className="sidebar-logo-text"
+              style={{
+                fontSize: 16,
+                letterSpacing: "0.25em",
+                fontFamily: "var(--font-serif, Georgia, serif)",
+                color: "#FFFFFF",
+                fontWeight: 600,
+                textTransform: "uppercase",
+              }}
+            >
+              ADMIN
+            </span>
           ) : (
-            <Logo variant="sidebar-collapsed" />
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 6,
+                background: "#B58A5B",
+                color: "#FFF",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontFamily: "var(--font-serif, Georgia, serif)",
+                fontWeight: 700,
+                fontSize: 16,
+                margin: "0 auto",
+              }}
+            >
+              A
+            </div>
           )}
         </div>
 

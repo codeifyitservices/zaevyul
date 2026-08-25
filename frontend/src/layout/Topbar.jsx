@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Bell, Menu, LogOut, User, Settings } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
+import Logo from '../components/Logo';
 
 export default function Topbar({ onMenuToggle }) {
   const { user, logout } = useAuth();
@@ -33,6 +34,13 @@ export default function Topbar({ onMenuToggle }) {
       <button className="topbar-btn" onClick={onMenuToggle} style={{ display: 'none' }} id="mobile-menu-btn">
         <Menu size={16} />
       </button>
+
+      {/* Admin Page Header Logo */}
+      <div className="topbar-logo" style={{ display: 'flex', alignItems: 'center' }}>
+        <Link to="/admin/dashboard" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
+          <Logo variant="header" />
+        </Link>
+      </div>
 
       {/* Push actions to the right */}
       <div style={{ flex: 1 }} />
