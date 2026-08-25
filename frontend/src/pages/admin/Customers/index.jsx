@@ -7,6 +7,7 @@ import DataTable from '../../../components/DataTable';
 import { DeleteDialog } from '../../../components/Modal';
 import { useToast } from '../../../context/ToastContext';
 import { api } from '../../../lib/api';
+import StatusBadge from '../../../components/StatusBadge';
 
 export default function Customers() {
   const toast = useToast();
