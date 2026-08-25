@@ -89,19 +89,21 @@ export default function Profile() {
         <div>
           {/* Tabs */}
           <div className="tabs" style={{ marginBottom: 20 }}>
-            {["profile"].map((t) => (
+            {[
+              { id: "profile", label: "Profile Information" },
+              { id: "security", label: "Change Password" },
+            ].map((t) => (
               <button
-                key={t}
-                className={`tab ${activeTab === t ? "active" : ""}`}
-                onClick={() => setActiveTab(t)}
+                key={t.id}
+                className={`tab ${activeTab === t.id ? "active" : ""}`}
+                onClick={() => setActiveTab(t.id)}
                 style={{
                   background: "none",
                   border: "none",
                   cursor: "pointer",
-                  textTransform: "capitalize",
                 }}
               >
-                {t}
+                {t.label}
               </button>
             ))}
           </div>
@@ -151,6 +153,81 @@ export default function Profile() {
                     disabled={saving}
                   >
                     <Save size={13} /> {saving ? "Saving…" : "Save changes"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "security" && (
+            <div className="card">
+              <div className="card-header">
+                <span className="card-title">Change Password</span>
+              </div>
+              <div
+                className="card-body"
+                style={{ display: "flex", flexDirection: "column", gap: 14 }}
+              >
+                <div className="field-group">
+                  <label className="field-label">Current Password *</label>
+                  <input
+                    className="field-input"
+                    type="password"
+                    value={passwords.current}
+                    placeholder="Enter current password"
+                    onChange={(e) =>
+                      setPasswords((p) => ({ ...p, current: e.target.value }))
+                    }
+                  />
+                </div>
+                <div className="form-row">
+                  <div className="field-group">
+                    <label className="field-label">New Password *</label>
+                    <input
+                      className="field-input"
+                      type="password"
+                      value={passwords.next}
+                      placeholder="Enter new password"
+                      onChange={(e) =>
+                        setPasswords((p) => ({ ...p, next: e.target.value }))
+                      }
+                    />
+                    <p
+                      style={{
+                        fontSize: 11,
+                        color: "var(--color-text-caption)",
+                        marginTop: 4,
+                      }}
+                    >
+                      Min 8 chars · uppercase · lowercase · number
+                    </p>
+                  </div>
+                  <div className="field-group">
+                    <label className="field-label">Confirm New Password *</label>
+                    <input
+                      className="field-input"
+                      type="password"
+                      value={passwords.confirm}
+                      placeholder="Confirm new password"
+                      onChange={(e) =>
+                        setPasswords((p) => ({ ...p, confirm: e.target.value }))
+                      }
+                    />
+                  </div>
+                </div>
+                <div
+                  style={{
+                    paddingTop: 8,
+                    display: "flex",
+                    justifyContent: "flex-end",
+                  }}
+                >
+                  <button
+                    className="btn btn-primary"
+                    onClick={savePassword}
+                    disabled={savingPw}
+                  >
+                    {savingPw ? "Changing…" : "Change Password"}
                   </button>
                 </div>
               </div>

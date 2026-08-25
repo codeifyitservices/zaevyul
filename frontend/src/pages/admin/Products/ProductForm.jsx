@@ -559,9 +559,7 @@ export default function ProductForm() {
                   className="card-body"
                   style={{ display: "flex", flexDirection: "column", gap: 14 }}
                 >
-                  <p className="form-section-title">
-                    Base Pricing & Inventory Alerts
-                  </p>
+                  <p className="form-section-title">Inventory Alerts</p>
                   <div
                     style={{
                       display: "flex",
@@ -569,82 +567,24 @@ export default function ProductForm() {
                       gap: 12,
                     }}
                   >
-                    <div className="form-row">
-                      <div className="field-group">
-                        <label className="field-label">Base Price (₹)</label>
-                        <input
-                          className="field-input"
-                          type="number"
-                          min="0"
-                          value={form.basePrice || ""}
-                          placeholder="e.g. 32000"
-                          onChange={(e) => {
-                            const val =
-                              e.target.value === ""
-                                ? ""
-                                : Math.max(0, Number(e.target.value));
-                            set("basePrice", val);
-                          }}
-                        />
-                      </div>
-                      <div className="field-group">
-                        <label className="field-label">
-                          Discount / Sale Price (₹)
-                        </label>
-                        <input
-                          className="field-input"
-                          type="number"
-                          min="0"
-                          value={form.discountPrice || ""}
-                          placeholder="Optional sale price"
-                          onChange={(e) => {
-                            const val =
-                              e.target.value === ""
-                                ? ""
-                                : Math.max(0, Number(e.target.value));
-                            set("discountPrice", val);
-                          }}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="form-row">
-                      <div className="field-group">
-                        <label className="field-label">Cost Price (₹)</label>
-                        <input
-                          className="field-input"
-                          type="number"
-                          min="0"
-                          value={form.costPrice || ""}
-                          placeholder="Optional cost for profit reporting"
-                          onChange={(e) => {
-                            const val =
-                              e.target.value === ""
-                                ? ""
-                                : Math.max(0, Number(e.target.value));
-                            set("costPrice", val);
-                          }}
-                        />
-                      </div>
-                      <div className="field-group">
-                        <label className="field-label">
-                          Low Stock Alert Threshold
-                        </label>
-                        <input
-                          className="field-input"
-                          type="number"
-                          min="0"
-                          value={form.lowStockThreshold || 5}
-                          placeholder="5"
-                          onChange={(e) => {
-                            const val =
-                              e.target.value === ""
-                                ? ""
-                                : Math.max(0, Number(e.target.value));
-                            set("lowStockThreshold", val);
-                          }}
-                        />
-                      </div>
+                    <div className="field-group">
+                      <label className="field-label">
+                        Low Stock Alert Threshold
+                      </label>
+                      <input
+                        className="field-input"
+                        type="number"
+                        min="0"
+                        value={form.lowStockThreshold || 5}
+                        placeholder="5"
+                        onChange={(e) => {
+                          const val =
+                            e.target.value === ""
+                              ? ""
+                              : Math.max(0, Number(e.target.value));
+                          set("lowStockThreshold", val);
+                        }}
+                      />
                     </div>
                   </div>
                 </div>
