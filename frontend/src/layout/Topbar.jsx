@@ -2,44 +2,16 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Bell, Menu, LogOut, User, Settings } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { api } from '../lib/api';
+import { useNotifications } from '../context/NotificationContext';
 
 export default function Topbar({ onMenuToggle }) {
   const { user, logout } = useAuth();
+  const { notifications, unreadCount, hasAlerts, markAllAsRead, handleNotificationClick } = useNotifications();
   const navigate = useNavigate();
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
-  const [notifications, setNotifications] = useState([
-    { id: 1, message: 'System active & operational', time: 'Just now', read: false }
-  ]);
   const profileRef = useRef(null);
   const notifRef = useRef(null);
-
-  useEffect(() => {
-    const loadNotifs = async () => {
-      try {
-        const report = await api.reports.get();
-        const lowStock = report?.stats?.lowStockCount || 0;
-        const pending = report?.stats?.pendingOrders || 0;
-        const list = [];
-        if (lowStock > 0) {
-          list.push({ id: 'low-stock', message: `${lowStock} product${lowStock > 1 ? 's' : ''} low on stock`, time: 'Live alert', read: false });
-        }
-        if (pending > 0) {
-          list.push({ id: 'pending-orders', message: `${pending} pending order${pending > 1 ? 's' : ''} awaiting fulfillment`, time: 'Live alert', read: false });
-        }
-        if (list.length === 0) {
-          list.push({ id: 'all-clear', message: 'All inventory & orders up to date', time: 'Just now', read: true });
-        }
-        setNotifications(list);
-      } catch (e) {
-        // keep default
-      }
-    };
-    loadNotifs();
-  }, []);
-
-  const unread = notifications.filter(n => !n.read).length;
 
   useEffect(() => {
     const handler = (e) => {
@@ -71,20 +43,62 @@ export default function Topbar({ onMenuToggle }) {
         <div ref={notifRef} style={{ position: 'relative' }}>
           <button className="topbar-btn" onClick={() => setNotifOpen(o => !o)} title="Notifications">
             <Bell size={15} />
-            {unread > 0 && <span className="topbar-notif-dot" />}
+            {hasAlerts && <span className="topbar-notif-dot" />}
           </button>
           {notifOpen && (
-            <div className="dropdown" style={{ minWidth: 280, right: 0 }}>
-              <div style={{ padding: '8px 10px 6px', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="dropdown" style={{ minWidth: 290, right: 0 }}>
+              <div style={{ padding: '8px 12px 6px', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-secondary)' }}>Notifications</span>
-                {unread > 0 && <span style={{ fontSize: 11, color: 'var(--color-text-caption)' }}>{unread} unread</span>}
+                {unreadCount > 0 ? (
+                  <button
+                    onClick={markAllAsRead}
+                    style={{ background: 'none', border: 'none', fontSize: 11, color: 'var(--color-walnut)', cursor: 'pointer', fontWeight: 500 }}
+                  >
+                    Mark all read
+                  </button>
+                ) : (
+                  <span style={{ fontSize: 11, color: 'var(--color-text-caption)' }}>Live updates</span>
+                )}
               </div>
               {notifications.map(n => (
-                <div key={n.id} className="dropdown-item" style={{ alignItems: 'flex-start', padding: '9px 10px' }}>
-                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: n.read ? 'transparent' : 'var(--color-walnut)', flexShrink: 0, marginTop: 4, border: n.read ? '1px solid var(--color-border)' : 'none' }} />
-                  <div>
-                    <div style={{ fontSize: 12, color: 'var(--color-text-primary)', lineHeight: 1.4 }}>{n.message}</div>
-                    <div style={{ fontSize: 11, color: 'var(--color-text-caption)', marginTop: 2 }}>{n.time}</div>
+                <div
+                  key={n.id}
+                  className="dropdown-item"
+                  onClick={() => {
+                    handleNotificationClick(n);
+                    setNotifOpen(false);
+                  }}
+                  style={{
+                    alignItems: 'flex-start',
+                    padding: '9px 12px',
+                    cursor: 'pointer',
+                    gap: 10,
+                    background: n.read ? 'transparent' : 'rgba(181, 138, 91, 0.06)',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: '50%',
+                      background: n.read ? 'transparent' : 'var(--color-walnut)',
+                      flexShrink: 0,
+                      marginTop: 5,
+                      border: n.read ? '1px solid var(--color-border)' : 'none',
+                    }}
+                  />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: n.read ? 400 : 600, color: 'var(--color-text-primary)', lineHeight: 1.35 }}>
+                      {n.message}
+                    </div>
+                    {n.detail && (
+                      <div style={{ fontSize: 11, color: 'var(--color-text-caption)', marginTop: 2 }}>
+                        {n.detail}
+                      </div>
+                    )}
+                    <div style={{ fontSize: 10, color: 'var(--color-walnut)', marginTop: 4, fontWeight: 500 }}>
+                      {n.time} {n.path && !n.isClearItem ? '• Click to open →' : ''}
+                    </div>
                   </div>
                 </div>
               ))}

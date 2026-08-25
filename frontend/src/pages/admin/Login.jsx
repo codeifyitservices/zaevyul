@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { Eye, EyeOff } from 'lucide-react';
 import './admin.css';
 
 
@@ -11,6 +12,7 @@ export default function Login() {
   const from = location.state?.from?.pathname || '/admin/dashboard';
 
   const [form, setForm] = useState({ email: '', password: '' });
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -60,15 +62,25 @@ export default function Login() {
 
             <div className="field-group">
               <label className="field-label">Password</label>
-              <input
-                className="field-input"
-                type="password"
-                placeholder="••••••••"
-                value={form.password}
-                onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                autoComplete="current-password"
-                required
-              />
+              <div className="password-input-wrapper">
+                <input
+                  className="field-input"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  value={form.password}
+                  onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                  autoComplete="current-password"
+                  required
+                />
+                <button
+                  type="button"
+                  className="password-toggle-btn"
+                  onClick={() => setShowPassword(prev => !prev)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </div>
 
             <button

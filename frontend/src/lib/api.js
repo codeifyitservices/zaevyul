@@ -66,6 +66,9 @@ const loadCollection = (key, defaultData) => {
 
 const saveCollection = (key, data) => {
   localStorage.setItem(`zae_db_${key}`, JSON.stringify(data));
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("admin-data-updated"));
+  }
 };
 
 let db = {
@@ -124,6 +127,12 @@ const request = async (url, options = {}) => {
     }
   }
   if (!res.ok) throw new Error(data.message || "API request failed");
+  const method = (options.method || "GET").toUpperCase();
+  if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("admin-data-updated"));
+    }
+  }
   return data;
 };
 

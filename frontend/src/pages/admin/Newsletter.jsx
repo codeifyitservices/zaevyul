@@ -18,7 +18,7 @@ export default function Newsletter() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [sortBy, setSortBy] = useState('newest');
   const [page, setPage] = useState(1);
-  const PAGE_SIZE = 12;
+  const [pageSize, setPageSize] = useState(10);
 
   const fetchSubscribers = async () => {
     setLoading(true);
@@ -70,9 +70,9 @@ export default function Newsletter() {
   }, [filtered, sortBy]);
 
   // Pagination calculation
-  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
   const safePage = Math.min(page, totalPages);
-  const paginated = sorted.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const paginated = sorted.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   const getItemId = s => s._id || s.id;
 
@@ -234,8 +234,19 @@ export default function Newsletter() {
           </table>
         </div>
 
-        {sorted.length > PAGE_SIZE && (
-          <Pagination page={safePage} totalPages={totalPages} total={sorted.length} pageSize={PAGE_SIZE} onPage={setPage} />
+        {sorted.length > 0 && (
+          <Pagination
+            page={safePage}
+            totalPages={totalPages}
+            total={sorted.length}
+            pageSize={pageSize}
+            onPage={setPage}
+            pageSizeOptions={[10, 25, 50, 100]}
+            onPageSizeChange={(newSize) => {
+              setPageSize(newSize);
+              setPage(1);
+            }}
+          />
         )}
       </div>
 

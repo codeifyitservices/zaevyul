@@ -1,7 +1,15 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-export default function Pagination({ page, totalPages, total, pageSize, onPage }) {
-  const start = (page - 1) * pageSize + 1;
+export default function Pagination({
+  page,
+  totalPages,
+  total,
+  pageSize,
+  onPage,
+  pageSizeOptions = [10, 25, 50, 100],
+  onPageSizeChange,
+}) {
+  const start = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const end = Math.min(page * pageSize, total);
 
   const pages = [];
@@ -13,7 +21,25 @@ export default function Pagination({ page, totalPages, total, pageSize, onPage }
 
   return (
     <div className="pagination">
-      <span>{start}–{end} of {total}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <span>{start}–{end} of {total}</span>
+        {onPageSizeChange && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span>Rows per page:</span>
+            <select
+              className="pagination-select"
+              value={pageSize}
+              onChange={(e) => onPageSizeChange(Number(e.target.value))}
+            >
+              {pageSizeOptions.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
       <div className="pagination-pages">
         <button className="pagination-btn" onClick={() => onPage(page - 1)} disabled={page === 1}>
           <ChevronLeft size={13} />

@@ -48,8 +48,8 @@ export default function Coupons() {
   const [saving, setSaving] = useState(false);
   const [selected, setSelected] = useState([]);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [codeCopied, setCodeCopied] = useState(false);
-  const PAGE_SIZE = 12;
 
   // ── Fetch from backend ────────────────────────────────────────────────────
   const fetchCoupons = async () => {
@@ -167,7 +167,7 @@ export default function Coupons() {
     } catch (err) {
       toast("Bulk delete failed", "error");
     } finally {
-      setBulkDeleteConfirm(false);
+      setDeleteBulkConfirm(false);
       setDeleteLoading(false);
     }
   };
@@ -187,11 +187,11 @@ export default function Coupons() {
   const isExpired = (expiry) => expiry && new Date(expiry) < new Date();
 
   // Pagination
-  const totalPages = Math.max(1, Math.ceil(coupons.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(coupons.length / pageSize));
   const safePage = Math.min(page, totalPages);
   const paginated = coupons.slice(
-    (safePage - 1) * PAGE_SIZE,
-    safePage * PAGE_SIZE,
+    (safePage - 1) * pageSize,
+    safePage * pageSize,
   );
 
   const allOnPageSelected =
@@ -443,13 +443,18 @@ export default function Coupons() {
             </table>
           )}
         </div>
-        {coupons.length > PAGE_SIZE && (
+        {coupons.length > 0 && (
           <Pagination
             page={safePage}
             totalPages={totalPages}
             total={coupons.length}
-            pageSize={PAGE_SIZE}
+            pageSize={pageSize}
             onPage={setPage}
+            pageSizeOptions={[10, 25, 50, 100]}
+            onPageSizeChange={(newSize) => {
+              setPageSize(newSize);
+              setPage(1);
+            }}
           />
         )}
       </div>

@@ -348,7 +348,7 @@ export default function Dashboard() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "1.4fr 1fr 1fr",
+          gridTemplateColumns: "2.4fr 1fr",
           gap: 20,
           marginBottom: 28,
         }}
@@ -430,115 +430,6 @@ export default function Dashboard() {
                 />
               </AreaChart>
             </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Top Selling Products */}
-        <div
-          className="card"
-          style={{ padding: "24px", display: "flex", flexDirection: "column" }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 20,
-            }}
-          >
-            <span
-              style={{
-                fontSize: 13,
-                fontWeight: 600,
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-                color: "var(--color-text-secondary)",
-              }}
-            >
-              Top Products
-            </span>
-            <Link
-              to="/admin/products"
-              className="btn btn-ghost btn-sm"
-              style={{
-                fontSize: 11,
-                padding: "2px 8px",
-                textTransform: "capitalize",
-                letterSpacing: "0",
-              }}
-            >
-              View All
-            </Link>
-          </div>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 14,
-              flex: 1,
-              justifyContent: "space-around",
-            }}
-          >
-            {data?.topProducts && data.topProducts.length > 0 ? (
-              data.topProducts.map((prod, idx) => (
-              <div
-                key={prod.name + idx}
-                style={{ display: "flex", alignItems: "center", gap: 12 }}
-              >
-                <div
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 6,
-                    background: "var(--color-surface-2)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 12,
-                    fontWeight: 500,
-                    color: "var(--color-text-caption)",
-                  }}
-                >
-                  {idx + 1}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 500,
-                      color: "var(--color-text-primary)",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {prod.name}
-                  </p>
-                  <p
-                    style={{
-                      fontSize: 11,
-                      color: "var(--color-text-caption)",
-                      marginTop: 2,
-                    }}
-                  >
-                    {prod.sold} sold
-                  </p>
-                </div>
-                <div
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: "var(--color-text-primary)",
-                  }}
-                >
-                </div>
-              </div>
-            ))
-          ) : (
-            <div style={{ textAlign: "center", padding: "20px 0", color: "var(--color-text-caption)", fontSize: 12 }}>
-              No sales records yet
-            </div>
-          )}
           </div>
         </div>
 
@@ -735,8 +626,11 @@ export default function Dashboard() {
             const totalProdCount = data?.stats?.totalProducts || 0;
             const lowStockCount = data?.stats?.lowStockCount || 0;
             const outOfStockCount = data?.stats?.outOfStockCount || 0;
-            const inStockCount = data?.stats?.inStockCount ?? Math.max(0, totalProdCount - lowStockCount - outOfStockCount);
-            const inStockRatio = totalProdCount > 0 ? inStockCount / totalProdCount : 1;
+            const inStockCount =
+              data?.stats?.inStockCount ??
+              Math.max(0, totalProdCount - lowStockCount - outOfStockCount);
+            const inStockRatio =
+              totalProdCount > 0 ? inStockCount / totalProdCount : 1;
             const inStockPct = Math.round(inStockRatio * 100);
 
             return (
@@ -822,13 +716,21 @@ export default function Dashboard() {
                       value: totalProdCount,
                       color: "#222222",
                     },
-                    { label: "In Stock", value: inStockCount, color: "#2E7D32" },
+                    {
+                      label: "In Stock",
+                      value: inStockCount,
+                      color: "#2E7D32",
+                    },
                     {
                       label: "Low Stock",
                       value: lowStockCount,
                       color: "#D98B2B",
                     },
-                    { label: "Out of Stock", value: outOfStockCount, color: "#C94C4C" },
+                    {
+                      label: "Out of Stock",
+                      value: outOfStockCount,
+                      color: "#C94C4C",
+                    },
                   ].map((item) => (
                     <div
                       key={item.label}

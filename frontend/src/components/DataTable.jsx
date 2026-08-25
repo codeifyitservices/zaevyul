@@ -9,7 +9,8 @@ export default function DataTable({
   selectable = false,
   selected = [],
   onSelect,
-  pageSize = 15,
+  pageSize: initialPageSize = 10,
+  pageSizeOptions = [10, 25, 50, 100],
   emptyIcon,
   emptyTitle = 'No records found',
   emptyDesc = '',
@@ -17,9 +18,15 @@ export default function DataTable({
 }) {
   const [sort, setSort] = useState({ key: null, dir: 'asc' });
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(initialPageSize);
 
   const toggleSort = (key) => {
     setSort(s => s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' });
+    setPage(1);
+  };
+
+  const handlePageSizeChange = (newSize) => {
+    setPageSize(newSize);
     setPage(1);
   };
 
@@ -34,7 +41,8 @@ export default function DataTable({
   }, [data, sort]);
 
   const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
-  const paginated = sorted.slice((page - 1) * pageSize, page * pageSize);
+  const safePage = Math.min(page, totalPages);
+  const paginated = sorted.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   const allSelected = paginated.length > 0 && paginated.every(r => selected.includes(r[rowKey]));
   const toggleAll = () => {
@@ -97,13 +105,15 @@ export default function DataTable({
           </tbody>
         </table>
       </div>
-      {sorted.length > pageSize && (
+      {sorted.length > 0 && (
         <Pagination
-          page={page}
+          page={safePage}
           totalPages={totalPages}
           total={sorted.length}
           pageSize={pageSize}
           onPage={setPage}
+          pageSizeOptions={pageSizeOptions}
+          onPageSizeChange={handlePageSizeChange}
         />
       )}
     </div>
