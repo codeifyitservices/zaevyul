@@ -5,6 +5,7 @@ import { useCustomerAuth } from "../../context/CustomerAuthContext";
 import { customerApi } from "../../lib/customerApi";
 import { GoogleLogin } from "@react-oauth/google";
 import PhoneNumberInput, { normalizePhoneInput } from "../../components/PhoneNumberInput";
+import Logo from "../../components/Logo";
 
 const RESEND_COOLDOWN = 60; // seconds
 
@@ -207,9 +208,9 @@ export default function CustomerLoginPage() {
         {/* Logo */}
         <Link
           to="/"
-          className="mb-12 font-serif text-[22px] uppercase tracking-[0.32em] text-[#1C1916]"
+          className="mb-12 cursor-pointer flex items-center justify-center"
         >
-          Zaevyul
+          <Logo variant="header" />
         </Link>
 
         <div className="w-full max-w-[400px]">

@@ -346,6 +346,8 @@ export const getPublicSettings = async (req, res) => {
     const publicSettings = {
       storeName: settings.storeName || "Zaevyul",
       tagline: settings.tagline || "Timeless · Authentic · Handcrafted",
+      logo: settings.logo || "",
+      favicon: settings.favicon || "",
       email: settings.email || "hello@zaevyul.com",
       storeEmail: settings.email || "hello@zaevyul.com",
       phone: settings.phone || "+91 98765 43210",
@@ -372,6 +374,31 @@ export const getPublicSettings = async (req, res) => {
   } catch (error) {
     console.error("[public] getPublicSettings error:", error);
     return res.status(500).json({ success: false, message: "Failed to fetch settings." });
+  }
+};
+
+/**
+ * GET /api/public/branding
+ * Returns public active branding assets (logo & favicon).
+ */
+export const getPublicBranding = async (req, res) => {
+  try {
+    let settings = await Settings.findOne();
+    if (!settings) {
+      settings = new Settings({});
+      await settings.save();
+    }
+
+    return res.status(200).json({
+      success: true,
+      logo: settings.logo || "",
+      favicon: settings.favicon || "",
+      storeName: settings.storeName || "Zaevyul",
+      tagline: settings.tagline || "Timeless · Authentic · Handcrafted",
+    });
+  } catch (error) {
+    console.error("[public] getPublicBranding error:", error);
+    return res.status(500).json({ success: false, message: "Failed to fetch branding." });
   }
 };
 

@@ -6,6 +6,7 @@ import { ToastProvider } from "./context/ToastContext";
 import { CartProvider } from "./context/CartContext";
 import { FavoritesProvider } from "./context/FavoritesContext";
 import { CurrencyProvider } from "./context/CurrencyContext";
+import { BrandingProvider } from "./context/BrandingContext";
 import AdminRouter from "./router";
 import LandingPage from "./landing/pages/LandingPage";
 import CollectionsPage from "./landing/pages/CollectionsPage";
@@ -34,78 +35,80 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 export default function App() {
   return (
     <BrowserRouter>
-      <CurrencyProvider>
-        <ThemeProvider>
-          <ToastProvider>
-            {/* Customer auth wraps the storefront — Google provider needed for GoogleLogin component */}
-            <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-              <CustomerAuthProvider>
-                <PersonalizationProvider>
-                  <FavoritesProvider>
-                    <CartProvider>
-                    <ScrollToTop />
-                    <CartDrawer />
-                    <WishlistDrawer />
-                    <Routes>
-                      {/* Storefront routes */}
-                      <Route path="/" element={<LandingPage />} />
-                      <Route
-                        path="/collections"
-                        element={<CollectionsPage />}
-                      />
-                      <Route
-                        path="/collections/:category"
-                        element={<CollectionsPage />}
-                      />
-                      <Route
-                        path="/collection/:categorySlug/:productSlug"
-                        element={<ProductDetailPage />}
-                      />
-                      <Route path="/cart" element={<CartPage />} />
-                      <Route path="/checkout" element={<CheckoutPage />} />
-                      <Route
-                        path="/order-confirmation"
-                        element={<OrderConfirmationPage />}
-                      />
-                      <Route
-                        path="/order-confirmation/:orderId"
-                        element={<OrderConfirmationPage />}
-                      />
-                      <Route path="/my-account/*" element={<MyAccountPage />} />
-                      <Route path="/journal" element={<JournalPage />} />
-                      <Route
-                        path="/journal/:slug"
-                        element={<JournalDetailPage />}
-                      />
-                      <Route path="/about" element={<OurStoryPage />} />
-                      <Route path="/our-story" element={<OurStoryPage />} />
+      <BrandingProvider>
+        <CurrencyProvider>
+          <ThemeProvider>
+            <ToastProvider>
+              {/* Customer auth wraps the storefront — Google provider needed for GoogleLogin component */}
+              <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+                <CustomerAuthProvider>
+                  <PersonalizationProvider>
+                    <FavoritesProvider>
+                      <CartProvider>
+                      <ScrollToTop />
+                      <CartDrawer />
+                      <WishlistDrawer />
+                      <Routes>
+                        {/* Storefront routes */}
+                        <Route path="/" element={<LandingPage />} />
+                        <Route
+                          path="/collections"
+                          element={<CollectionsPage />}
+                        />
+                        <Route
+                          path="/collections/:category"
+                          element={<CollectionsPage />}
+                        />
+                        <Route
+                          path="/collection/:categorySlug/:productSlug"
+                          element={<ProductDetailPage />}
+                        />
+                        <Route path="/cart" element={<CartPage />} />
+                        <Route path="/checkout" element={<CheckoutPage />} />
+                        <Route
+                          path="/order-confirmation"
+                          element={<OrderConfirmationPage />}
+                        />
+                        <Route
+                          path="/order-confirmation/:orderId"
+                          element={<OrderConfirmationPage />}
+                        />
+                        <Route path="/my-account/*" element={<MyAccountPage />} />
+                        <Route path="/journal" element={<JournalPage />} />
+                        <Route
+                          path="/journal/:slug"
+                          element={<JournalDetailPage />}
+                        />
+                        <Route path="/about" element={<OurStoryPage />} />
+                        <Route path="/our-story" element={<OurStoryPage />} />
 
-                      {/* Customer auth */}
-                      <Route path="/login" element={<CustomerLoginPage />} />
-                      <Route path="/contact" element={<ContactPage />} />
-                      <Route path="/terms" element={<TermsPage />} />
-                      <Route path="/terms-and-conditions" element={<TermsPage />} />
-                      <Route path="/privacy" element={<PrivacyPolicyPage />} />
-                      <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
-                      <Route path="/track-order" element={<TrackOrderPage />} />
-                      <Route path="/faq" element={<FAQPage />} />
-                      <Route path="/faqs" element={<FAQPage />} />
-                      <Route path="/maintenance" element={<UnderMaintenancePage />} />
-                      <Route path="/under-maintenance" element={<UnderMaintenancePage />} />
+                        {/* Customer auth */}
+                        <Route path="/login" element={<CustomerLoginPage />} />
+                        <Route path="/contact" element={<ContactPage />} />
+                        <Route path="/terms" element={<TermsPage />} />
+                        <Route path="/terms-and-conditions" element={<TermsPage />} />
+                        <Route path="/privacy" element={<PrivacyPolicyPage />} />
+                        <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+                        <Route path="/track-order" element={<TrackOrderPage />} />
+                        <Route path="/faq" element={<FAQPage />} />
+                        <Route path="/faqs" element={<FAQPage />} />
+                        <Route path="/maintenance" element={<UnderMaintenancePage />} />
+                        <Route path="/under-maintenance" element={<UnderMaintenancePage />} />
 
-                      {/* Admin panel — separate auth context */}
-                      <Route path="/admin/*" element={<AdminRouter />} />
+                        {/* Admin panel — separate auth context */}
+                        <Route path="/admin/*" element={<AdminRouter />} />
 
-                      <Route path="*" element={<Navigate to="/" replace />} />
-                    </Routes>
-                  </CartProvider>
-                </FavoritesProvider>
-              </PersonalizationProvider>
-            </CustomerAuthProvider>
-            </GoogleOAuthProvider>
-          </ToastProvider>
-        </ThemeProvider>
-      </CurrencyProvider>
+                        <Route path="*" element={<Navigate to="/" replace />} />
+                      </Routes>
+                    </CartProvider>
+                  </FavoritesProvider>
+                </PersonalizationProvider>
+              </CustomerAuthProvider>
+              </GoogleOAuthProvider>
+            </ToastProvider>
+          </ThemeProvider>
+        </CurrencyProvider>
+      </BrandingProvider>
     </BrowserRouter>
   );
 }

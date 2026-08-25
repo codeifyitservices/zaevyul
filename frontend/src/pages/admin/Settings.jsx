@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
-import { Save, Plus, Edit2, Trash2, X, AlertTriangle } from "lucide-react";
+import { Save, Plus, Edit2, Trash2, X, AlertTriangle, Upload, RefreshCw, Image as ImageIcon, Globe } from "lucide-react";
 import PageHeader from "../../components/PageHeader";
 import { DeleteDialog } from "../../components/Modal";
 import { useToast } from "../../context/ToastContext";
+import { useBranding } from "../../context/BrandingContext";
 import { api } from "../../lib/api";
 
 const SECTIONS = [
   "General",
+  "Branding",
   "Currency",
   "Tax Settings",
   "Shipping",
@@ -25,6 +27,8 @@ const COUNTRIES_LIST = [
 const DEFAULT_SETTINGS_STATE = {
   storeName: "ZAEVYUL",
   tagline: "Timeless elegance, crafted for you.",
+  logo: "",
+  favicon: "",
   contactEmail: "care@zaevyul.com",
   contactPhone: "+91 98765 43210",
   currency: "INR",
@@ -35,10 +39,117 @@ const DEFAULT_SETTINGS_STATE = {
 
 export default function Settings() {
   const toast = useToast();
+  const {
+    logo,
+    favicon,
+    updateLogo,
+    updateFavicon,
+    removeLogo,
+    removeFavicon,
+    refreshBranding,
+  } = useBranding();
+
   const [settings, setSettings] = useState(DEFAULT_SETTINGS_STATE);
   const [activeSection, setActiveSection] = useState("General");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingFavicon, setUploadingFavicon] = useState(false);
+
+  const handleLogoFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validTypes = ["image/png", "image/jpeg", "image/jpg", "image/svg+xml", "image/webp"];
+    if (!validTypes.includes(file.type)) {
+      toast("Invalid logo file format. Please upload PNG, JPG, SVG, or WebP.", "error");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast("Logo file size exceeds 5MB limit.", "error");
+      return;
+    }
+
+    try {
+      setUploadingLogo(true);
+      const res = await updateLogo(file);
+      if (res?.success) {
+        toast("Logo updated successfully!", "success");
+      } else {
+        toast(res?.message || "Failed to update logo.", "error");
+      }
+    } catch (err) {
+      toast(err.message || "Failed to upload logo.", "error");
+    } finally {
+      setUploadingLogo(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleFaviconFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validTypes = ["image/png", "image/x-icon", "image/vnd.microsoft.icon", "image/jpeg", "image/jpg", "image/svg+xml", "image/webp"];
+    if (!validTypes.includes(file.type) && !file.name.endsWith(".ico")) {
+      toast("Invalid favicon file format. Please upload PNG, ICO, SVG, or WebP.", "error");
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast("Favicon file size exceeds 2MB limit.", "error");
+      return;
+    }
+
+    try {
+      setUploadingFavicon(true);
+      const res = await updateFavicon(file);
+      if (res?.success) {
+        toast("Favicon updated successfully!", "success");
+      } else {
+        toast(res?.message || "Failed to update favicon.", "error");
+      }
+    } catch (err) {
+      toast(err.message || "Failed to upload favicon.", "error");
+    } finally {
+      setUploadingFavicon(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleRemoveLogo = async () => {
+    try {
+      setUploadingLogo(true);
+      const res = await removeLogo();
+      if (res?.success) {
+        toast("Logo reset to default fallback.", "success");
+      } else {
+        toast(res?.message || "Failed to remove logo.", "error");
+      }
+    } catch (err) {
+      toast(err.message || "Failed to remove logo.", "error");
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
+  const handleRemoveFavicon = async () => {
+    try {
+      setUploadingFavicon(true);
+      const res = await removeFavicon();
+      if (res?.success) {
+        toast("Favicon reset to default fallback.", "success");
+      } else {
+        toast(res?.message || "Failed to remove favicon.", "error");
+      }
+    } catch (err) {
+      toast(err.message || "Failed to remove favicon.", "error");
+    } finally {
+      setUploadingFavicon(false);
+    }
+  };
 
   const [taxRules, setTaxRules] = useState([]);
   const [rulesLoading, setRulesLoading] = useState(false);
@@ -113,7 +224,16 @@ export default function Settings() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await api.settings.update(settings);
+      const payload = {
+        ...settings,
+        logo: logo || settings.logo || "",
+        favicon: favicon || settings.favicon || "",
+      };
+      const updated = await api.settings.update(payload);
+      if (updated) {
+        setSettings(updated);
+        refreshBranding();
+      }
       toast("Settings saved successfully", "success");
     } catch (err) {
       toast(err.message || "Failed to save settings", "error");
@@ -296,6 +416,181 @@ export default function Settings() {
                   />
                 </div>
               </>
+            )}
+
+            {activeSection === "Branding" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+                {/* Logo Section */}
+                <div className="border-b border-[#ECE7E1] pb-6">
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                    <div>
+                      <h4 style={{ fontSize: 14, fontWeight: 600, color: "var(--color-text-primary)", margin: 0 }}>
+                        Application Logo
+                      </h4>
+                      <p style={{ fontSize: 12, color: "var(--color-text-secondary)", margin: "2px 0 0 0" }}>
+                        Upload your brand logo. This will be automatically displayed across all panels, storefront headers, footers, and authentication screens.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", gap: 20, alignItems: "center", background: "var(--color-surface-2, #FAF8F5)", padding: 16, borderRadius: 8, border: "1px solid var(--color-border, #ECE7E1)" }}>
+                    {/* Logo Preview Box */}
+                    <div
+                      style={{
+                        width: 140,
+                        height: 70,
+                        borderRadius: 6,
+                        border: "1px dashed var(--color-border, #CBD5E1)",
+                        background: "#FFFFFF",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        overflow: "hidden",
+                        padding: 8,
+                        boxShadow: "inset 0 1px 2px rgba(0,0,0,0.03)",
+                      }}
+                    >
+                      {logo ? (
+                        <img src={logo} alt="Store Logo Preview" style={{ maxHeight: "100%", maxWidth: "100%", objectFit: "contain" }} />
+                      ) : (
+                        <div style={{ textAlign: "center" }}>
+                          <span style={{ fontFamily: "var(--font-serif, serif)", fontSize: 16, fontWeight: 600, color: "var(--color-walnut, #1C1916)", letterSpacing: "0.15em", display: "block" }}>
+                            {settings.storeName || "Zaevyul"}
+                          </span>
+                          <span style={{ fontSize: 8, color: "var(--color-text-caption, #8A857E)", letterSpacing: "0.2em" }}>
+                            DEFAULT FALLBACK
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Logo Action Controls */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <label
+                          className="btn btn-primary"
+                          style={{
+                            cursor: uploadingLogo ? "not-allowed" : "pointer",
+                            fontSize: 12,
+                            padding: "6px 14px",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 6,
+                          }}
+                        >
+                          {uploadingLogo ? <RefreshCw size={14} className="animate-spin" /> : <Upload size={14} />}
+                          {logo ? "Replace Logo" : "Upload Logo"}
+                          <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp"
+                            onChange={handleLogoFileChange}
+                            disabled={uploadingLogo}
+                            style={{ display: "none" }}
+                          />
+                        </label>
+
+                        {logo && (
+                          <button
+                            type="button"
+                            className="btn btn-outline"
+                            onClick={handleRemoveLogo}
+                            disabled={uploadingLogo}
+                            style={{ fontSize: 12, padding: "6px 12px", display: "inline-flex", alignItems: "center", gap: 4, color: "#DC2626" }}
+                          >
+                            <Trash2 size={13} />
+                            Remove / Reset
+                          </button>
+                        )}
+                      </div>
+                      <span style={{ fontSize: 11, color: "var(--color-text-caption, #8A857E)" }}>
+                        Supported formats: PNG, JPG, JPEG, SVG, WebP (Max file size: 5MB).
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Favicon Section */}
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                    <div>
+                      <h4 style={{ fontSize: 14, fontWeight: 600, color: "var(--color-text-primary)", margin: 0 }}>
+                        Browser Favicon
+                      </h4>
+                      <p style={{ fontSize: 12, color: "var(--color-text-secondary)", margin: "2px 0 0 0" }}>
+                        Upload your website favicon. The browser tab icon will automatically update across all pages.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", gap: 20, alignItems: "center", background: "var(--color-surface-2, #FAF8F5)", padding: 16, borderRadius: 8, border: "1px solid var(--color-border, #ECE7E1)" }}>
+                    {/* Favicon Preview Box */}
+                    <div
+                      style={{
+                        width: 54,
+                        height: 54,
+                        borderRadius: 6,
+                        border: "1px dashed var(--color-border, #CBD5E1)",
+                        background: "#FFFFFF",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        overflow: "hidden",
+                        padding: 4,
+                        boxShadow: "inset 0 1px 2px rgba(0,0,0,0.03)",
+                      }}
+                    >
+                      {favicon ? (
+                        <img src={favicon} alt="Favicon Preview" style={{ width: 32, height: 32, objectFit: "contain" }} />
+                      ) : (
+                        <Globe size={24} style={{ color: "var(--color-walnut, #B58A5B)" }} />
+                      )}
+                    </div>
+
+                    {/* Favicon Action Controls */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <label
+                          className="btn btn-primary"
+                          style={{
+                            cursor: uploadingFavicon ? "not-allowed" : "pointer",
+                            fontSize: 12,
+                            padding: "6px 14px",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 6,
+                          }}
+                        >
+                          {uploadingFavicon ? <RefreshCw size={14} className="animate-spin" /> : <Upload size={14} />}
+                          {favicon ? "Replace Favicon" : "Upload Favicon"}
+                          <input
+                            type="file"
+                            accept="image/png,image/x-icon,image/vnd.microsoft.icon,image/jpeg,image/jpg,image/svg+xml,image/webp"
+                            onChange={handleFaviconFileChange}
+                            disabled={uploadingFavicon}
+                            style={{ display: "none" }}
+                          />
+                        </label>
+
+                        {favicon && (
+                          <button
+                            type="button"
+                            className="btn btn-outline"
+                            onClick={handleRemoveFavicon}
+                            disabled={uploadingFavicon}
+                            style={{ fontSize: 12, padding: "6px 12px", display: "inline-flex", alignItems: "center", gap: 4, color: "#DC2626" }}
+                          >
+                            <Trash2 size={13} />
+                            Remove / Reset
+                          </button>
+                        )}
+                      </div>
+                      <span style={{ fontSize: 11, color: "var(--color-text-caption, #8A857E)" }}>
+                        Supported formats: PNG, ICO, SVG, WebP (Max file size: 2MB).
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
 
             {activeSection === "Currency" && (

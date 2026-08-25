@@ -4,6 +4,8 @@ const SettingsSchema = new mongoose.Schema(
   {
     storeName: { type: String, default: "Zaevyul" },
     tagline: { type: String, default: "Timeless · Authentic · Handcrafted" },
+    logo: { type: String, default: "" },
+    favicon: { type: String, default: "" },
     email: { type: String, default: "hello@zaevyul.com" },
     phone: { type: String, default: "+91 194 123 4567" },
     address: {

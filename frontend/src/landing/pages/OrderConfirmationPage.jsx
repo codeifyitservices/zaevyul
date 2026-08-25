@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useCurrency } from "../../context/CurrencyContext";
 import { useCustomerAuth } from "../../context/CustomerAuthContext";
+import Logo from "../../components/Logo";
 import { useCart } from "../../context/CartContext";
 import { useToast } from "../../context/ToastContext";
 import { customerApi } from "../../lib/customerApi";
@@ -249,13 +250,8 @@ export default function OrderConfirmationPage({ order: propOrder }) {
         </Link>
 
         {/* Center: Brand Logo */}
-        <Link to="/" className="text-center group py-1">
-          <span className="font-serif text-[20px] sm:text-[28px] tracking-[0.24em] sm:tracking-[0.32em] text-[#1C1916] uppercase block font-normal leading-none">
-            {companyName}
-          </span>
-          <span className="block text-[8px] sm:text-[8.5px] font-sans tracking-[0.32em] sm:tracking-[0.42em] text-[#8A857E] text-center mt-1 uppercase font-light">
-            P A S H M I N A
-          </span>
+        <Link to="/" className="text-center group py-1 flex items-center justify-center cursor-pointer">
+          <Logo variant="header" />
         </Link>
 
         {/* Right: Header Icons */}

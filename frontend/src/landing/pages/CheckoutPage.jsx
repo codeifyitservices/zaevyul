@@ -28,6 +28,7 @@ import { api } from "../../lib/api";
 import CouponPickerModal from "../../components/CouponPickerModal";
 import SiteFooter from "../components/SiteFooter";
 import OrderConfirmationPage from "./OrderConfirmationPage";
+import Logo from "../../components/Logo";
 
 const COUNTRIES = [
   "United States",
@@ -511,9 +512,9 @@ export default function CheckoutPage() {
 
           <Link
             to="/"
-            className="font-serif text-[18px] sm:text-[22px] tracking-[0.2em] sm:tracking-[0.24em] text-[#1C1916] font-normal uppercase text-center"
+            className="flex items-center justify-center text-center cursor-pointer"
           >
-            {companyName}{" "}
+            <Logo variant="header" />
           </Link>
 
           <div className="inline-flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-[10.5px] font-sans font-medium uppercase tracking-[0.12em] sm:tracking-[0.16em] text-[#1C1916]/80">

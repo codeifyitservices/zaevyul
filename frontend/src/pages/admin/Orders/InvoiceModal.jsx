@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { X, Printer, Download, FileText } from "lucide-react";
 import { formatCurrency, formatDate } from "../../../lib/mockData";
 import { api } from "../../../lib/api";
+import Logo from "../../../components/Logo";
 
 // Ensures the Cormorant Garamond / Manrope Google Fonts used throughout this
 // invoice are actually loaded in the app (previously they were only linked
@@ -1112,32 +1113,7 @@ export default function InvoiceModal({
                     />
                   </svg>
                   <div>
-                    <h6
-                      style={{
-                        fontFamily: "'Cormorant Garamond', Georgia, serif",
-                        fontSize: 16,
-                        letterSpacing: "0.22em",
-                        textTransform: "uppercase",
-                        fontWeight: 600,
-                        color: "#1C1916",
-                        margin: 0,
-                        lineHeight: 1.1,
-                      }}
-                    >
-                      ZAEVYUL
-                    </h6>
-                    <p
-                      style={{
-                        fontSize: 8.5,
-                        letterSpacing: "0.3em",
-                        textTransform: "uppercase",
-                        color: "#8A857E",
-                        margin: "2px 0 0 0",
-                        fontWeight: 600,
-                      }}
-                    >
-                      PASHMINA
-                    </p>
+                    <Logo variant="invoice" />
                   </div>
                 </div>
 

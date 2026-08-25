@@ -1239,9 +1239,117 @@ export const api = {
         return res.settings;
       } catch (err) {
         await sleep(400);
-        db.settings = { ...db.settings, ...data };
+        const cleanData = Object.fromEntries(
+          Object.entries(data).filter(([_, v]) => v !== undefined)
+        );
+        db.settings = { ...db.settings, ...cleanData };
         saveCollection("settings", [db.settings]);
         return db.settings;
+      }
+    },
+  },
+
+  // Branding API
+  branding: {
+    getPublic: async () => {
+      try {
+        const res = await publicRequest("/branding");
+        return res;
+      } catch (err) {
+        await sleep(200);
+        return {
+          success: true,
+          logo: db.settings?.logo || "",
+          favicon: db.settings?.favicon || "",
+          storeName: db.settings?.storeName || "Zaevyul",
+          tagline: db.settings?.tagline || "Timeless · Authentic · Handcrafted",
+        };
+      }
+    },
+    getAdmin: async () => {
+      try {
+        const res = await request("/settings/branding");
+        return res;
+      } catch (err) {
+        await sleep(200);
+        return {
+          success: true,
+          logo: db.settings?.logo || "",
+          favicon: db.settings?.favicon || "",
+          storeName: db.settings?.storeName || "Zaevyul",
+        };
+      }
+    },
+    uploadLogo: async (fileOrBase64) => {
+      let imagePayload = fileOrBase64;
+      if (fileOrBase64 instanceof File || fileOrBase64 instanceof Blob) {
+        imagePayload = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(fileOrBase64);
+        });
+      }
+      try {
+        const res = await request("/settings/branding/logo", {
+          method: "POST",
+          body: JSON.stringify({ image: imagePayload }),
+        });
+        return res;
+      } catch (err) {
+        await sleep(400);
+        db.settings = { ...db.settings, logo: typeof imagePayload === "string" ? imagePayload : "" };
+        saveCollection("settings", [db.settings]);
+        return { success: true, logo: db.settings.logo, message: "Logo updated (fallback mode)." };
+      }
+    },
+    uploadFavicon: async (fileOrBase64) => {
+      let imagePayload = fileOrBase64;
+      if (fileOrBase64 instanceof File || fileOrBase64 instanceof Blob) {
+        imagePayload = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(fileOrBase64);
+        });
+      }
+      try {
+        const res = await request("/settings/branding/favicon", {
+          method: "POST",
+          body: JSON.stringify({ image: imagePayload }),
+        });
+        return res;
+      } catch (err) {
+        await sleep(400);
+        db.settings = { ...db.settings, favicon: typeof imagePayload === "string" ? imagePayload : "" };
+        saveCollection("settings", [db.settings]);
+        return { success: true, favicon: db.settings.favicon, message: "Favicon updated (fallback mode)." };
+      }
+    },
+    removeLogo: async () => {
+      try {
+        const res = await request("/settings/branding/logo", {
+          method: "DELETE",
+        });
+        return res;
+      } catch (err) {
+        await sleep(200);
+        db.settings = { ...db.settings, logo: "" };
+        saveCollection("settings", [db.settings]);
+        return { success: true, logo: "", message: "Logo removed (fallback mode)." };
+      }
+    },
+    removeFavicon: async () => {
+      try {
+        const res = await request("/settings/branding/favicon", {
+          method: "DELETE",
+        });
+        return res;
+      } catch (err) {
+        await sleep(200);
+        db.settings = { ...db.settings, favicon: "" };
+        saveCollection("settings", [db.settings]);
+        return { success: true, favicon: "", message: "Favicon removed (fallback mode)." };
       }
     },
   },

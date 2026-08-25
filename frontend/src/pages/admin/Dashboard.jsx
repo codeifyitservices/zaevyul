@@ -479,9 +479,9 @@ export default function Dashboard() {
               justifyContent: "space-around",
             }}
           >
-            {recentOrders.map((order) => (
+            {recentOrders.map((order, idx) => (
               <div
-                key={order.id}
+                key={order._id || order.id || order.orderNumber || idx}
                 style={{ display: "flex", alignItems: "center", gap: 10 }}
               >
                 <div style={{ flex: 1, minWidth: 0 }}>

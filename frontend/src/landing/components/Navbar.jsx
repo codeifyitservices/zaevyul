@@ -17,6 +17,7 @@ import { useFavorite } from "../../context/FavoritesContext";
 import { useCustomerAuth } from "../../context/CustomerAuthContext";
 import CurrencySelector from "../../components/CurrencySelector";
 import { useCurrency } from "../../context/CurrencyContext";
+import Logo from "../../components/Logo";
 
 const NAV_LINKS = [
   { label: "Home", href: "/" },
@@ -492,10 +493,9 @@ export default function Navbar() {
 
         <Link
           to="/"
-          className="absolute left-1/2 max-w-[42vw] -translate-x-1/2 truncate whitespace-nowrap text-center font-serif text-[14px] uppercase tracking-[0.18em] text-[#1C1916] sm:max-w-[48vw] sm:text-[18px] sm:tracking-[0.28em] lg:max-w-[32vw] lg:text-[20px] lg:tracking-[0.32em] cursor-pointer"
-          title={storeName}
+          className="absolute left-1/2 max-w-[50vw] sm:max-w-[45vw] -translate-x-1/2 text-center flex items-center justify-center cursor-pointer"
         >
-          {displayStoreName}
+          <Logo variant="header" />
         </Link>
 
         <div className="flex min-w-0 items-center gap-[18px] sm:gap-4 lg:gap-5 text-[#1C1916]/70">

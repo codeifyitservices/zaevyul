@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Eye, EyeOff } from 'lucide-react';
+import Logo from '../../components/Logo';
 import './admin.css';
 
 
@@ -34,12 +35,9 @@ export default function Login() {
     <div className="login-page">
       <div style={{ width: '100%', maxWidth: 380 }}>
         <div className="login-card">
-          <div className="login-logo">
-            <div className="login-logo-mark">Z</div>
-            <p style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--color-text-primary)', letterSpacing: '0.02em' }}>
-              Zaevyul
-            </p>
-            <p style={{ fontSize: 11, color: 'var(--color-text-caption)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 500 }}>
+          <div className="login-logo" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            <Logo variant="auth" />
+            <p style={{ fontSize: 11, color: 'var(--color-text-caption)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 500, marginTop: 4 }}>
               Admin Panel
             </p>
           </div>

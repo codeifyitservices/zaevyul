@@ -10,6 +10,7 @@ import {
   validatePublicCoupon,
   subscribeNewsletter,
   getPublicSettings,
+  getPublicBranding,
   getPublicLocation,
   getPublicOrderById,
   getProductReviews,
@@ -39,11 +40,12 @@ router.get("/blogs", getPublicBlogsList);
 router.get("/blogs/:slug", getPublicBlogBySlug);
 router.get("/blog-categories", getPublicBlogCategories);
 
-// Coupons, Newsletter, Settings, Location
+// Coupons, Newsletter, Settings, Location, Branding
 router.get("/coupons", getPublicCoupons);
 router.post("/coupons/validate", validatePublicCoupon);
 router.post("/newsletter/subscribe", subscribeNewsletter);
 router.get("/settings", getPublicSettings);
+router.get("/branding", getPublicBranding);
 router.get("/location", getPublicLocation);
 
 export default router;

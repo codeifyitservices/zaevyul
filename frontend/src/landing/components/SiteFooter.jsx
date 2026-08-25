@@ -3,6 +3,7 @@ import { Link as RouterLink } from "react-router-dom";
 import { ArrowRight, Mail } from "lucide-react";
 import { useToast } from "../../context/ToastContext";
 import { api } from "../../lib/api";
+import Logo from "../../components/Logo";
 
 function InstagramIcon({ size = 18, className = "" }) {
   return (
@@ -97,9 +98,7 @@ export default function SiteFooter() {
           {/* Brand Column */}
           <div className="space-y-4">
             <RouterLink to="/" className="block">
-              <span className="font-serif text-[22px] tracking-[0.25em] font-light text-[#1C1916] block uppercase whitespace-nowrap">
-                {(settings?.storeName || "ZAEVYUL").toUpperCase()}
-              </span>
+              <Logo variant="footer" />
             </RouterLink>
             <div className="w-8 border-t border-[#B58A5B]/30 my-3"></div>
             <p className="text-[13px] font-light leading-[1.6] text-[#6B6560] whitespace-pre-line">

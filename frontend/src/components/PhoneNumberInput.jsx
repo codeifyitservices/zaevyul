@@ -31,31 +31,36 @@ export default function PhoneNumberInput({
   onPhoneChange,
   label = "Phone Number",
   required = true,
-  showCountrySearch = true,
 }) {
   const country = getCountry(countryCode);
 
   return (
     <div>
-      <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-[#6B6560]">
-        {label}
-      </label>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[190px_1fr]">
-        <CountrySelect
-          value={countryCode}
-          onChange={onCountryChange}
-          label=""
-          includeDialCode
-          showSearch={showCountrySearch}
-        />
-        <div className="relative">
+      {label && (
+        <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-[#6B6560]">
+          {label}
+        </label>
+      )}
+      <div className="flex items-center gap-2.5">
+        {/* Compact Country Selector (smaller than phone input) */}
+        <div className="w-[110px] sm:w-[120px] shrink-0">
+          <CountrySelect
+            value={countryCode}
+            onChange={onCountryChange}
+            label=""
+            includeDialCode
+          />
+        </div>
+
+        {/* Phone Number Field */}
+        <div className="flex-1 min-w-0">
           <input
             type="tel"
             required={required}
             value={phone}
             onChange={(e) => onPhoneChange(e.target.value)}
-            placeholder={country ? `${country.dialCode} phone number` : "Phone number"}
-            className="w-full rounded-[2px] border border-[#E6DED4] bg-white p-3 font-sans text-[12.5px] focus:outline-none focus:border-[#B58A5B]"
+            placeholder={country ? `${country.dialCode} number` : "Phone number"}
+            className="w-full rounded-[2px] border border-[#E6DED4] bg-white p-3 font-sans text-[12.5px] text-[#1C1916] placeholder-[#8A857E] focus:outline-none focus:border-[#B58A5B]"
           />
         </div>
       </div>
