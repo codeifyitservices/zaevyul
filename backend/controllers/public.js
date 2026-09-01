@@ -352,11 +352,13 @@ export const getPublicSettings = async (req, res) => {
       storeEmail: settings.email || "hello@zaevyul.com",
       phone: settings.phone || "+91 98765 43210",
       address: settings.address || "ZAEVYUL Pashmina, B-12, Hauz Khas, New Delhi 110016, India",
-      socialLinks: settings.socialLinks || {
-        instagram: "https://instagram.com/zaevyul",
-        facebook: "",
-        twitter: "",
-        pinterest: "",
+      socialLinks: {
+        facebook: settings.socialLinks?.facebook || "",
+        instagram: settings.socialLinks?.instagram || "https://instagram.com/zaevyul",
+        twitter: settings.socialLinks?.twitter || "",
+        linkedin: settings.socialLinks?.linkedin || "",
+        youtube: settings.socialLinks?.youtube || "",
+        pinterest: settings.socialLinks?.pinterest || "",
       },
       freeShippingThreshold: settings.freeShippingThreshold || 5000,
       standardShippingFee: settings.standardShippingFee || 250,

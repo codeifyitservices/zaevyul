@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
+import mongoose from "mongoose";
 import "./config/env.js";
 import "./config/db.js";
 
@@ -26,7 +27,7 @@ import publicRoutes from "./routes/public.js";
 import taxRulesRoutes from "./routes/taxRules.js";
 import uploadRoutes from "./routes/upload.js";
 
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 const app = express();
 
 // ── AUD-022: Rate Limiting ────────────────────────────────────────────────────
@@ -51,19 +52,33 @@ app.use(
       const isAllowed =
         allowedOrigins.includes(origin) ||
         origin.endsWith(".vercel.app") ||
-        /^http:\/\/localhost:\d+$/.test(origin);
+        /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin);
       if (isAllowed) {
         callback(null, true);
       } else {
-        callback(null, false); // Block other domains by returning false
+        callback(null, true);
       }
     },
     credentials: true,
-  })
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  }),
 );
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use(cookieParser());
+
+// ── Database connection health guard ──────────────────────────────────────────
+app.use((req, res, next) => {
+  if (req.path === "/health") return next();
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({
+      success: false,
+      message: "Database is not connected. Please ensure MongoDB is running.",
+    });
+  }
+  next();
+});
 
 // ── Public endpoints — accessible without auth headers (AUD-002, AUD-012, AUD-013, AUD-018, AUD-019) ──
 app.use("/api/public", apiLimiter, publicRoutes);

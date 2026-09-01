@@ -19,9 +19,11 @@ const SettingsSchema = new mongoose.Schema(
     defaultJurisdictionCountryCode: { type: String, default: 'IN' },
     freeShippingAbove: { type: Number, default: 10000 },
     socialLinks: {
-      instagram: { type: String, default: "https://instagram.com/zaevyul" },
       facebook: { type: String, default: "" },
+      instagram: { type: String, default: "https://instagram.com/zaevyul" },
       twitter: { type: String, default: "" },
+      linkedin: { type: String, default: "" },
+      youtube: { type: String, default: "" },
       pinterest: { type: String, default: "" },
     },
     paymentGateways: {

@@ -14,7 +14,6 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { MOCK_LOW_STOCK, MOCK_ORDERS } from "../lib/mockData";
 
 const SECTIONS = [
   {

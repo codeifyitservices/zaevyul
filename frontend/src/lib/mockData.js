@@ -2610,9 +2610,11 @@ export const MOCK_SETTINGS = {
   taxRate: 5,
   freeShippingAbove: 10000,
   socialLinks: {
-    instagram: "https://instagram.com/zaevyul",
     facebook: "",
+    instagram: "https://instagram.com/zaevyul",
     twitter: "",
+    linkedin: "",
+    youtube: "",
     pinterest: "",
   },
   paymentGateways: {

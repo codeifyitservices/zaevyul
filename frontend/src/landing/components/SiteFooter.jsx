@@ -6,6 +6,20 @@ import { useFavorite } from "../../context/FavoritesContext";
 import { api } from "../../lib/api";
 import Logo from "../../components/Logo";
 
+function FacebookIcon({ size = 18, className = "" }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      className={className}
+    >
+      <path d="M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 .955.042 1.468.103a8.68 8.68 0 0 1 1.141.195v3.325a8.623 8.623 0 0 0-.653-.036 26.805 26.805 0 0 0-.733-.009c-.704 0-1.282.164-1.636.471-.476.413-.679 1.139-.679 2.378v1.131h4.083l-.587 3.667h-3.496v7.98H9.101z" />
+    </svg>
+  );
+}
+
 function InstagramIcon({ size = 18, className = "" }) {
   return (
     <svg
@@ -14,7 +28,7 @@ function InstagramIcon({ size = 18, className = "" }) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.5"
+      strokeWidth="1.75"
       strokeLinecap="round"
       strokeLinejoin="round"
       className={className}
@@ -26,7 +40,7 @@ function InstagramIcon({ size = 18, className = "" }) {
   );
 }
 
-function PinterestIcon({ size = 18, className = "" }) {
+function XIcon({ size = 18, className = "" }) {
   return (
     <svg
       width={size}
@@ -35,10 +49,45 @@ function PinterestIcon({ size = 18, className = "" }) {
       fill="currentColor"
       className={className}
     >
-      <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.688 0 1.029-.653 2.567-.992 3.992-.285 1.193.6 2.165 1.775 2.165 2.128 0 3.768-2.245 3.768-5.487 0-2.861-2.063-4.869-5.008-4.869-3.41 0-5.409 2.562-5.409 5.199 0 1.033.394 2.143.889 2.741.099.12.112.225.085.345-.09.375-.293 1.199-.334 1.363-.053.225-.172.271-.401.165-1.495-.69-2.433-2.878-2.433-4.646 0-3.776 2.748-7.252 7.92-7.252 4.158 0 7.392 2.967 7.392 6.923 0 4.135-2.607 7.462-6.233 7.462-1.214 0-2.354-.629-2.758-1.379l-.749 2.848c-.269 1.045-1.004 2.352-1.498 3.146 1.123.345 2.306.535 3.55.535 6.607 0 11.985-5.365 11.985-11.987C23.97 5.367 18.62 0 12.017 0z" />
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
     </svg>
   );
 }
+
+function LinkedinIcon({ size = 18, className = "" }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      className={className}
+    >
+      <path d="M4.98 3.5c0 1.381-1.11 2.5-2.48 2.5s-2.48-1.119-2.48-2.5c0-1.38 1.11-2.5 2.48-2.5s2.48 1.12 2.48 2.5zm.02 4.5h-5v16h5v-16zm7.982 0h-4.968v16h4.969v-8.399c0-4.67 6.029-5.052 6.029 0v8.399h4.988v-10.131c0-7.88-8.922-7.593-11.018-3.714v-2.155z" />
+    </svg>
+  );
+}
+
+function YoutubeIcon({ size = 18, className = "" }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      className={className}
+    >
+      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+    </svg>
+  );
+}
+
+const formatExternalUrl = (url, fallback = "") => {
+  const target = (url || "").trim() || fallback;
+  if (!target) return "";
+  if (/^https?:\/\//i.test(target)) return target;
+  return `https://${target}`;
+};
 
 export default function SiteFooter() {
   const toast = useToast();
@@ -258,36 +307,65 @@ export default function SiteFooter() {
               )}
 
               {/* Social Icons */}
-              <div className="flex items-center gap-7 pt-1 text-[#1C1916]">
-                <a
-                  href={
-                    settings?.socialLinks?.instagram || "https://instagram.com"
-                  }
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label="Instagram"
-                  className="hover:text-[#B58A5B] transition-colors"
-                >
-                  <InstagramIcon size={18} />
-                </a>
-                <a
-                  href={
-                    settings?.socialLinks?.pinterest || "https://pinterest.com"
-                  }
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label="Pinterest"
-                  className="hover:text-[#B58A5B] transition-colors"
-                >
-                  <PinterestIcon size={18} />
-                </a>
-                <a
-                  href={`mailto:${settings?.storeEmail || "concierge@zaevyul.com"}`}
-                  aria-label="Email"
-                  className="hover:text-[#B58A5B] transition-colors"
-                >
-                  <Mail size={18} strokeWidth={1.5} />
-                </a>
+              <div className="flex items-center gap-5 pt-1 text-[#1C1916]">
+                {[
+                  {
+                    key: "facebook",
+                    name: "Facebook",
+                    icon: FacebookIcon,
+                    url: formatExternalUrl(
+                      settings?.socialLinks?.facebook,
+                      "https://facebook.com"
+                    ),
+                  },
+                  {
+                    key: "instagram",
+                    name: "Instagram",
+                    icon: InstagramIcon,
+                    url: formatExternalUrl(
+                      settings?.socialLinks?.instagram,
+                      "https://instagram.com/zaevyul"
+                    ),
+                  },
+                  {
+                    key: "twitter",
+                    name: "X",
+                    icon: XIcon,
+                    url: formatExternalUrl(
+                      settings?.socialLinks?.twitter,
+                      "https://x.com"
+                    ),
+                  },
+                  {
+                    key: "linkedin",
+                    name: "LinkedIn",
+                    icon: LinkedinIcon,
+                    url: formatExternalUrl(
+                      settings?.socialLinks?.linkedin,
+                      "https://linkedin.com"
+                    ),
+                  },
+                  {
+                    key: "youtube",
+                    name: "YouTube",
+                    icon: YoutubeIcon,
+                    url: formatExternalUrl(
+                      settings?.socialLinks?.youtube,
+                      "https://youtube.com"
+                    ),
+                  },
+                ].map(({ key, name, icon: Icon, url }) => (
+                  <a
+                    key={key}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={name}
+                    className="hover:text-[#B58A5B] transition-colors inline-flex items-center justify-center"
+                  >
+                    <Icon size={18} />
+                  </a>
+                ))}
               </div>
             </div>
           </div>

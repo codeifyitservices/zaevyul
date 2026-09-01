@@ -9,24 +9,27 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const checkAuth = async () => {
-      // First check local session
-      const stored = sessionStorage.getItem('zae_admin');
-      if (stored) {
-        try { setUser(JSON.parse(stored)); } catch { /* ignore */ }
-      }
-      
-      // Sync with backend / verification
       try {
+        const token = sessionStorage.getItem('zae_jwt');
+        if (!token) {
+          sessionStorage.removeItem('zae_admin');
+          setUser(null);
+          return;
+        }
+
         const profile = await api.auth.me();
         if (profile) {
           sessionStorage.setItem('zae_admin', JSON.stringify(profile));
           setUser(profile);
         } else {
           sessionStorage.removeItem('zae_admin');
+          sessionStorage.removeItem('zae_jwt');
           setUser(null);
         }
-      } catch (err) {
-        // Safe check failed or offline fallback
+      } catch {
+        sessionStorage.removeItem('zae_admin');
+        sessionStorage.removeItem('zae_jwt');
+        setUser(null);
       } finally {
         setLoading(false);
       }
@@ -36,14 +39,22 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     const session = await api.auth.login(email, password);
+    if (!session) {
+      throw new Error("Authentication failed");
+    }
     sessionStorage.setItem('zae_admin', JSON.stringify(session));
     setUser(session);
     return session;
   };
 
   const logout = async () => {
-    await api.auth.logout();
+    try {
+      await api.auth.logout();
+    } catch {
+      /* ignore */
+    }
     sessionStorage.removeItem('zae_admin');
+    sessionStorage.removeItem('zae_jwt');
     setUser(null);
   };
 
