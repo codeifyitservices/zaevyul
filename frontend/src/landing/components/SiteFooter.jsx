@@ -15,7 +15,7 @@ function FacebookIcon({ size = 18, className = "" }) {
       fill="currentColor"
       className={className}
     >
-      <path d="M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 .955.042 1.468.103a8.68 8.68 0 0 1 1.141.195v3.325a8.623 8.623 0 0 0-.653-.036 26.805 26.805 0 0 0-.733-.009c-.704 0-1.282.164-1.636.471-.476.413-.679 1.139-.679 2.378v1.131h4.083l-.587 3.667h-3.496v7.98H9.101z" />
+      <path d="M14 13.5h2.5l1-4H14v-2c0-1.03 0-2 2-2h1.5V2.14c-.326-.043-1.557-.14-2.857-.14C11.928 2 10 3.657 10 6.7v2.8H7v4h3V22h4v-8.5z" />
     </svg>
   );
 }
@@ -28,14 +28,14 @@ function InstagramIcon({ size = 18, className = "" }) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.75"
+      strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
       className={className}
     >
-      <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+      <rect x="2.5" y="2.5" width="19" height="19" rx="5" ry="5" />
       <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+      <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
     </svg>
   );
 }
@@ -63,7 +63,7 @@ function LinkedinIcon({ size = 18, className = "" }) {
       fill="currentColor"
       className={className}
     >
-      <path d="M4.98 3.5c0 1.381-1.11 2.5-2.48 2.5s-2.48-1.119-2.48-2.5c0-1.38 1.11-2.5 2.48-2.5s2.48 1.12 2.48 2.5zm.02 4.5h-5v16h5v-16zm7.982 0h-4.968v16h4.969v-8.399c0-4.67 6.029-5.052 6.029 0v8.399h4.988v-10.131c0-7.88-8.922-7.593-11.018-3.714v-2.155z" />
+      <path d="M6.94 5a2 2 0 1 1-4-.002 2 2 0 0 1 4 .002zM7 8.48H3V21h4V8.48zm6.32 0H9.34V21h3.94v-6.57c0-3.66 4.77-3.95 4.77 0V21H22v-7.93c0-6.17-7.06-5.94-8.68-2.91V8.48z" />
     </svg>
   );
 }
@@ -307,7 +307,7 @@ export default function SiteFooter() {
               )}
 
               {/* Social Icons */}
-              <div className="flex items-center gap-5 pt-1 text-[#1C1916]">
+              <div className="flex items-center gap-4 pt-1 text-[#1C1916]">
                 {[
                   {
                     key: "facebook",
@@ -327,7 +327,7 @@ export default function SiteFooter() {
                       "https://instagram.com/zaevyul"
                     ),
                   },
-                  {
+                  /* {
                     key: "twitter",
                     name: "X",
                     icon: XIcon,
@@ -335,7 +335,7 @@ export default function SiteFooter() {
                       settings?.socialLinks?.twitter,
                       "https://x.com"
                     ),
-                  },
+                  }, */
                   {
                     key: "linkedin",
                     name: "LinkedIn",
@@ -361,7 +361,7 @@ export default function SiteFooter() {
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={name}
-                    className="hover:text-[#B58A5B] transition-colors inline-flex items-center justify-center"
+                    className="w-6 h-6 flex items-center justify-center hover:text-[#B58A5B] transition-colors"
                   >
                     <Icon size={18} />
                   </a>
