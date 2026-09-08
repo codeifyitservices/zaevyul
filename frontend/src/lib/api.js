@@ -442,6 +442,41 @@ export const api = {
     },
   },
 
+  // Media Coverage
+  mediaCoverage: {
+    publicList: async () => {
+      const res = await publicRequest("/media-coverage");
+      return res.items || [];
+    },
+    list: async (filters = {}) => {
+      const query = new URLSearchParams(filters).toString();
+      const res = await request(`/media-coverage?${query}`);
+      return res.items || [];
+    },
+    get: async (id) => {
+      const res = await request(`/media-coverage/${id}`);
+      return res.item;
+    },
+    create: async (data) => {
+      const res = await request("/media-coverage", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+      return res.item;
+    },
+    update: async (id, data) => {
+      const res = await request(`/media-coverage/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      });
+      return res.item;
+    },
+    delete: async (id) => {
+      await request(`/media-coverage/${id}`, { method: "DELETE" });
+    },
+  },
+
+
   // Coupons
   coupons: {
     list: async () => {

@@ -26,6 +26,7 @@ import customerOrdersRoutes from "./routes/customerOrders.js";
 import publicRoutes from "./routes/public.js";
 import taxRulesRoutes from "./routes/taxRules.js";
 import uploadRoutes from "./routes/upload.js";
+import mediaCoverageRoutes from "./routes/mediaCoverage.js";
 
 const PORT = process.env.PORT || 5000;
 const app = express();
@@ -97,6 +98,7 @@ app.use("/api/admin/blog-categories", apiLimiter, blogCategoryRoutes);
 app.use("/api/admin/orders", apiLimiter, orderRoutes);
 app.use("/api/admin/customers", apiLimiter, customerRoutes);
 app.use("/api/admin/blogs", apiLimiter, blogRoutes);
+app.use("/api/admin/media-coverage", apiLimiter, mediaCoverageRoutes);
 app.use("/api/admin/coupons", apiLimiter, couponRoutes);
 app.use("/api/admin/newsletter", apiLimiter, newsletterRoutes);
 app.use("/api/admin/reports", apiLimiter, reportsRoutes);

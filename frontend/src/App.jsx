@@ -16,7 +16,9 @@ import CheckoutPage from "./landing/pages/CheckoutPage";
 import MyAccountPage from "./landing/pages/MyAccountPage";
 import JournalPage from "./landing/pages/JournalPage";
 import JournalDetailPage from "./landing/pages/JournalDetailPage";
+import MediaCoveragePage from "./landing/pages/MediaCoveragePage";
 import OrderConfirmationPage from "./landing/pages/OrderConfirmationPage";
+
 import CustomerLoginPage from "./landing/pages/CustomerLoginPage";
 import OurStoryPage from "./landing/pages/OurStory";
 import ScrollToTop from "./landing/components/ScrollToTop";
@@ -79,8 +81,10 @@ export default function App() {
                           path="/journal/:slug"
                           element={<JournalDetailPage />}
                         />
+                        <Route path="/media-coverage" element={<MediaCoveragePage />} />
                         <Route path="/about" element={<OurStoryPage />} />
                         <Route path="/our-story" element={<OurStoryPage />} />
+
 
                         {/* Customer auth */}
                         <Route path="/login" element={<CustomerLoginPage />} />

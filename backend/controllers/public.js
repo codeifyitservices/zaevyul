@@ -10,6 +10,7 @@ import Order from "../model/Order.js";
 import Customer from "../model/Customer.js";
 import CustomerUser from "../model/CustomerUser.js";
 import Review from "../model/Review.js";
+import MediaCoverage from "../model/MediaCoverage.js";
 
 // Helper to escape regex inputs safely (AUD-021)
 export const escapeRegex = (str) => {
@@ -209,6 +210,25 @@ export const getPublicBlogCategories = async (req, res) => {
     return res.status(500).json({ success: false, message: "Failed to fetch blog categories." });
   }
 };
+
+/**
+ * GET /api/public/media-coverage
+ * Fetch all published media coverage entries for storefront.
+ */
+export const getPublicMediaCoverages = async (req, res) => {
+  try {
+    const items = await MediaCoverage.find({ status: "published" }).sort({
+      sortOrder: 1,
+      publishedAt: -1,
+      createdAt: -1,
+    });
+    return res.status(200).json({ success: true, items });
+  } catch (error) {
+    console.error("[public] getPublicMediaCoverages error:", error);
+    return res.status(500).json({ success: false, message: "Failed to fetch media coverage entries." });
+  }
+};
+
 
 /**
  * GET /api/public/coupons

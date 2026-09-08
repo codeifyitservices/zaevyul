@@ -7,6 +7,7 @@ import {
   Users,
   Tag,
   FileText,
+  Newspaper,
   Mail,
   BarChart3,
   Settings,
@@ -54,9 +55,15 @@ const SECTIONS = [
         label: "Blog Categories",
       },
       { to: "/admin/blogs", icon: FileText, label: "Blogs" },
+      {
+        to: "/admin/media-coverage",
+        icon: Newspaper,
+        label: "Media Coverage",
+      },
       { to: "/admin/newsletter", icon: Mail, label: "Newsletter" },
     ],
   },
+
   {
     label: "Analytics",
     items: [{ to: "/admin/reports", icon: BarChart3, label: "Reports" }],

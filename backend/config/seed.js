@@ -1,6 +1,7 @@
 import BlogCategory from "../model/BlogCategory.js";
 import Blog from "../model/Blog.js";
 import Category from "../model/Category.js";
+import MediaCoverage from "../model/MediaCoverage.js";
 
 const categoriesData = [
   { name: "Heritage" },
@@ -107,6 +108,42 @@ const blogsData = [
   }
 ];
 
+const mediaCoveragesData = [
+  {
+    title: "Kashmiri women handcraft Pashmina shawls with dignity in Srinagar",
+    articleUrl: "https://example.com/article",
+    sourceName: "Hindustan Times",
+    excerpt: "An inspiring feature highlighting how artisanal collectives in Kashmir provide sustainable livelihood and artistic dignity through traditional Pashmina spinning.",
+    imageUrl: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124706/zaevyul/storefront/artisan.jpg",
+    image: { url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124706/zaevyul/storefront/artisan.jpg" },
+    status: "published",
+    sortOrder: 1,
+    publishedAt: new Date("2025-05-12"),
+  },
+  {
+    title: "Preserving the Pristine Craft of Paradise – Wajahat Qazi",
+    articleUrl: "https://example.com/article",
+    sourceName: "Wajahat Qazi",
+    excerpt: "Renowned commentary on the centuries-old cultural significance of genuine Kashmir Pashmina weaving and authentic craftsmanship.",
+    imageUrl: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124707/zaevyul/storefront/cat-embroidered.jpg",
+    image: { url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124707/zaevyul/storefront/cat-embroidered.jpg" },
+    status: "published",
+    sortOrder: 2,
+    publishedAt: new Date("2025-04-26"),
+  },
+  {
+    title: "Threading the Needle",
+    articleUrl: "https://example.com/article",
+    sourceName: "The Craft Chronicle",
+    excerpt: "How traditional Sozni needlework and master craftspeople bridge heritage artisanal values with contemporary global luxury standards.",
+    imageUrl: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124714/zaevyul/storefront/craft-process.jpg",
+    image: { url: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124714/zaevyul/storefront/craft-process.jpg" },
+    status: "published",
+    sortOrder: 3,
+    publishedAt: new Date("2025-03-18"),
+  },
+];
+
 export const seedDatabase = async () => {
   try {
     const categoryCount = await BlogCategory.countDocuments();
@@ -126,7 +163,14 @@ export const seedDatabase = async () => {
       await Blog.insertMany(blogsData);
       console.log("Blog posts seeded successfully!");
     }
+
+    const mediaCoverageCount = await MediaCoverage.countDocuments();
+    if (mediaCoverageCount === 0) {
+      await MediaCoverage.insertMany(mediaCoveragesData);
+      console.log("Media coverage entries seeded successfully!");
+    }
   } catch (error) {
     console.error("Error seeding database:", error);
   }
 };
+

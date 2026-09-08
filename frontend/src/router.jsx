@@ -17,6 +17,8 @@ import Blogs from './pages/admin/Blogs/index';
 import BlogForm from './pages/admin/Blogs/BlogForm';
 import BlogCategories from './pages/admin/BlogCategories/index';
 import BlogCategoryForm from './pages/admin/BlogCategories/BlogCategoryForm';
+import MediaCoverage from './pages/admin/MediaCoverage/index';
+import MediaCoverageForm from './pages/admin/MediaCoverage/MediaCoverageForm';
 import Coupons from './pages/admin/Coupons';
 import Newsletter from './pages/admin/Newsletter';
 import Reports from './pages/admin/Reports';
@@ -57,12 +59,16 @@ export default function AdminRouter() {
         <Route path="blog-categories"        element={<BlogCategories />} />
         <Route path="blog-categories/new"    element={<BlogCategoryForm />} />
         <Route path="blog-categories/:id"    element={<BlogCategoryForm />} />
+        <Route path="media-coverage"         element={<MediaCoverage />} />
+        <Route path="media-coverage/new"     element={<MediaCoverageForm />} />
+        <Route path="media-coverage/:id"     element={<MediaCoverageForm />} />
         <Route path="coupons"           element={<Coupons />} />
         <Route path="newsletter"        element={<Newsletter />} />
         <Route path="reports"           element={<Reports />} />
         <Route path="settings"          element={<Settings />} />
         <Route path="profile"           element={<Profile />} />
       </Route>
+
 
       <Route path="*" element={<Navigate to="dashboard" replace />} />
       </Routes>

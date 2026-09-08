@@ -6,6 +6,7 @@ import {
   getPublicBlogsList,
   getPublicBlogBySlug,
   getPublicBlogCategories,
+  getPublicMediaCoverages,
   getPublicCoupons,
   validatePublicCoupon,
   subscribeNewsletter,
@@ -39,6 +40,10 @@ router.get("/categories", getPublicCategories);
 router.get("/blogs", getPublicBlogsList);
 router.get("/blogs/:slug", getPublicBlogBySlug);
 router.get("/blog-categories", getPublicBlogCategories);
+
+// Media Coverage
+router.get("/media-coverage", getPublicMediaCoverages);
+
 
 // Coupons, Newsletter, Settings, Location, Branding
 router.get("/coupons", getPublicCoupons);

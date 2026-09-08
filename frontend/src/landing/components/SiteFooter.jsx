@@ -195,8 +195,17 @@ export default function SiteFooter() {
                   Journal
                 </RouterLink>
               </li>
+              <li>
+                <RouterLink
+                  to="/media-coverage"
+                  className="hover:text-[#1C1916] transition-colors cursor-pointer"
+                >
+                  Media Coverage
+                </RouterLink>
+              </li>
             </ul>
           </div>
+
 
           {/* Column 3: ACCOUNT */}
 
