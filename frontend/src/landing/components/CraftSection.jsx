@@ -47,7 +47,7 @@ export default function CraftSection() {
             From the highlands of Changthang to the hands of our weavers, every
             piece carries a story centuries in the making. Our commitment to the
             craft ensures that each thread is a testament to the enduring legacy
-            of Kashmiri artistry. It is not merely an accessory; it is an
+            of Kashmiri Handicrafts and Artisanship. It is not merely an accessory; it is an
             heirloom.
           </p>
 

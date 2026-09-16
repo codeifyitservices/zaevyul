@@ -37,27 +37,27 @@ const rootsFeatures = [
 const legacyImgs = [
   {
     number: "01",
-    img: "/storefront/about-mountain.png",
+    img: "/storefront/about-nature-logo.jpeg",
     title: "Inspired by Nature",
     description: "The serene beauty of Kashmir inspires everything we create.",
   },
   {
     number: "02",
-    img: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124698/zaevyul/storefront/about-hand.png",
+    img: "/storefront/about-artisan-tradition-logo.jpeg",
     title: "Crafted by Hand",
     description:
       "Skilled artisans weave each piece with care, keeping traditions alive.",
   },
   {
     number: "03",
-    img: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124704/zaevyul/storefront/about-urn.png",
+    img: "/storefront/about-pashmina-logo.jpeg",
     title: "Finest Pashmina",
     description:
       "From the finest fibres to intricate details, quality is our promise.",
   },
   {
     number: "04",
-    img: "https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124697/zaevyul/storefront/about-globe.png",
+    img: "/storefront/about-globe-logo.jpeg",
     title: "Loved Worldwide",
     description:
       "Our creations travel across the world, spreading timeless elegance.",
@@ -90,9 +90,9 @@ export default function OurStoryPage() {
             <div className="w-full aspect-[16/11] sm:aspect-[3/2] lg:aspect-[16/11] bg-[#F3EFE8] rounded-[2px] overflow-hidden">
               {/* Replace src with the Kashmir lake / houseboat illustration */}
               <img
-                src="https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124699/zaevyul/storefront/about-main.png"
-                alt="Illustration of a Kashmiri lake with a houseboat and mountains"
-                className="w-full h-full object-cover"
+                src="/storefront/about-main-v2.jpeg" //don't have cloudinary url so directly take image from public assets
+                alt="Illustration of a Kashmiri lake with a houseboat"
+                className="w-full h-full"
               />
             </div>
           </div>
@@ -105,11 +105,15 @@ export default function OurStoryPage() {
         {/* ===================== SECTION 02 — Our Roots ===================== */}
         <section className="max-w-7xl 2xl:max-w-[1680px] mx-auto px-6 sm:px-10 lg:px-16 py-16 sm:py-24">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
-            <div className="w-full aspect-[4/3] sm:aspect-[3/2] lg:aspect-[4/3] bg-[#F3EFE8] rounded-[2px] overflow-hidden order-1 lg:order-1">
-              {/* Replace src with the mountain river/house photograph */}
+            <div className="w-full aspect-[4/3] sm:aspect-[3/2] lg:aspect-[4/3] bg-white rounded-[2px] overflow-hidden order-1 lg:order-1 grid grid-cols-2 gap-2">
               <img
-                src="https://res.cloudinary.com/dfkkjncxc/image/upload/v1787124695/zaevyul/storefront/about-2.png"
-                alt="Snow-capped Kashmiri mountains with a river and traditional house"
+                src="/storefront/about-2-part1.jpeg"
+                alt="Tourist in kashmir boating and traditional house"
+                className="w-full h-full object-cover"
+              />
+              <img
+                src="/storefront/about-2-part2.jpeg" // Second image
+                alt="Kashmiri traditional house design"
                 className="w-full h-full object-cover"
               />
             </div>
