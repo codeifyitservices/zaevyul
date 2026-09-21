@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Save, Trash2 } from "lucide-react";
+import { Save, Trash2, X } from "lucide-react";
 import { formatCurrency } from "../../../lib/mockData";
 import PageHeader from "../../../components/PageHeader";
 import ImageUploader from "../../../components/ImageUploader";
@@ -270,6 +270,12 @@ export default function ProductForm() {
         ]}
         actions={
           <div style={{ display: "flex", gap: 8 }}>
+            <button
+              className="btn btn-secondary"
+              onClick={() => navigate("/admin/products")}
+            >
+              <X size={13} /> Close
+            </button>
             {!isNew && (
               <button
                 className="btn btn-secondary"
